@@ -1,6 +1,7 @@
-import type { IChainRepository } from '../../domain/repositories/index.js';
-import { TimelineService } from '../../domain/services/index.js';
-import type { GetTimelineCommand, TimelineDTO } from '../dto/index.js';
+import type { IChainRepository } from '@domain/repositories/index.js';
+import { TimelineService } from '@domain/services/index.js';
+import type { GetTimelineCommand, TimelineDTO } from '@application/dto/index.js';
+import { now } from '@shared/utilities/index.js';
 
 /**
  * Caso de uso: Gera a visualização cronológica combinada.
@@ -20,7 +21,7 @@ export class GetChronologicalTimeline {
           ...(command.from ? { from: command.from } : {}),
           ...(command.to ? { to: command.to } : {}),
         },
-        createdAt: new Date().toISOString(),
+        createdAt: now(),
       };
     }
 

@@ -1,9 +1,9 @@
-import type { IChainRepository, ChainFilter } from '../../domain/repositories/index.js';
-import type { ITagRepository } from '../../domain/repositories/index.js';
+import type { IChainRepository, ChainFilter } from '@domain/repositories/index.js';
+import type { ITagRepository } from '@domain/repositories/index.js';
 import type { ChainDetailDTO, ChainSummaryDTO } from '../dto/index.js';
-import { NotFoundError } from '../../shared/types/index.js';
-import { mapChainToDetail, mapChainToSummary, mapTagToDTO } from './shared/mappers.js';
-import type { UUID } from '../../shared/types/index.js';
+import { NotFoundError } from '@shared/types/index.js';
+import { mapChainToDetail, mapChainToSummary, mapTagToDTO } from '../mappers/index.js';
+import type { UUID } from '@shared/types/index.js';
 
 export class GetChainDetails {
   constructor(

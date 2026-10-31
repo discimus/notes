@@ -1,4 +1,4 @@
-import { ValidationError } from '../../shared/types/index.js';
+import { ValidationError } from '@shared/types/index.js';
 
 /**
  * Value Object: Posição de uma nota dentro de uma cadeia.

@@ -1,6 +1,6 @@
-import type { IChainRepository } from '../../domain/repositories/index.js';
+import type { IChainRepository } from '@domain/repositories/index.js';
 import type { UpdateChainTitleCommand } from '../dto/index.js';
-import { NotFoundError } from '../../shared/types/index.js';
+import { NotFoundError } from '@shared/types/index.js';
 
 export class UpdateChainTitle {
   constructor(private readonly chainRepo: IChainRepository) {}

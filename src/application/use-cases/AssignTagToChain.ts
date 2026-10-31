@@ -1,10 +1,10 @@
-import { Tag, ChainTag } from '../../domain/entities/index.js';
-import type { IChainRepository } from '../../domain/repositories/index.js';
-import type { ITagRepository } from '../../domain/repositories/index.js';
+import { Tag, ChainTag } from '@domain/entities/index.js';
+import type { IChainRepository } from '@domain/repositories/index.js';
+import type { ITagRepository } from '@domain/repositories/index.js';
 import type { AssignTagCommand, TagDTO } from '../dto/index.js';
-import { NotFoundError } from '../../shared/types/index.js';
-import { normalizeText } from '../../shared/utilities/index.js';
-import { mapTagToDTO } from './shared/mappers.js';
+import { NotFoundError } from '@shared/types/index.js';
+import { normalizeText } from '@shared/utilities/index.js';
+import { mapTagToDTO } from '../mappers/index.js';
 
 export class AssignTagToChain {
   constructor(

@@ -1,10 +1,10 @@
 import type { IDBPDatabase } from 'idb';
 import type { ThreadNotesDB } from '../persistence/schema.js';
 import { getDatabase } from '../persistence/schema.js';
-import { Chain, Note } from '../../domain/entities/index.js';
-import type { IChainRepository, ChainSortOrder, ChainFilter } from '../../domain/repositories/index.js';
-import type { UUID } from '../../shared/types/index.js';
-import { normalizeText } from '../../shared/utilities/index.js';
+import { Chain, Note } from '@domain/entities/index.js';
+import type { IChainRepository, ChainSortOrder, ChainFilter } from '@domain/repositories/index.js';
+import type { UUID } from '@shared/types/index.js';
+import { normalizeText } from '@shared/utilities/index.js';
 
 export class IdbChainRepository implements IChainRepository {
   private async db(): Promise<IDBPDatabase<ThreadNotesDB>> {

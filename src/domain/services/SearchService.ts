@@ -1,6 +1,6 @@
 import type { Chain } from '../entities/index.js';
 import type { Tag } from '../entities/index.js';
-import { normalizeText, excerpt } from '../../shared/utilities/index.js';
+import { normalizeText, excerpt } from '@shared/utilities/index.js';
 
 export interface SearchResult {
   noteId: string;

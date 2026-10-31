@@ -1,6 +1,6 @@
-import type { UUID, ISODateString } from '../../shared/types/index.js';
+import type { UUID, ISODateString } from '@shared/types/index.js';
 import type { NoteData } from './Note.js';
-import { compareDates } from '../../shared/utilities/index.js';
+import { compareDates, now } from '@shared/utilities/index.js';
 
 export interface TimelineEntry {
   note: NoteData;
@@ -29,7 +29,7 @@ export class TimelineView {
   private constructor(entries: TimelineEntry[], filter: TimelineFilter) {
     this._entries = entries;
     this._filter = filter;
-    this._createdAt = new Date().toISOString();
+    this._createdAt = now();
   }
 
   /**

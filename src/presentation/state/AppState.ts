@@ -1,4 +1,4 @@
-import type { ChainSummaryDTO, ChainDetailDTO, TagDTO, SearchResultDTO, TimelineDTO } from '../../application/dto/index.js';
+import type { ChainSummaryDTO, ChainDetailDTO, TagDTO, SearchResultDTO, TimelineDTO } from '@application/dto/index.js';
 
 /**
  * Estado global da aplicação.
@@ -13,6 +13,7 @@ export interface AppState {
   chainSummaries: ChainSummaryDTO[];
   currentChain: ChainDetailDTO | null;
   allTags: TagDTO[];
+  chainFilterQuery: string;
   searchQuery: string;
   searchResults: SearchResultDTO[];
   timeline: TimelineDTO | null;
@@ -33,6 +34,7 @@ class AppStateStore {
     chainSummaries: [],
     currentChain: null,
     allTags: [],
+    chainFilterQuery: '',
     searchQuery: '',
     searchResults: [],
     timeline: null,

@@ -1,7 +1,7 @@
-import { Chain, Note } from '../../domain/entities/index.js';
-import type { IChainRepository, ChainSortOrder, ChainFilter } from '../../domain/repositories/index.js';
-import type { UUID } from '../../shared/types/index.js';
-import { normalizeText } from '../../shared/utilities/index.js';
+import { Chain, Note } from '@domain/entities/index.js';
+import type { IChainRepository, ChainSortOrder, ChainFilter } from '@domain/repositories/index.js';
+import type { UUID } from '@shared/types/index.js';
+import { normalizeText } from '@shared/utilities/index.js';
 
 /**
  * Repositório em memória para testes unitários e de integração.

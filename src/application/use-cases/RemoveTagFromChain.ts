@@ -1,7 +1,7 @@
-import type { IChainRepository } from '../../domain/repositories/index.js';
-import type { ITagRepository } from '../../domain/repositories/index.js';
+import type { IChainRepository } from '@domain/repositories/index.js';
+import type { ITagRepository } from '@domain/repositories/index.js';
 import type { RemoveTagCommand } from '../dto/index.js';
-import { NotFoundError } from '../../shared/types/index.js';
+import { NotFoundError } from '@shared/types/index.js';
 
 export class RemoveTagFromChain {
   constructor(

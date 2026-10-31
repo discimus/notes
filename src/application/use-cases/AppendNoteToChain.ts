@@ -1,7 +1,7 @@
-import type { IChainRepository } from '../../domain/repositories/index.js';
+import type { IChainRepository } from '@domain/repositories/index.js';
 import type { AppendNoteCommand, NoteDTO } from '../dto/index.js';
-import { NotFoundError, InvariantViolationError } from '../../shared/types/index.js';
-import { mapNoteToDTO } from './shared/mappers.js';
+import { NotFoundError, InvariantViolationError } from '@shared/types/index.js';
+import { mapNoteToDTO } from '../mappers/index.js';
 
 /**
  * Caso de uso: Anexa uma nota ao final de uma cadeia existente.

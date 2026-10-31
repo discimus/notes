@@ -1,6 +1,6 @@
-import type { IChainRepository } from '../../domain/repositories/index.js';
-import type { ITagRepository } from '../../domain/repositories/index.js';
-import { SearchService } from '../../domain/services/index.js';
+import type { IChainRepository } from '@domain/repositories/index.js';
+import type { ITagRepository } from '@domain/repositories/index.js';
+import { SearchService } from '@domain/services/index.js';
 import type { SearchCommand, SearchResultDTO } from '../dto/index.js';
 
 export class SearchNotes {
@@ -15,7 +15,7 @@ export class SearchNotes {
     if (!command.query.trim()) return [];
 
     const chains = await this.chainRepo.findAll({ deleted: false }, 'updatedAt');
-    const tagsByChainId = new Map<string, import('../../domain/entities/index.js').Tag[]>();
+    const tagsByChainId = new Map<string, import('@domain/entities/index.js').Tag[]>();
 
     for (const chain of chains) {
       const tags = await this.tagRepo.findByChainId(chain.id);

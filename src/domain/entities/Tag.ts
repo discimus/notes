@@ -1,7 +1,7 @@
-import type { UUID, ISODateString } from '../../shared/types/index.js';
+import type { UUID, ISODateString } from '@shared/types/index.js';
 import { TagName } from '../value-objects/index.js';
-import { generateId } from '../../shared/utilities/index.js';
-import { now } from '../../shared/utilities/index.js';
+import { generateId } from '@shared/utilities/index.js';
+import { now } from '@shared/utilities/index.js';
 
 /** Origem de uma tag */
 export type TagOrigin = 'manual' | 'suggested' | 'accepted' | 'rejected';

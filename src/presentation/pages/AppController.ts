@@ -1,7 +1,9 @@
 import { appState } from '../state/AppState.js';
+import type { AppView } from '../state/AppState.js';
 import { snackbar } from '../components/Snackbar.js';
 import { showConfirmDialog } from '../components/Dialog.js';
 import { DraftStore } from '../state/DraftStore.js';
+import { pushNavigation } from '../app/navigation.js';
 
 import {
   CreateChainWithHeader,
@@ -21,10 +23,10 @@ import {
   GetAllTags,
   RenameTag,
   DeleteTag,
-} from '../../application/use-cases/index.js';
+} from '@application/use-cases/index.js';
 
-import { IdbChainRepository } from '../../infrastructure/repositories/IdbChainRepository.js';
-import { IdbTagRepository } from '../../infrastructure/repositories/IdbTagRepository.js';
+import { IdbChainRepository } from '@infrastructure/repositories/IdbChainRepository.js';
+import { IdbTagRepository } from '@infrastructure/repositories/IdbTagRepository.js';
 
 const chainRepo = new IdbChainRepository();
 const tagRepo = new IdbTagRepository();
@@ -75,7 +77,8 @@ async function loadTags(): Promise<void> {
 }
 
 /** Abre uma cadeia e carrega seus detalhes */
-async function openChain(chainId: string): Promise<void> {
+async function openChain(chainId: string, push = true): Promise<void> {
+  if (push) pushNavigation('chain-detail', chainId);
   appState.set({ isLoading: true, selectedChainId: chainId, view: 'chain-detail' });
   try {
     const detail = await getChainDetails.execute(chainId);
@@ -100,6 +103,7 @@ export const AppController = {
         ...(tagNames && tagNames.length > 0 ? { tagNames } : {}),
       });
       DraftStore.clear();
+      appState.set({ chainFilterQuery: '' });
       snackbar.success('Cadeia criada.');
       await loadChains();
       await loadTags();
@@ -186,6 +190,7 @@ export const AppController = {
         onClick: () => AppController.restoreChain(chainId),
       });
       appState.set({ selectedChainId: null, currentChain: null, view: 'chains' });
+      pushNavigation('chains');
       await loadChains();
     } catch (e: unknown) {
       snackbar.error((e as Error).message);
@@ -218,6 +223,7 @@ export const AppController = {
         onClick: () => AppController.restoreFromTrash(chainId),
       });
       appState.set({ selectedChainId: null, currentChain: null, view: 'chains' });
+      pushNavigation('chains');
       await loadChains();
     } catch (e: unknown) {
       snackbar.error((e as Error).message);
@@ -308,14 +314,20 @@ export const AppController = {
     }
   },
 
-  async navigateTo(view: import('../state/AppState.js').AppView, chainId?: string): Promise<void> {
-    appState.set({ view, selectedChainId: chainId ?? null, currentChain: null });
+  async navigateTo(view: AppView, chainId?: string): Promise<void> {
+    appState.set({
+      view,
+      selectedChainId: chainId ?? null,
+      currentChain: null,
+      chainFilterQuery: '',
+    });
+    pushNavigation(view, chainId);
     if (view === 'chains' || view === 'favorites' || view === 'archived' || view === 'trash') {
       await loadChains();
     } else if (view === 'tags') {
       await loadTags();
     } else if (view === 'chain-detail' && chainId) {
-      await openChain(chainId);
+      await openChain(chainId, false);
     }
   },
 

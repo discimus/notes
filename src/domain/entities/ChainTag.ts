@@ -1,5 +1,5 @@
-import type { UUID, ISODateString } from '../../shared/types/index.js';
-import { now } from '../../shared/utilities/index.js';
+import type { UUID, ISODateString } from '@shared/types/index.js';
+import { now } from '@shared/utilities/index.js';
 
 export interface ChainTagData {
   chainId: UUID;

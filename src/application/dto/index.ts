@@ -1,6 +1,6 @@
-import type { UUID, ISODateString } from '../../shared/types/index.js';
-import type { NoteRole } from '../../domain/entities/index.js';
-import type { TagOrigin } from '../../domain/entities/index.js';
+import type { UUID, ISODateString } from '@shared/types/index.js';
+import type { NoteRole } from '@domain/entities/index.js';
+import type { TagOrigin } from '@domain/entities/index.js';
 
 // ── Note DTOs ──────────────────────────────────────────────────────────────
 

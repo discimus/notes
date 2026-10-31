@@ -1,6 +1,6 @@
-import type { IChainRepository } from '../../domain/repositories/index.js';
-import { NotFoundError } from '../../shared/types/index.js';
-import type { UUID } from '../../shared/types/index.js';
+import type { IChainRepository } from '@domain/repositories/index.js';
+import { NotFoundError } from '@shared/types/index.js';
+import type { UUID } from '@shared/types/index.js';
 
 export class ToggleFavorite {
   constructor(private readonly chainRepo: IChainRepository) {}

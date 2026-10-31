@@ -1,7 +1,7 @@
-import type { UUID, ISODateString } from '../../shared/types/index.js';
-import { InvariantViolationError, ValidationError } from '../../shared/types/index.js';
+import type { UUID, ISODateString } from '@shared/types/index.js';
+import { InvariantViolationError, ValidationError } from '@shared/types/index.js';
 import { Note } from './Note.js';
-import { generateId, now } from '../../shared/utilities/index.js';
+import { generateId, now } from '@shared/utilities/index.js';
 
 export interface ChainData {
   id: UUID;
@@ -172,6 +172,11 @@ export class Chain {
   }
 
   softDelete(): void {
+    if (this.isArchived()) {
+      throw new InvariantViolationError(
+        'Não é possível mover uma cadeia arquivada para a lixeira. Restaure-a antes.'
+      );
+    }
     this._deletedAt = now();
     this._updatedAt = now();
   }

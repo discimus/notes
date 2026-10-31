@@ -1,5 +1,5 @@
-import { ValidationError } from '../../shared/types/index.js';
-import { normalizeText } from '../../shared/utilities/index.js';
+import { ValidationError } from '@shared/types/index.js';
+import { normalizeText } from '@shared/utilities/index.js';
 
 /**
  * Value Object: Nome normalizado de uma tag.

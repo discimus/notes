@@ -1,7 +1,7 @@
-import type { IChainRepository } from '../../domain/repositories/index.js';
+import type { IChainRepository } from '@domain/repositories/index.js';
 import type { UpdateNoteCommand, NoteDTO } from '../dto/index.js';
-import { NotFoundError } from '../../shared/types/index.js';
-import { mapNoteToDTO } from './shared/mappers.js';
+import { NotFoundError } from '@shared/types/index.js';
+import { mapNoteToDTO } from '../mappers/index.js';
 
 /**
  * Caso de uso: Atualiza o conteúdo de uma nota.

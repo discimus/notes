@@ -7,8 +7,8 @@ SPA vanilla TS + DDD + Clean Architecture. Build: Vite 5, tsc strict. Persist: I
 | Comando | Ação |
 |---|---|
 | `npm run dev` | Dev server localhost:5173 |
-| `npm run build` | tsc + vite build |
-| `npm run typecheck` | tsc --noEmit |
+| `npm run build` | tsc (src) + vite build |
+| `npm run typecheck` | tsc --noEmit (src + tests) |
 | `npm run test` | vitest run |
 | `npm run test:coverage` | vitest run --coverage |
 
@@ -38,10 +38,12 @@ Use os aliases. Nunca use caminhos relativos que cruzem camadas (ex: `../../doma
 ## Política de testes
 
 - **NUNCA** modificar testes existentes. Se quebrar, a implementação está errada.
-- Testes unitários ficam em `tests/unit/domain/` — cobrem entidades e value objects.
+- Testes unitários de domínio ficam em `tests/unit/domain/` — cobrem entidades e value objects.
+- Testes unitários de apresentação ficam em `tests/unit/presentation/` — cobrem helpers de DOM, filtros e componentes sem I/O real.
 - Testes de integração ficam em `tests/integration/use-cases/` — usam `InMemoryChainRepository` e `InMemoryTagRepository`, nunca IDB real.
 - Ao adicionar nova entidade → adicionar teste de domínio em `tests/unit/domain/`.
 - Ao adicionar novo use case → adicionar teste de integração em `tests/integration/use-cases/`.
+- `src` é verificado com `tsconfig.json`; `tests` com `tsconfig.test.json` (`noUnused*` desativado apenas nos testes).
 - Exceção: `it.skip` com justificativa quando a falha for por limitação de ambiente.
 
 ## Camadas e responsabilidades

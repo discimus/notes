@@ -1,6 +1,6 @@
-import { Tag, ChainTag } from '../../domain/entities/index.js';
-import type { ITagRepository } from '../../domain/repositories/index.js';
-import type { UUID } from '../../shared/types/index.js';
+import { Tag, ChainTag } from '@domain/entities/index.js';
+import type { ITagRepository } from '@domain/repositories/index.js';
+import type { UUID } from '@shared/types/index.js';
 
 export class InMemoryTagRepository implements ITagRepository {
   private tags = new Map<string, Tag>();

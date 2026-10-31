@@ -1,9 +1,9 @@
 import { openDB } from 'idb';
 import type { IDBPDatabase } from 'idb';
-import type { NoteData } from '../../domain/entities/index.js';
-import type { ChainData } from '../../domain/entities/index.js';
-import type { TagData } from '../../domain/entities/index.js';
-import type { ChainTagData } from '../../domain/entities/index.js';
+import type { NoteData } from '@domain/entities/index.js';
+import type { ChainData } from '@domain/entities/index.js';
+import type { TagData } from '@domain/entities/index.js';
+import type { ChainTagData } from '@domain/entities/index.js';
 
 export const DB_NAME = 'thread-notes-db';
 export const DB_VERSION = 1;

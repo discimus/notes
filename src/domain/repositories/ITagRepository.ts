@@ -1,4 +1,4 @@
-import type { UUID } from '../../shared/types/index.js';
+import type { UUID } from '@shared/types/index.js';
 import type { Tag } from '../entities/index.js';
 import type { ChainTag } from '../entities/index.js';
 

@@ -1,12 +1,12 @@
-import { Chain } from '../../domain/entities/index.js';
-import { Tag, ChainTag } from '../../domain/entities/index.js';
-import type { IChainRepository } from '../../domain/repositories/index.js';
-import type { ITagRepository } from '../../domain/repositories/index.js';
+import { Chain } from '@domain/entities/index.js';
+import { Tag, ChainTag } from '@domain/entities/index.js';
+import type { IChainRepository } from '@domain/repositories/index.js';
+import type { ITagRepository } from '@domain/repositories/index.js';
 import type { CreateChainCommand, ChainDetailDTO } from '../dto/index.js';
 import type { INoteClassifier } from '../ports/index.js';
 import { NullClassifier } from '../ports/index.js';
-import { normalizeText } from '../../shared/utilities/index.js';
-import { mapChainToDetail } from './shared/mappers.js';
+import { normalizeText } from '@shared/utilities/index.js';
+import { mapChainToDetail } from '../mappers/index.js';
 
 /**
  * Caso de uso: Cria uma cadeia com seu header.

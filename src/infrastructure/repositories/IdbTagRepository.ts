@@ -1,9 +1,9 @@
 import type { IDBPDatabase } from 'idb';
 import type { ThreadNotesDB } from '../persistence/schema.js';
 import { getDatabase } from '../persistence/schema.js';
-import { Tag, ChainTag } from '../../domain/entities/index.js';
-import type { ITagRepository } from '../../domain/repositories/index.js';
-import type { UUID } from '../../shared/types/index.js';
+import { Tag, ChainTag } from '@domain/entities/index.js';
+import type { ITagRepository } from '@domain/repositories/index.js';
+import type { UUID } from '@shared/types/index.js';
 
 export class IdbTagRepository implements ITagRepository {
   private async db(): Promise<IDBPDatabase<ThreadNotesDB>> {

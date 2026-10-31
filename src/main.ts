@@ -1,10 +1,10 @@
-import './presentation/styles/base.css';
-import './presentation/styles/components.css';
-import './presentation/styles/layout.css';
+import '@presentation/styles/base.css';
+import '@presentation/styles/components.css';
+import '@presentation/styles/layout.css';
 
-import { renderApp } from './presentation/pages/render.js';
-import { AppController } from './presentation/pages/AppController.js';
-import { appState } from './presentation/state/AppState.js';
+import { renderApp } from '@presentation/pages/render.js';
+import { AppController } from '@presentation/pages/AppController.js';
+import { appState } from '@presentation/state/AppState.js';
 
 async function bootstrap(): Promise<void> {
   const root = document.getElementById('app')!;
@@ -21,7 +21,8 @@ async function bootstrap(): Promise<void> {
     // Ctrl+K — pesquisa
     if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
       e.preventDefault();
-      appState.set({ view: 'search', searchQuery: '', searchResults: [] });
+      appState.set({ searchQuery: '', searchResults: [] });
+      void AppController.navigateTo('search');
       return;
     }
 
@@ -42,7 +43,7 @@ async function bootstrap(): Promise<void> {
       const backdrop = document.querySelector('.dialog-backdrop');
       if (backdrop) return; // modal aberto — o modal mesmo lida
       if (appState.get().view === 'search') {
-        appState.set({ view: 'chains' });
+        void AppController.navigateTo('chains');
       }
     }
   });
@@ -54,17 +55,18 @@ async function bootstrap(): Promise<void> {
   } catch (error) {
     console.error('[ThreadNotes] Erro ao inicializar:', error);
     root.innerHTML = `
-      <div style="display:flex;align-items:center;justify-content:center;height:100dvh;flex-direction:column;gap:16px;padding:24px;text-align:center;">
-        <span style="font-size:48px;color:#B3261E">⚠</span>
-        <p style="font-size:18px;font-weight:500">Erro ao inicializar o ThreadNotes</p>
-        <p style="font-size:14px;color:#49454E;max-width:400px">
+      <div class="fatal-error">
+        <span class="fatal-error__icon material-symbols-rounded" aria-hidden="true">warning</span>
+        <p class="fatal-error__title">Erro ao inicializar o ThreadNotes</p>
+        <p class="fatal-error__body">
           Verifique o console para mais detalhes. Pode ser necessário limpar os dados do site.
         </p>
-        <button onclick="location.reload()" style="padding:10px 24px;background:#6750A4;color:#fff;border:none;border-radius:20px;cursor:pointer;font-size:14px;">
+        <button class="btn btn-filled" id="fatal-error-reload" type="button">
           Recarregar
         </button>
       </div>
     `;
+    root.querySelector('#fatal-error-reload')?.addEventListener('click', () => location.reload());
   }
 }
 

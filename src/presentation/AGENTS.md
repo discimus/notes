@@ -1,5 +1,21 @@
 # presentation/AGENTS.md — UI, Estado e CSS
 
+## Estrutura
+
+```
+app/shell.ts        → renderApp, subscrição do estado, updateContent e FAB
+app/theme.ts        → preferência de tema e aplicação de data-theme
+app/navigation.ts   → histórico (pushState/popstate)
+views/              → nav, topbar, chains, search, timeline, tags, menus
+components/         → Dialog, Snackbar, states (empty/loading)
+dom.ts              → el(), qs(), qsa()
+filters.ts          → filtros puros de apresentação
+pages/AppController.ts
+pages/render.ts     → shim de compatibilidade para app/shell.ts
+state/              → AppState, DraftStore
+styles/             → tokens, base, layout, components
+```
+
 ## AppController — ponto de entrada único
 
 `src/presentation/pages/AppController.ts` é o **único lugar** que instancia repositórios e use cases.
@@ -26,6 +42,8 @@ appState.subscribe(fn)            // retorna unsubscribe — limpar em teardown
 ```
 
 **Views disponíveis** (`AppView`): `'chains' | 'chain-detail' | 'search' | 'timeline' | 'tags' | 'favorites' | 'archived' | 'trash'`
+
+`chainFilterQuery` é o filtro local do painel de cadeias. A busca global usa `searchQuery`/`searchResults` e o use case `SearchNotes`.
 
 Nunca mutate o objeto retornado por `get()`. Sempre use `set()` com partial.
 
@@ -72,22 +90,23 @@ Ações destrutivas **sempre** pedem confirmação via `showConfirmDialog` antes
 
 ## Renderização DOM — sem framework
 
-O projeto usa DOM vanilla. Não há `el()` helper (diferente do kanban). Padrão do projeto:
+O projeto usa DOM vanilla. Os helpers ficam em `src/presentation/dom.ts`:
 
 ```typescript
-// Criar elementos diretamente
-const card = document.createElement('div');
-card.className = 'chain-card';
+import { el, qs, qsa } from '../dom.js';
 
-// Usar innerHTML com escapeHtml para conteúdo dinâmico
-import { escapeHtml } from '@shared/utilities/index.js';
-element.innerHTML = `<span>${escapeHtml(userContent)}</span>`;
+const card = el('div', 'chain-card');
+card.innerHTML = `<span>${escapeHtml(userContent)}</span>`;
 ```
 
-Use `escapeHtml()` sempre que inserir conteúdo de usuário via `innerHTML`. Para texto puro, prefira `textContent`.
+Use `escapeHtml()` sempre que inserir conteúdo de usuário via `innerHTML`. Para texto puro, prefira `textContent`. Novas views devem ficar em `views/` e novos componentes reutilizáveis em `components/`.
 
 ## Bootstrap — `src/main.ts`
 
-Sequência de inicialização: importa CSS → detecta tema → monta DOM via `renderApp(root)` → `AppController.init()` → registra atalhos globais (`Ctrl+K` busca, `N` nova cadeia, `Escape` volta).
+Sequência de inicialização: importa CSS → `renderApp(root)` (inicializa tema, histórico, shell e FAB) → `AppController.init()` → registra atalhos globais (`Ctrl+K` busca, `N` nova cadeia, `Escape` volta).
 
-Não modifique `main.ts` para adicionar features — adicione no `AppController` e no `render.ts`.
+Não modifique `main.ts` para adicionar features — adicione no `AppController` e nas `views/`/`app/shell.ts`.
+
+## Testes
+
+Testes de apresentação ficam em `tests/unit/presentation/` e usam jsdom. Não edite testes existentes; adicione novos arquivos de teste.

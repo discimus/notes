@@ -1,0 +1,112 @@
+import { appState } from '../state/AppState.js';
+import type { AppState, AppView } from '../state/AppState.js';
+import { AppController } from '../pages/AppController.js';
+import { el, qs, qsa } from '../dom.js';
+import { cycleTheme, themeIcon, themeLabel } from '../app/theme.js';
+
+let drawerEscapeBound = false;
+
+function ensureDrawerEscape(): void {
+  if (drawerEscapeBound) return;
+  drawerEscapeBound = true;
+
+  document.addEventListener('keydown', (event) => {
+    if (event.key !== 'Escape' || !appState.get().drawerOpen) return;
+    event.preventDefault();
+    appState.set({ drawerOpen: false });
+    qs('#nav-overlay')?.remove();
+  });
+}
+
+export function renderNavDrawer(): HTMLElement {
+  const drawer = el('div', 'nav-drawer');
+  drawer.setAttribute('id', 'nav-drawer');
+
+  const header = el('div', 'nav-drawer__header');
+  header.innerHTML = `
+    <div class="nav-drawer__logo" aria-label="ThreadNotes">
+      <span class="material-symbols-rounded" aria-hidden="true">account_tree</span>
+      <span>ThreadNotes</span>
+    </div>
+    <button class="btn-icon" id="theme-toggle" aria-label="Alternar tema" title="Alternar tema">
+      <span class="material-symbols-rounded">dark_mode</span>
+    </button>
+  `;
+  drawer.appendChild(header);
+
+  const content = el('div', 'nav-drawer__content');
+  content.innerHTML = `
+    <nav aria-label="Seções principais">
+      <button class="nav-item nav-item--active" data-view="chains" aria-current="page" aria-label="Todas as cadeias">
+        <span class="nav-item__icon material-symbols-rounded" aria-hidden="true">notes</span>
+        <span class="nav-item__label">Todas as cadeias</span>
+      </button>
+      <button class="nav-item" data-view="favorites" aria-label="Favoritos">
+        <span class="nav-item__icon material-symbols-rounded" aria-hidden="true">star</span>
+        <span class="nav-item__label">Favoritos</span>
+      </button>
+      <button class="nav-item" data-view="tags" aria-label="Tags">
+        <span class="nav-item__icon material-symbols-rounded" aria-hidden="true">label</span>
+        <span class="nav-item__label">Tags</span>
+      </button>
+      <button class="nav-item" data-view="timeline" aria-label="Visualizações">
+        <span class="nav-item__icon material-symbols-rounded" aria-hidden="true">timeline</span>
+        <span class="nav-item__label">Visualizações</span>
+      </button>
+    </nav>
+    <hr class="nav-divider" />
+    <nav aria-label="Gerenciamento">
+      <button class="nav-item" data-view="archived" aria-label="Arquivo">
+        <span class="nav-item__icon material-symbols-rounded" aria-hidden="true">archive</span>
+        <span class="nav-item__label">Arquivo</span>
+      </button>
+      <button class="nav-item" data-view="trash" aria-label="Lixeira">
+        <span class="nav-item__icon material-symbols-rounded" aria-hidden="true">delete</span>
+        <span class="nav-item__label">Lixeira</span>
+      </button>
+    </nav>
+  `;
+  drawer.appendChild(content);
+
+  return drawer;
+}
+
+export function updateNavDrawer(state: AppState): void {
+  const drawer = qs('#nav-drawer');
+  if (!drawer) return;
+
+  ensureDrawerEscape();
+
+  qsa('.nav-item', drawer).forEach((item) => {
+    const view = (item as HTMLElement).dataset['view'];
+    const isActive = view === state.view || (state.view === 'chain-detail' && view === 'chains');
+    item.classList.toggle('nav-item--active', isActive);
+    item.setAttribute('aria-current', isActive ? 'page' : 'false');
+
+    if (!(item as HTMLElement).dataset['bound']) {
+      (item as HTMLElement).dataset['bound'] = '1';
+      item.addEventListener('click', () => {
+        if (view) AppController.navigateTo(view as AppView);
+        if (window.innerWidth < 768) {
+          drawer.classList.remove('nav-drawer--open');
+          qs('#nav-overlay')?.remove();
+        }
+      });
+    }
+  });
+
+  drawer.classList.toggle('nav-drawer--open', state.drawerOpen);
+
+  const themeBtn = qs('#theme-toggle', drawer);
+  if (themeBtn) {
+    const icon = themeBtn.querySelector<HTMLElement>('.material-symbols-rounded');
+    if (icon) icon.textContent = themeIcon(state.theme);
+    themeBtn.setAttribute('aria-label', themeLabel(state.theme));
+    themeBtn.setAttribute('title', themeLabel(state.theme));
+
+    if (!(themeBtn as HTMLElement).dataset['bound']) {
+      (themeBtn as HTMLElement).dataset['bound'] = '1';
+      themeBtn.addEventListener('click', () => cycleTheme());
+    }
+  }
+}

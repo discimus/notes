@@ -1,7 +1,7 @@
-import type { UUID, ISODateString } from '../../shared/types/index.js';
-import { ValidationError } from '../../shared/types/index.js';
+import type { UUID, ISODateString } from '@shared/types/index.js';
+import { ValidationError } from '@shared/types/index.js';
 import { NotePosition } from '../value-objects/index.js';
-import { generateId, now } from '../../shared/utilities/index.js';
+import { generateId, now } from '@shared/utilities/index.js';
 
 export type NoteRole = 'header' | 'tail';
 
