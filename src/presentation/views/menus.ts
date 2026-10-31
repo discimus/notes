@@ -18,12 +18,14 @@ export function showChainMenu(e: MouseEvent, chainId: string): void {
   menu.style.right = `${window.innerWidth - rect.right}px`;
 
   const state = appState.get();
-  const chain = state.currentChain;
+  const summary = state.chainSummaries.find((chain) => chain.id === chainId);
+  const chain = state.currentChain?.id === chainId ? state.currentChain : summary;
+  const isFavorite = chain?.isFavorite ?? false;
 
   const items: Array<{ icon: string; label: string; action: () => void; danger?: boolean }> = [
     {
-      icon: chain?.isFavorite ? 'star_off' : 'star',
-      label: chain?.isFavorite ? 'Remover favorito' : 'Adicionar favorito',
+      icon: isFavorite ? 'star_off' : 'star',
+      label: isFavorite ? 'Remover favorito' : 'Adicionar favorito',
       action: () => AppController.toggleFavorite(chainId),
     },
     {

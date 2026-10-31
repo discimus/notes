@@ -29,21 +29,19 @@ async function bootstrap(): Promise<void> {
     // N — nova cadeia (quando não está editando)
     if (e.key === 'n' && !isEditing && !e.ctrlKey && !e.metaKey) {
       e.preventDefault();
-      appState.set({ view: 'chains' });
-      // Pequeno delay para garantir que o DOM foi atualizado
+      appState.set({ view: 'editor' });
       setTimeout(() => {
-        const newBtn = document.querySelector<HTMLElement>('[aria-label*="Nova cadeia"]');
-        newBtn?.click();
+        document.querySelector<HTMLElement>('#editor-new-chain')?.click();
       }, 50);
       return;
     }
 
-    // Escape — fecha modais/volta para lista
+    // Escape — fecha modais/volta para o editor
     if (e.key === 'Escape' && !isEditing) {
       const backdrop = document.querySelector('.dialog-backdrop');
-      if (backdrop) return; // modal aberto — o modal mesmo lida
+      if (backdrop) return;
       if (appState.get().view === 'search') {
-        void AppController.navigateTo('chains');
+        void AppController.navigateTo('editor');
       }
     }
   });

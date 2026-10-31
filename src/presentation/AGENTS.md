@@ -7,13 +7,14 @@ app/shell.ts        → renderApp, subscrição do estado, updateContent e FAB
 app/theme.ts        → preferência de tema e aplicação de data-theme
 app/settings.ts     → preferências persistidas (confirmação da lixeira)
 app/navigation.ts   → histórico (pushState/popstate)
-views/              → nav, topbar, chains, search, timeline, tags, menus
-components/         → Dialog, SettingsDialog, Snackbar, states (empty/loading)
+app/editorGrouping.ts → agrupamento puro de notas por data
+views/              → nav, topbar, editor, chains, search, timeline, tags, menus
+components/         → Dialog, EditorTabs, EditorSidebar, DraftDocument, ChainDocument, ChainListItem, AppendToChainDialog, CloseTabDialog, SettingsDialog, Snackbar, states
 dom.ts              → el(), qs(), qsa()
 filters.ts          → filtros puros de apresentação
 pages/AppController.ts
 pages/render.ts     → shim de compatibilidade para app/shell.ts
-state/              → AppState, DraftStore
+state/              → AppState, DraftStore, EditorStore
 styles/             → tokens, base, layout, components
 ```
 
@@ -42,7 +43,9 @@ appState.set({ isLoading: true }) // merge parcial + notifica listeners
 appState.subscribe(fn)            // retorna unsubscribe — limpar em teardown
 ```
 
-**Views disponíveis** (`AppView`): `'chains' | 'chain-detail' | 'search' | 'timeline' | 'tags' | 'favorites' | 'archived' | 'trash'`
+**Views disponíveis** (`AppView`): `'editor' | 'chains' | 'chain-detail' | 'search' | 'timeline' | 'tags' | 'favorites' | 'archived' | 'trash'`
+
+A view inicial é `'editor'`. O conteúdo das abas **não** fica no `AppState`; use `EditorStore` para evitar re-render global a cada tecla.
 
 `chainFilterQuery` é o filtro local do painel de cadeias. A busca global usa `searchQuery`/`searchResults` e o use case `SearchNotes`.
 
@@ -57,6 +60,34 @@ DraftStore.save({ content, title?, mode: 'header'|'tail', chainId?, savedAt })
 DraftStore.load()  // Draft | null
 DraftStore.clear() // sempre chamar após criar/anexar nota com sucesso
 ```
+
+## EditorStore — workspace com abas
+
+`src/presentation/state/EditorStore.ts` — singleton `editorStore`, separado do `AppState`.
+
+```typescript
+editorStore.ensureTab()
+editorStore.createDraftTab()
+editorStore.openChainTab(chainId, title)
+editorStore.selectTab(id)
+editorStore.updateDraftContent(id, content)
+editorStore.updateComposer(id, content)
+editorStore.setChainTabNotes(id, detail)
+editorStore.appendNoteToChainTab(id, note)
+editorStore.settleComposerAfterAppend(id, savedContent)
+editorStore.markDraftSaved(id, target, savedContent)
+editorStore.closeTab(id)
+editorStore.closeChainTabs(chainId)
+editorStore.hasDirtyTabs()
+editorStore.flush()
+```
+
+- Existem dois tipos de aba: `DraftTab` e `ChainTab`.
+- `DraftTab`: texto independente; primeiro salvamento abre `AppendToChainDialog`; próximos `Ctrl+S` atualizam a nota anexada.
+- `ChainTab`: histórico da cadeia agrupado por data + compositor de nova nota; cada append cria uma nova tail.
+- Persiste abas, aba ativa e compositores em `sessionStorage` (`threadnotes.editor.tabs`) com debounce. Notas de cadeias não são persistidas; são recarregadas do IndexedDB.
+- `openChainInEditor`, `loadEditorChainTab`, `appendToEditorChainTab`, `saveEditorToChain` e `updateEditorNote` vivem no `AppController`.
+- `Ctrl+S`, `beforeunload`, sidebar mobile e foco do compositor ficam na view Editor/sessão, não em `main.ts`.
 
 ## Configurações
 
@@ -100,6 +131,8 @@ Ações destrutivas **sempre** pedem confirmação via `showConfirmDialog` antes
 - Tokens MD3: use `var(--md-sys-color-primary)` etc. — nunca valores de cor literais.
 - **Nunca** ler `components.css` inteiro — use grep para a classe específica.
 - Navegação: rail fixo de 80px em `≥769px`; drawer modal de 280px em `≤768px`. O hambúrguer (`#nav-toggle`) só aparece no compacto. Configurações e toggle de tema ficam no rodapé do rail/drawer.
+- Workspace Editor: lateral de 300px no desktop e off-canvas no compacto. O botão `#editor-explorer-toggle` abre/fecha a lateral no mobile; overlay usa o scrim MD3.
+- Abas usam `role="tablist"`; o documento ativo é `role="tabpanel"`. O compositor da cadeia é o único ponto que cria novas tails na view principal.
 
 ## Renderização DOM — sem framework
 
@@ -123,3 +156,5 @@ Não modifique `main.ts` para adicionar features — adicione no `AppController`
 ## Testes
 
 Testes de apresentação ficam em `tests/unit/presentation/` e usam jsdom. Não edite testes existentes; adicione novos arquivos de teste.
+
+Exceção autorizada: `nav.test.ts` valida os 6 destinos com Editor como view inicial. Testes do editor: `editorStore`, `editorTabs`, `editorSidebar`, `editorGrouping`, `chainDocument`, `appendToChainDialog` e `editorView`.

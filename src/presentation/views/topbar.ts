@@ -34,7 +34,8 @@ export function updateTopbar(topbar: HTMLElement, state: AppState): void {
   topbar.appendChild(burger);
 
   const title = el('h1', 'app-topbar__title');
-  if (state.view === 'chains') title.textContent = 'Todas as cadeias';
+  if (state.view === 'editor') title.textContent = 'Editor';
+  else if (state.view === 'chains') title.textContent = 'Todas as cadeias';
   else if (state.view === 'favorites') title.textContent = 'Favoritos';
   else if (state.view === 'archived') title.textContent = 'Arquivo';
   else if (state.view === 'trash') title.textContent = 'Lixeira';

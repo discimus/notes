@@ -11,9 +11,11 @@ import { renderSearchLayout, updateSearchLayout } from '../views/search.js';
 import { renderTimelineLayout, updateTimelineLayout } from '../views/timeline.js';
 import { renderTagsLayout, updateTagsLayout } from '../views/tags.js';
 import { showComposerModal } from '../views/menus.js';
+import { initEditorSession, mountEditorView } from '../views/editor.js';
 
 export function renderApp(root: HTMLElement): void {
   initTheme();
+  initEditorSession();
   root.innerHTML = '';
 
   const shell = el('div', 'app-shell');
@@ -45,10 +47,12 @@ export function renderApp(root: HTMLElement): void {
   shell.appendChild(main);
   root.appendChild(shell);
 
+  let contentCleanup: (() => void) | null = null;
+
   const applyState = (state: AppState) => {
     updateNavDrawer(state);
     updateTopbar(topbar, state);
-    updateContent(content, state);
+    contentCleanup = updateContent(content, state, contentCleanup);
     updateFab(fab, state);
   };
 
@@ -85,17 +89,25 @@ function updateFab(fab: HTMLElement, state: AppState): void {
   fab.hidden = !(state.view === 'chains' || state.view === 'favorites');
 }
 
-function updateContent(content: HTMLElement, state: AppState): void {
+function updateContent(
+  content: HTMLElement,
+  state: AppState,
+  cleanup: (() => void) | null
+): (() => void) | null {
   content.setAttribute('aria-busy', state.isLoading ? 'true' : 'false');
 
   const currentViewAttr = content.getAttribute('data-view');
   const newView = state.view;
 
   if (currentViewAttr !== newView) {
+    cleanup?.();
+    cleanup = null;
     content.setAttribute('data-view', newView);
     content.innerHTML = '';
 
-    if (newView === 'chains' || newView === 'favorites' || newView === 'archived' || newView === 'trash') {
+    if (newView === 'editor') {
+      cleanup = mountEditorView(content);
+    } else if (newView === 'chains' || newView === 'favorites' || newView === 'archived' || newView === 'trash') {
       content.appendChild(renderChainsLayout(state));
     } else if (newView === 'chain-detail') {
       content.appendChild(renderChainsLayout(state));
@@ -117,4 +129,6 @@ function updateContent(content: HTMLElement, state: AppState): void {
       updateTagsLayout(content, state);
     }
   }
+
+  return cleanup;
 }

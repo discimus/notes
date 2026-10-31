@@ -15,30 +15,31 @@ describe('navegação lateral', () => {
 
     expect(items).toHaveLength(6);
     expect(items.map((item) => item.dataset['view'])).toEqual([
-      'chains',
+      'editor',
       'favorites',
       'tags',
       'timeline',
       'archived',
       'trash',
     ]);
-    expect(items[0]?.querySelector('.nav-item__label')?.textContent).toBe('Cadeias');
-    expect(items[0]?.getAttribute('aria-label')).toBe('Todas as cadeias');
-    expect(items[0]?.title).toBe('Todas as cadeias');
+    expect(items[0]?.querySelector('.nav-item__label')?.textContent).toBe('Editor');
+    expect(items[0]?.getAttribute('aria-label')).toBe('Editor de texto');
+    expect(items[1]?.querySelector('.nav-item__label')?.textContent).toBe('Favoritos');
+    expect(items[1]?.getAttribute('aria-label')).toBe('Favoritos');
     expect(items[3]?.querySelector('.nav-item__label')?.textContent).toBe('Timeline');
     expect(items[3]?.getAttribute('aria-label')).toBe('Visualizações');
   });
 
-  it('marca apenas o destino atual e trata chain-detail como cadeias', () => {
+  it('marca apenas o destino atual', () => {
     updateNavDrawer({ ...appState.get(), view: 'favorites' });
 
     expect(document.querySelector('[data-view="favorites"]')?.classList.contains('nav-item--active')).toBe(true);
-    expect(document.querySelector('[data-view="chains"]')?.classList.contains('nav-item--active')).toBe(false);
+    expect(document.querySelector('[data-view="editor"]')?.classList.contains('nav-item--active')).toBe(false);
     expect(document.querySelector('[data-view="favorites"]')?.getAttribute('aria-current')).toBe('page');
 
-    updateNavDrawer({ ...appState.get(), view: 'chain-detail' });
+    updateNavDrawer({ ...appState.get(), view: 'editor' });
 
-    expect(document.querySelector('[data-view="chains"]')?.classList.contains('nav-item--active')).toBe(true);
+    expect(document.querySelector('[data-view="editor"]')?.classList.contains('nav-item--active')).toBe(true);
   });
 
   it('controla o estado aberto do drawer e expõe o toggle de tema no rodapé', () => {

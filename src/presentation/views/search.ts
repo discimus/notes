@@ -89,7 +89,9 @@ function renderSearchResults(container: HTMLElement, state: AppState): void {
       </p>
     `;
 
-    const open = () => AppController.navigateTo('chain-detail', result.chainId);
+    const open = () => {
+      void AppController.navigateTo('editor', result.chainId);
+    };
     item.addEventListener('click', open);
     item.addEventListener('keydown', (e) => { if (e.key === 'Enter') open(); });
 

@@ -144,7 +144,9 @@ function renderTimelineEntries(container: HTMLElement, state: AppState): void {
       <span class="material-symbols-rounded icon-xs" aria-hidden="true">open_in_new</span>
       ${escapeHtml(entry.chainTitle)}
     `;
-    chainLink.addEventListener('click', () => AppController.navigateTo('chain-detail', entry.chainId));
+    chainLink.addEventListener('click', () => {
+      void AppController.navigateTo('editor', entry.chainId);
+    });
 
     body.appendChild(textEl);
     body.appendChild(chainLink);

@@ -5,7 +5,7 @@ import type { ChainSummaryDTO, ChainDetailDTO, TagDTO, SearchResultDTO, Timeline
  * Leve store reativo baseado em eventos — sem dependências externas.
  */
 
-export type AppView = 'chains' | 'chain-detail' | 'search' | 'timeline' | 'tags' | 'favorites' | 'archived' | 'trash';
+export type AppView = 'editor' | 'chains' | 'chain-detail' | 'search' | 'timeline' | 'tags' | 'favorites' | 'archived' | 'trash';
 
 export interface AppState {
   view: AppView;
@@ -29,7 +29,7 @@ type Listener = (state: AppState) => void;
 
 class AppStateStore {
   private state: AppState = {
-    view: 'chains',
+    view: 'editor',
     selectedChainId: null,
     chainSummaries: [],
     currentChain: null,

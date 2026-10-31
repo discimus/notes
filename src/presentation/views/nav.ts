@@ -61,9 +61,9 @@ export function renderNavDrawer(): HTMLElement {
   const content = el('div', 'nav-drawer__content');
   content.innerHTML = `
     <nav aria-label="Seções principais">
-      <button class="nav-item nav-item--active" data-view="chains" aria-current="page" aria-label="Todas as cadeias" title="Todas as cadeias">
-        <span class="nav-item__icon material-symbols-rounded" aria-hidden="true">notes</span>
-        <span class="nav-item__label">Cadeias</span>
+      <button class="nav-item nav-item--active" data-view="editor" aria-current="page" aria-label="Editor de texto" title="Editor de texto">
+        <span class="nav-item__icon material-symbols-rounded" aria-hidden="true">edit_note</span>
+        <span class="nav-item__label">Editor</span>
       </button>
       <button class="nav-item" data-view="favorites" aria-label="Favoritos" title="Favoritos">
         <span class="nav-item__icon material-symbols-rounded" aria-hidden="true">star</span>

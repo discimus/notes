@@ -1,10 +1,13 @@
 import { appState } from '../state/AppState.js';
 import type { AppView } from '../state/AppState.js';
+import { editorStore } from '../state/EditorStore.js';
+import type { EditorTarget } from '../state/EditorStore.js';
 import { snackbar } from '../components/Snackbar.js';
 import { showConfirmDialog } from '../components/Dialog.js';
 import { DraftStore } from '../state/DraftStore.js';
 import { pushNavigation } from '../app/navigation.js';
 import { getSettings } from '../app/settings.js';
+import type { ChainDetailDTO, NoteDTO } from '@application/dto/index.js';
 
 import {
   CreateChainWithHeader,
@@ -51,6 +54,41 @@ const getAllTags = new GetAllTags(tagRepo);
 const renameTag = new RenameTag(tagRepo);
 const deleteTag = new DeleteTag(tagRepo);
 
+export interface EditorSaveSuccess {
+  ok: true;
+  target: EditorTarget;
+  chainTitle: string;
+  note: NoteDTO;
+}
+
+export interface EditorSaveFailure {
+  ok: false;
+  error: string;
+}
+
+export type EditorSaveResult = EditorSaveSuccess | EditorSaveFailure;
+
+export interface EditorAppendSuccess {
+  ok: true;
+  note: NoteDTO;
+  chainTitle: string;
+}
+
+export type EditorAppendResult = EditorAppendSuccess | EditorSaveFailure;
+
+function editorErrorMessage(error: unknown): string {
+  return error instanceof Error && error.message
+    ? error.message
+    : 'Não foi possível salvar o documento.';
+}
+
+function chainTitleById(chainId: string): string {
+  return (
+    appState.get().chainSummaries.find((chain) => chain.id === chainId)?.displayTitle ??
+    'Cadeia'
+  );
+}
+
 /** Carrega a lista de cadeias conforme a view atual */
 async function loadChains(): Promise<void> {
   const state = appState.get();
@@ -90,6 +128,46 @@ async function openChain(chainId: string, push = true): Promise<void> {
   }
 }
 
+async function loadEditorChainTab(
+  tabId: string,
+  chainId: string,
+  force = false
+): Promise<void> {
+  const tab = editorStore.getTab(tabId);
+  if (!tab || tab.kind !== 'chain') return;
+  if (!force && tab.status !== 'idle' && tab.status !== 'error') return;
+  if (tab.status === 'loading') return;
+
+  editorStore.setChainTabStatus(tabId, 'loading');
+
+  try {
+    const detail = await getChainDetails.execute(chainId);
+    editorStore.setChainTabNotes(tabId, detail);
+  } catch (error: unknown) {
+    editorStore.setChainTabError(tabId);
+    snackbar.error(
+      error instanceof Error ? error.message : 'Não foi possível carregar a cadeia.'
+    );
+  }
+}
+
+function syncEditorChainTab(chainId: string, detail: ChainDetailDTO): void {
+  const tab = editorStore.findChainTab(chainId);
+  if (tab) editorStore.setChainTabNotes(tab.id, detail);
+}
+
+async function refreshEditorChainTab(chainId: string): Promise<void> {
+  const tab = editorStore.findChainTab(chainId);
+  if (!tab) return;
+
+  try {
+    const detail = await getChainDetails.execute(chainId);
+    syncEditorChainTab(chainId, detail);
+  } catch {
+    editorStore.setChainTabError(tab.id);
+  }
+}
+
 export const AppController = {
   async init(): Promise<void> {
     await loadChains();
@@ -108,7 +186,7 @@ export const AppController = {
       snackbar.success('Cadeia criada.');
       await loadChains();
       await loadTags();
-      await openChain(result.id);
+      await AppController.openChainInEditor(result.id, result);
     } catch (e: unknown) {
       snackbar.error((e as Error).message);
     }
@@ -128,19 +206,151 @@ export const AppController = {
 
   async updateNoteContent(chainId: string, noteId: string, content: string): Promise<void> {
     try {
-      await updateNote.execute({ chainId, noteId, content });
+      const note = await updateNote.execute({ chainId, noteId, content });
       snackbar.success('Nota atualizada.');
-      await openChain(chainId);
+      editorStore.updateNoteInChainTabs(chainId, note);
+      if (appState.get().view === 'editor') {
+        await loadChains();
+      } else {
+        await openChain(chainId, false);
+      }
     } catch (e: unknown) {
       snackbar.error((e as Error).message);
     }
   },
 
+  async saveEditorAsNewChain(input: {
+    content: string;
+    title?: string;
+    tagNames?: string[];
+  }): Promise<EditorSaveResult> {
+    try {
+      const result = await createChain.execute({
+        content: input.content,
+        ...(input.title?.trim() ? { title: input.title.trim() } : {}),
+        ...(input.tagNames && input.tagNames.length > 0 ? { tagNames: input.tagNames } : {}),
+      });
+
+      await Promise.allSettled([loadChains(), loadTags()]);
+
+      const header = result.notes.find((note) => note.role === 'header') ?? result.notes[0];
+      if (!header) {
+        throw new Error('A nova cadeia foi criada sem uma nota inicial.');
+      }
+
+      const target: EditorTarget = {
+        chainId: result.id,
+        noteId: header.id,
+        role: header.role,
+        chainTitle: result.displayTitle,
+      };
+
+      return { ok: true, target, chainTitle: result.displayTitle, note: header };
+    } catch (error: unknown) {
+      const message = editorErrorMessage(error);
+      snackbar.error(message);
+      return { ok: false, error: message };
+    }
+  },
+
+  async saveEditorToChain(chainId: string, content: string): Promise<EditorSaveResult> {
+    try {
+      const note = await appendNote.execute({ chainId, content });
+      await Promise.allSettled([loadChains()]);
+
+      const chainTitle = chainTitleById(chainId);
+      const target: EditorTarget = {
+        chainId,
+        noteId: note.id,
+        role: note.role,
+        chainTitle,
+      };
+
+      const chainTab = editorStore.findChainTab(chainId);
+      if (chainTab) editorStore.appendNoteToChainTab(chainTab.id, note);
+
+      return { ok: true, target, chainTitle, note };
+    } catch (error: unknown) {
+      const message = editorErrorMessage(error);
+      snackbar.error(message);
+      return { ok: false, error: message };
+    }
+  },
+
+  async updateEditorNote(target: EditorTarget, content: string): Promise<EditorSaveResult> {
+    try {
+      const note = await updateNote.execute({
+        chainId: target.chainId,
+        noteId: target.noteId,
+        content,
+      });
+      await Promise.allSettled([loadChains()]);
+
+      const chainTitle = chainTitleById(target.chainId);
+      editorStore.updateNoteInChainTabs(target.chainId, note);
+
+      return {
+        ok: true,
+        target: { ...target, chainTitle },
+        chainTitle,
+        note,
+      };
+    } catch (error: unknown) {
+      const message = editorErrorMessage(error);
+      snackbar.error(message);
+      return { ok: false, error: message };
+    }
+  },
+
+  async appendToEditorChainTab(chainId: string, content: string): Promise<EditorAppendResult> {
+    try {
+      const note = await appendNote.execute({ chainId, content });
+      await Promise.allSettled([loadChains()]);
+      return { ok: true, note, chainTitle: chainTitleById(chainId) };
+    } catch (error: unknown) {
+      const message = editorErrorMessage(error);
+      snackbar.error(message);
+      return { ok: false, error: message };
+    }
+  },
+
+  async openChainInEditor(
+    chainId: string,
+    detail?: ChainDetailDTO
+  ): Promise<string | null> {
+    const wasEditor = appState.get().view === 'editor';
+    const existing = editorStore.findChainTab(chainId);
+    const title =
+      detail?.displayTitle ??
+      appState.get().chainSummaries.find((chain) => chain.id === chainId)?.displayTitle ??
+      'Cadeia';
+
+    const tab = editorStore.openChainTab(chainId, title);
+    appState.set({ view: 'editor', selectedChainId: null, currentChain: null });
+    pushNavigation('editor', chainId);
+
+    if (detail) {
+      editorStore.setChainTabNotes(tab.id, detail);
+    } else if (existing) {
+      await loadEditorChainTab(tab.id, chainId, true);
+    }
+
+    if (!wasEditor) {
+      await loadChains();
+    }
+
+    return tab.id;
+  },
+
   async updateChainTitle(chainId: string, title: string | undefined): Promise<void> {
     try {
       await updateTitle.execute({ chainId, ...(title ? { title } : {}) });
-      await openChain(chainId);
       await loadChains();
+      if (appState.get().view === 'editor') {
+        await refreshEditorChainTab(chainId);
+      } else {
+        await openChain(chainId, false);
+      }
     } catch (e: unknown) {
       snackbar.error((e as Error).message);
     }
@@ -149,8 +359,13 @@ export const AppController = {
   async assignTag(chainId: string, tagName: string): Promise<void> {
     try {
       await assignTag.execute({ chainId, tagName });
-      await openChain(chainId);
       await loadTags();
+      await loadChains();
+      if (appState.get().view === 'editor') {
+        await refreshEditorChainTab(chainId);
+      } else {
+        await openChain(chainId, false);
+      }
     } catch (e: unknown) {
       snackbar.error((e as Error).message);
     }
@@ -159,7 +374,12 @@ export const AppController = {
   async removeTag(chainId: string, tagId: string): Promise<void> {
     try {
       await removeTag.execute({ chainId, tagId });
-      await openChain(chainId);
+      await loadChains();
+      if (appState.get().view === 'editor') {
+        await refreshEditorChainTab(chainId);
+      } else {
+        await openChain(chainId, false);
+      }
     } catch (e: unknown) {
       snackbar.error((e as Error).message);
     }
@@ -170,7 +390,12 @@ export const AppController = {
       const isFav = await toggleFav.execute(chainId);
       snackbar.success(isFav ? 'Adicionado aos favoritos.' : 'Removido dos favoritos.');
       await loadChains();
-      if (appState.get().selectedChainId === chainId) await openChain(chainId);
+      if (
+        appState.get().view !== 'editor' &&
+        appState.get().selectedChainId === chainId
+      ) {
+        await openChain(chainId, false);
+      }
     } catch (e: unknown) {
       snackbar.error((e as Error).message);
     }
@@ -184,14 +409,21 @@ export const AppController = {
       confirmLabel: 'Arquivar',
     });
     if (!confirmed) return;
+    const wasEditor = appState.get().view === 'editor';
     try {
       await archiveChain.execute(chainId);
+      editorStore.closeChainTabs(chainId);
       snackbar.success('Cadeia arquivada.', {
         label: 'Desfazer',
         onClick: () => AppController.restoreChain(chainId),
       });
-      appState.set({ selectedChainId: null, currentChain: null, view: 'chains' });
-      pushNavigation('chains');
+      if (wasEditor) {
+        appState.set({ selectedChainId: null, currentChain: null });
+        pushNavigation('editor');
+      } else {
+        appState.set({ selectedChainId: null, currentChain: null, view: 'chains' });
+        pushNavigation('chains');
+      }
       await loadChains();
     } catch (e: unknown) {
       snackbar.error((e as Error).message);
@@ -219,14 +451,21 @@ export const AppController = {
       });
       if (!confirmed) return;
     }
+    const wasEditor = appState.get().view === 'editor';
     try {
       await deleteChain.execute(chainId, false);
+      editorStore.closeChainTabs(chainId);
       snackbar.success('Cadeia movida para a lixeira.', {
         label: 'Desfazer',
         onClick: () => AppController.restoreFromTrash(chainId),
       });
-      appState.set({ selectedChainId: null, currentChain: null, view: 'chains' });
-      pushNavigation('chains');
+      if (wasEditor) {
+        appState.set({ selectedChainId: null, currentChain: null });
+        pushNavigation('editor');
+      } else {
+        appState.set({ selectedChainId: null, currentChain: null, view: 'chains' });
+        pushNavigation('chains');
+      }
       await loadChains();
     } catch (e: unknown) {
       snackbar.error((e as Error).message);
@@ -244,6 +483,7 @@ export const AppController = {
     if (!confirmed) return;
     try {
       await deleteChain.execute(chainId, true);
+      editorStore.closeChainTabs(chainId);
       snackbar.success('Cadeia excluída permanentemente.');
       appState.set({ selectedChainId: null, currentChain: null });
       await loadChains();
@@ -318,6 +558,11 @@ export const AppController = {
   },
 
   async navigateTo(view: AppView, chainId?: string): Promise<void> {
+    if (view === 'editor' && chainId) {
+      await AppController.openChainInEditor(chainId);
+      return;
+    }
+
     appState.set({
       view,
       selectedChainId: chainId ?? null,
@@ -325,7 +570,8 @@ export const AppController = {
       chainFilterQuery: '',
     });
     pushNavigation(view, chainId);
-    if (view === 'chains' || view === 'favorites' || view === 'archived' || view === 'trash') {
+
+    if (view === 'editor' || view === 'chains' || view === 'favorites' || view === 'archived' || view === 'trash') {
       await loadChains();
     } else if (view === 'tags') {
       await loadTags();
@@ -335,6 +581,7 @@ export const AppController = {
   },
 
   openChain,
+  loadEditorChainTab,
   loadChains,
   loadTags,
 };
