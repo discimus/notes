@@ -4,7 +4,7 @@ import { el } from '../dom.js';
 import { initTheme } from './theme.js';
 import { initNavigationHistory } from './navigation.js';
 import { AppController } from '../pages/AppController.js';
-import { renderNavDrawer, updateNavDrawer } from '../views/nav.js';
+import { initNavResponsive, renderNavDrawer, updateNavDrawer } from '../views/nav.js';
 import { updateTopbar } from '../views/topbar.js';
 import { renderChainsLayout, updateChainsLayout } from '../views/chains.js';
 import { renderSearchLayout, updateSearchLayout } from '../views/search.js';
@@ -75,6 +75,7 @@ export function renderApp(root: HTMLElement): void {
 
   appState.subscribe(scheduleRender);
   initNavigationHistory(appState.get().view, (view, chainId) => AppController.navigateTo(view, chainId));
+  initNavResponsive();
 
   const state = appState.get();
   applyState(state);

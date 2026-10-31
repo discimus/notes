@@ -87,6 +87,7 @@ Ações destrutivas **sempre** pedem confirmação via `showConfirmDialog` antes
 - Nomenclatura BEM: `.chain-card__title`, `.tag-chip--selected`, `.btn--destructive`.
 - Tokens MD3: use `var(--md-sys-color-primary)` etc. — nunca valores de cor literais.
 - **Nunca** ler `components.css` inteiro — use grep para a classe específica.
+- Navegação: rail fixo de 80px em `≥769px`; drawer modal de 280px em `≤768px`. O hambúrguer (`#nav-toggle`) só aparece no compacto. O toggle de tema fica no rodapé do rail/drawer.
 
 ## Renderização DOM — sem framework
 

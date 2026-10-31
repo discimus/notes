@@ -7,8 +7,9 @@ import { showChainMenu } from './menus.js';
 export function updateTopbar(topbar: HTMLElement, state: AppState): void {
   topbar.innerHTML = '';
 
-  const burger = el('button', 'btn-icon');
-  burger.setAttribute('aria-label', 'Abrir menu de navegação');
+  const burger = el('button', 'btn-icon app-topbar__menu');
+  burger.id = 'nav-toggle';
+  burger.setAttribute('aria-label', state.drawerOpen ? 'Fechar menu de navegação' : 'Abrir menu de navegação');
   burger.setAttribute('aria-expanded', state.drawerOpen ? 'true' : 'false');
   burger.setAttribute('aria-controls', 'nav-drawer');
   burger.innerHTML = '<span class="material-symbols-rounded" aria-hidden="true">menu</span>';

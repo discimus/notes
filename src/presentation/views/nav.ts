@@ -4,7 +4,18 @@ import { AppController } from '../pages/AppController.js';
 import { el, qs, qsa } from '../dom.js';
 import { cycleTheme, themeIcon, themeLabel } from '../app/theme.js';
 
+const COMPACT_NAV_QUERY = '(max-width: 768px)';
+const DESKTOP_NAV_QUERY = '(min-width: 769px)';
+
 let drawerEscapeBound = false;
+let responsiveBound = false;
+
+function isCompactNav(): boolean {
+  if (typeof window.matchMedia === 'function') {
+    return window.matchMedia(COMPACT_NAV_QUERY).matches;
+  }
+  return window.innerWidth <= 768;
+}
 
 function ensureDrawerEscape(): void {
   if (drawerEscapeBound) return;
@@ -18,55 +29,76 @@ function ensureDrawerEscape(): void {
   });
 }
 
+export function initNavResponsive(): void {
+  if (responsiveBound || typeof window.matchMedia !== 'function') return;
+  responsiveBound = true;
+
+  const desktop = window.matchMedia(DESKTOP_NAV_QUERY);
+  const closeDrawerOnDesktop = () => {
+    if (!desktop.matches || !appState.get().drawerOpen) return;
+    appState.set({ drawerOpen: false });
+    qs('#nav-overlay')?.remove();
+  };
+
+  desktop.addEventListener('change', closeDrawerOnDesktop);
+  closeDrawerOnDesktop();
+}
+
 export function renderNavDrawer(): HTMLElement {
   const drawer = el('div', 'nav-drawer');
   drawer.setAttribute('id', 'nav-drawer');
 
   const header = el('div', 'nav-drawer__header');
   header.innerHTML = `
-    <div class="nav-drawer__logo" aria-label="ThreadNotes">
+    <div class="nav-drawer__logo" aria-label="ThreadNotes" title="ThreadNotes">
       <span class="material-symbols-rounded" aria-hidden="true">account_tree</span>
       <span>ThreadNotes</span>
     </div>
-    <button class="btn-icon" id="theme-toggle" aria-label="Alternar tema" title="Alternar tema">
-      <span class="material-symbols-rounded">dark_mode</span>
-    </button>
   `;
   drawer.appendChild(header);
 
   const content = el('div', 'nav-drawer__content');
   content.innerHTML = `
     <nav aria-label="Seções principais">
-      <button class="nav-item nav-item--active" data-view="chains" aria-current="page" aria-label="Todas as cadeias">
+      <button class="nav-item nav-item--active" data-view="chains" aria-current="page" aria-label="Todas as cadeias" title="Todas as cadeias">
         <span class="nav-item__icon material-symbols-rounded" aria-hidden="true">notes</span>
-        <span class="nav-item__label">Todas as cadeias</span>
+        <span class="nav-item__label">Cadeias</span>
       </button>
-      <button class="nav-item" data-view="favorites" aria-label="Favoritos">
+      <button class="nav-item" data-view="favorites" aria-label="Favoritos" title="Favoritos">
         <span class="nav-item__icon material-symbols-rounded" aria-hidden="true">star</span>
         <span class="nav-item__label">Favoritos</span>
       </button>
-      <button class="nav-item" data-view="tags" aria-label="Tags">
+      <button class="nav-item" data-view="tags" aria-label="Tags" title="Tags">
         <span class="nav-item__icon material-symbols-rounded" aria-hidden="true">label</span>
         <span class="nav-item__label">Tags</span>
       </button>
-      <button class="nav-item" data-view="timeline" aria-label="Visualizações">
+      <button class="nav-item" data-view="timeline" aria-label="Visualizações" title="Visualizações">
         <span class="nav-item__icon material-symbols-rounded" aria-hidden="true">timeline</span>
-        <span class="nav-item__label">Visualizações</span>
+        <span class="nav-item__label">Timeline</span>
       </button>
     </nav>
     <hr class="nav-divider" />
     <nav aria-label="Gerenciamento">
-      <button class="nav-item" data-view="archived" aria-label="Arquivo">
+      <button class="nav-item" data-view="archived" aria-label="Arquivo" title="Arquivo">
         <span class="nav-item__icon material-symbols-rounded" aria-hidden="true">archive</span>
         <span class="nav-item__label">Arquivo</span>
       </button>
-      <button class="nav-item" data-view="trash" aria-label="Lixeira">
+      <button class="nav-item" data-view="trash" aria-label="Lixeira" title="Lixeira">
         <span class="nav-item__icon material-symbols-rounded" aria-hidden="true">delete</span>
         <span class="nav-item__label">Lixeira</span>
       </button>
     </nav>
   `;
   drawer.appendChild(content);
+
+  const footer = el('div', 'nav-drawer__footer');
+  footer.innerHTML = `
+    <button class="nav-drawer__theme" id="theme-toggle" aria-label="Alternar tema" title="Alternar tema">
+      <span class="nav-drawer__theme-icon material-symbols-rounded" aria-hidden="true">dark_mode</span>
+      <span class="nav-drawer__theme-label">Tema</span>
+    </button>
+  `;
+  drawer.appendChild(footer);
 
   return drawer;
 }
@@ -87,7 +119,7 @@ export function updateNavDrawer(state: AppState): void {
       (item as HTMLElement).dataset['bound'] = '1';
       item.addEventListener('click', () => {
         if (view) AppController.navigateTo(view as AppView);
-        if (window.innerWidth < 768) {
+        if (isCompactNav()) {
           drawer.classList.remove('nav-drawer--open');
           qs('#nav-overlay')?.remove();
         }
