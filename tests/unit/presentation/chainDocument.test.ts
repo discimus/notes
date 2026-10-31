@@ -140,6 +140,20 @@ describe('ChainDocument', () => {
     expect(handlers.onCreateNote).toHaveBeenCalled();
   });
 
+  it('cria nova nota com duplo clique no espaço vazio das abas', () => {
+    const handlers = makeHandlers();
+    const view = mountChainDocument(makeTab(), handlers);
+    const tabs = view.element.querySelector('#chain-note-tabs');
+
+    tabs?.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
+    expect(handlers.onCreateNote).toHaveBeenCalledTimes(1);
+
+    view.element
+      .querySelector('#chain-note-tabs [role="tab"]')
+      ?.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
+    expect(handlers.onCreateNote).toHaveBeenCalledTimes(1);
+  });
+
   it('exibe múltiplas abas e o conteúdo da aba ativa', () => {
     const view = mountChainDocument(
       makeTab({

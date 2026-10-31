@@ -926,6 +926,7 @@
   gap: 2px;
   overflow-x: auto;
   scrollbar-width: thin;
+  user-select: none;
 }
 .editor-tab {
   display: flex;

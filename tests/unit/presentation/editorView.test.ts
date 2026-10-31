@@ -76,6 +76,18 @@ describe('EditorView', () => {
     expect(host.querySelector('.active-line-highlight')).not.toBeNull();
   });
 
+  it('cria novo documento com duplo clique na área vazia das abas', () => {
+    const store = new EditorStore();
+    const host = mount(store);
+
+    host
+      .querySelector('#editor-tabs')
+      ?.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
+
+    expect(store.getSnapshot().tabs).toHaveLength(2);
+    expect(store.getActiveTab()?.kind).toBe('draft');
+  });
+
   it('atualiza título derivado, dirty state e estatísticas ao digitar', () => {
     const store = new EditorStore();
     const host = mount(store);

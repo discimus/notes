@@ -158,6 +158,7 @@ Ações destrutivas **sempre** pedem confirmação via `showConfirmDialog` antes
 - Workspace Editor: lateral de 300px no desktop e off-canvas no compacto. O botão `#editor-explorer-toggle` abre/fecha a lateral no mobile; overlay usa o scrim MD3.
 - Documento e histórico da cadeia são full-bleed: sem `max-width` centralizado, margem automática, borda ou raio de card. A sidebar de cadeias permanece fixa como Explorer.
 - Abas usam `role="tablist"`; o documento ativo é `role="tabpanel"`. O compositor da cadeia é o único ponto que cria novas tails na view principal.
+- `renderTabList`: duplo clique no espaço vazio cria nova aba (`onCreate`); clique com botão do scroll fecha a aba (`auxclick`, botão 1). Esses atalhos complementam, não substituem, os botões e o teclado.
 - O rodapé de notas da cadeia é colapsável. `ChainTab.composerCollapsed` é persistido por aba; `aria-expanded`, `aria-controls` e `hidden` controlam a acessibilidade. Quando recolhido, o histórico ocupa o espaço liberado.
 
 ## Renderização DOM — sem framework

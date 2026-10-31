@@ -458,6 +458,7 @@ export function mountChainDocument(
       {
         onSelect: handlers.onSelectNote,
         onClose: handlers.onCloseNote,
+        onCreate: handlers.onCreateNote,
       },
       {
         panelId: 'chain-note-panel',

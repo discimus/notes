@@ -5,6 +5,7 @@ import { el } from '../dom.js';
 export interface EditorTabsHandlers {
   onSelect: (id: string) => void;
   onClose: (id: string) => void;
+  onCreate?: () => void;
 }
 
 export interface TabListItem {
@@ -45,6 +46,12 @@ export function renderTabList(
   container.setAttribute('role', 'tablist');
   container.setAttribute('aria-label', ariaLabel);
   container.setAttribute('aria-orientation', 'horizontal');
+  container.ondblclick = handlers.onCreate
+    ? (event) => {
+        if (event.target !== container) return;
+        handlers.onCreate?.();
+      }
+    : null;
 
   items.forEach((item, index) => {
     const wrapper = el('div', 'editor-tab');
@@ -98,6 +105,17 @@ export function renderTabList(
     });
 
     close.addEventListener('click', (event) => {
+      event.stopPropagation();
+      handlers.onClose(item.id);
+    });
+
+    wrapper.addEventListener('mousedown', (event) => {
+      if (event.button === 1) event.preventDefault();
+    });
+
+    wrapper.addEventListener('auxclick', (event) => {
+      if (event.button !== 1) return;
+      event.preventDefault();
       event.stopPropagation();
       handlers.onClose(item.id);
     });

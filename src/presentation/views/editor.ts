@@ -442,6 +442,7 @@ export function mountEditorView(
       onClose: (id) => {
         void requestCloseTab(id);
       },
+      onCreate: createDraftTab,
     });
 
     const active = store.getActiveTab();
