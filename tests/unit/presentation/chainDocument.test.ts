@@ -76,6 +76,8 @@ describe('ChainDocument', () => {
     expect(view.element.querySelector('#chain-note-count')?.textContent).toBe('1 nota');
     expect(view.element.querySelector('#chain-composer-input')).not.toBeNull();
     expect(view.element.querySelector('.active-line-highlight')).not.toBeNull();
+    expect(view.element.querySelector('.tag-editor')).not.toBeNull();
+    expect(view.element.querySelector('.tag-add')).not.toBeNull();
     expect(view.element.querySelectorAll('#chain-note-tabs [role="tab"]')).toHaveLength(1);
     expect(view.element.querySelector('.editor-tab__label')?.textContent).toBe(
       'Novo documento'

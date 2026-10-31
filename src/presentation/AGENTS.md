@@ -10,7 +10,7 @@ app/compactMode.ts  → densidade compacta persistida
 app/navigation.ts   → histórico (pushState/popstate)
 app/editorGrouping.ts → agrupamento puro de notas por data
 views/              → nav, topbar, editor, chains, search, timeline, tags, menus
-components/         → Dialog, EditorTabs, EditorSidebar, DraftDocument, ChainDocument, ActiveLineHighlight, ChainListItem, AppendToChainDialog, CloseTabDialog, SettingsDialog, Snackbar, states
+components/         → Dialog, EditorTabs, EditorSidebar, DraftDocument, ChainDocument, ActiveLineHighlight, InlineTagEditor, ChainListItem, AppendToChainDialog, CloseTabDialog, SettingsDialog, Snackbar, states
 dom.ts              → el(), qs(), qsa()
 filters.ts          → filtros puros de apresentação
 pages/AppController.ts
@@ -110,6 +110,16 @@ editorStore.flush()
 - O componente deve ser destruído no teardown da view para remover listeners, `ResizeObserver` e elementos auxiliares.
 - A camada é `aria-hidden`, `pointer-events: none` e não interfere em seleção, IME ou undo nativo.
 
+## Tags inline
+
+- `ChainDocument` usa `InlineTagEditor` para adicionar tags sem modal.
+- O botão “+ Tag” vira um input dentro de um contêiner com aparência de chip; nunca aninhar `<input>` dentro de `<button>`.
+- `Enter` adiciona e mantém o foco; `blur` com valor válido adiciona e fecha; `blur` vazio fecha; `Escape` cancela.
+- Erros de validação e duplicatas ficam inline, sem perder o texto digitado.
+- O componente preserva o input ativo durante updates da cadeia e deve ser destruído no teardown.
+- Autocomplete usa `filterTagSuggestions` com prefixo normalizado, exclui tags já associadas e mostra até 6 opções. Setas navegam, Enter seleciona a opção destacada e sem destaque cria a tag digitada.
+- A lista de sugestões é um portal fixo no `body`, com `role="listbox"` e `aria-activedescendant`.
+
 ## Modo compacto
 
 - Preferência separada em `threadnotes.compact-mode`, via `app/compactMode.ts`.
@@ -190,4 +200,4 @@ Testes de apresentação ficam em `tests/unit/presentation/` e usam jsdom. Não 
 - QA visual ou interação real com a aplicação só quando o usuário solicitar explicitamente.
 - Novas features de UI devem vir com teste de comportamento; não considerar inspeção visual manual como validação suficiente.
 
-Exceção autorizada: `nav.test.ts` valida os 6 destinos com Editor como view inicial. Testes do editor: `editorStore`, `editorTabs`, `editorSidebar`, `editorGrouping`, `chainDocument`, `appendToChainDialog`, `activeLineHighlight` e `editorView`.
+Exceção autorizada: `nav.test.ts` valida os 6 destinos com Editor como view inicial. Testes do editor: `editorStore`, `editorTabs`, `editorSidebar`, `editorGrouping`, `chainDocument`, `appendToChainDialog`, `activeLineHighlight`, `inlineTagEditor`, `tagSuggestions` e `editorView`.

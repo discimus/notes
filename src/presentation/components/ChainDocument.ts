@@ -1,14 +1,14 @@
-﻿import type { NoteDTO, TagDTO } from '@application/dto/index.js';
+﻿import type { NoteDTO } from '@application/dto/index.js';
 import type { ChainNoteTab, ChainTab } from '../state/EditorStore.js';
 import { deriveEditorTitle, isChainNoteTabDirty } from '../state/EditorStore.js';
 import { appState } from '../state/AppState.js';
 import { AppController } from '../pages/AppController.js';
 import { groupNotesByDate } from '../app/editorGrouping.js';
-import { showInputDialog } from './Dialog.js';
 import { renderEmptyDetail, renderLoadingState } from './states.js';
 import { showChainMenu } from '../views/menus.js';
 import { renderTabList } from './EditorTabs.js';
 import { mountActiveLineHighlight } from './ActiveLineHighlight.js';
+import { mountInlineTagEditor } from './InlineTagEditor.js';
 import { el } from '../dom.js';
 import { formatDateFull, formatTime } from '@shared/utilities/index.js';
 
@@ -32,26 +32,6 @@ export interface ChainDocumentView {
 function noteTabLabel(noteTab: ChainNoteTab): string {
   const title = deriveEditorTitle(noteTab.content);
   return title === 'Sem título' ? 'Novo documento' : title;
-}
-
-function renderTagChip(tag: TagDTO, chainId: string): HTMLElement {
-  const chip = el('span', 'chip chip--selected');
-  chip.setAttribute('aria-label', `Tag: ${tag.name}`);
-
-  const label = document.createElement('span');
-  label.textContent = tag.name;
-  chip.appendChild(label);
-
-  const remove = el('button', 'chip__remove');
-  remove.type = 'button';
-  remove.setAttribute('aria-label', `Remover tag ${tag.name}`);
-  remove.innerHTML = '<span class="material-symbols-rounded" aria-hidden="true">close</span>';
-  remove.addEventListener('click', () => {
-    void AppController.removeTag(chainId, tag.id);
-  });
-  chip.appendChild(remove);
-
-  return chip;
 }
 
 function startNoteEdit(text: HTMLElement, note: NoteDTO, chainId: string): void {
@@ -232,6 +212,12 @@ export function mountChainDocument(
   const composerChevron = root.querySelector<HTMLElement>('#chain-composer-chevron')!;
 
   let currentTab = tab;
+  const tagEditor = mountInlineTagEditor(tags, {
+    onAdd: (name) => AppController.assignTag(currentTab.chainId, name),
+    onRemove: (tag) => {
+      void AppController.removeTag(currentTab.chainId, tag.id);
+    },
+  });
   let titleTimer: ReturnType<typeof setTimeout> | null = null;
   let previousStatus = tab.status;
   let renderedNotesSignature = '';
@@ -295,30 +281,11 @@ export function mountChainDocument(
   };
 
   const renderTags = (): void => {
-    tags.innerHTML = '';
     const summary = appState.get().chainSummaries.find(
       (chain) => chain.id === currentTab.chainId
     );
 
-    (summary?.tags ?? []).forEach((tag) => {
-      tags.appendChild(renderTagChip(tag, currentTab.chainId));
-    });
-
-    const add = el('button', 'chip');
-    add.type = 'button';
-    add.setAttribute('aria-label', 'Adicionar tag');
-    add.innerHTML =
-      '<span class="material-symbols-rounded icon-md" aria-hidden="true">add</span> Tag';
-    add.addEventListener('click', async () => {
-      const name = await showInputDialog({
-        title: 'Adicionar tag',
-        label: 'Nome da tag',
-        placeholder: 'ex: projeto',
-        confirmLabel: 'Adicionar',
-      });
-      if (name) void AppController.assignTag(currentTab.chainId, name);
-    });
-    tags.appendChild(add);
+    tagEditor.update(summary?.tags ?? [], appState.get().allTags);
 
     const isFavorite = summary?.isFavorite ?? false;
     favorite.innerHTML = `<span class="material-symbols-rounded" aria-hidden="true">${
@@ -534,6 +501,7 @@ export function mountChainDocument(
   const destroy = (): void => {
     if (titleTimer) clearTimeout(titleTimer);
     activeLine.destroy();
+    tagEditor.destroy();
   };
 
   update(tab);

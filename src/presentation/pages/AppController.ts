@@ -356,7 +356,7 @@ export const AppController = {
     }
   },
 
-  async assignTag(chainId: string, tagName: string): Promise<void> {
+  async assignTag(chainId: string, tagName: string): Promise<boolean> {
     try {
       await assignTag.execute({ chainId, tagName });
       await loadTags();
@@ -366,8 +366,10 @@ export const AppController = {
       } else {
         await openChain(chainId, false);
       }
+      return true;
     } catch (e: unknown) {
       snackbar.error((e as Error).message);
+      return false;
     }
   },
 
