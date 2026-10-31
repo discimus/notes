@@ -1,6 +1,7 @@
 ﻿import type { UUID, ISODateString } from '@shared/types/index.js';
 import { InvariantViolationError, ValidationError } from '@shared/types/index.js';
 import { Note } from './Note.js';
+import type { NoteContentType } from './Note.js';
 import { generateId, now } from '@shared/utilities/index.js';
 
 export interface ChainData {
@@ -52,6 +53,7 @@ export class Chain {
    */
   static createWithHeader(params: {
     content: string;
+    contentType?: NoteContentType;
     title?: string;
   }): { chain: Chain; header: Note } {
     if (!params.content.trim()) {
@@ -64,6 +66,7 @@ export class Chain {
     const header = Note.createHeader({
       content: params.content,
       chainId,
+      ...(params.contentType ? { contentType: params.contentType } : {}),
       ...(params.title ? { title: params.title } : {}),
     });
 
@@ -118,7 +121,7 @@ export class Chain {
    * OperaÃ§Ã£o central: anexa uma nota ao final da cadeia.
    * Garante posiÃ§Ã£o correta e atualiza o timestamp da cadeia.
    */
-  appendNote(content: string): Note {
+  appendNote(content: string, contentType?: NoteContentType): Note {
     if (this.isArchived()) {
       throw new InvariantViolationError('NÃ£o Ã© possÃ­vel adicionar notas a uma cadeia arquivada.');
     }
@@ -131,6 +134,7 @@ export class Chain {
       content,
       chainId: this._id,
       position: nextPosition,
+      ...(contentType ? { contentType } : {}),
     });
 
     this._notes.push(tail);

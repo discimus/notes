@@ -140,6 +140,18 @@ editorStore.flush()
 - Controle no rodapé da navegação (`#compact-toggle`), com `aria-pressed` e labels dinâmicos.
 - O estado é independente do recolhimento do rodapé de notas da cadeia.
 
+## Tipo de conteúdo
+
+- `NoteContentType = 'text' | 'code'` é uma propriedade da nota/documento, não uma preferência global.
+- O seletor fica no canto inferior direito: statusbar do rascunho e rodapé do compositor da cadeia.
+- Usa `ContentTypeMenu` (menu MD3 com `menuitemradio`), não `<select>` nativo.
+- Texto mantém `spellcheck`; código usa fonte monoespaçada, `spellcheck=false`, `tab-size: 2` e preserva whitespace.
+- `EditorStore` persiste `contentType` em `DraftTab`/`ChainNoteTab` e restaura dados antigos como `text`.
+- Notas de código no histórico usam textarea para edição; não use `contenteditable` para código multilinha.
+- Cobertura: `contentTypeMenu`, `editorStoreContentType`, `documentContentTypeView`, `chainDocumentContentType` e `NoteContentType`.
+
+- Role o scroll sobre o seletor para alternar entre Texto e Código sem abrir o menu; o gesto tem cooldown para não alternar várias vezes.
+
 ## Dialog e Snackbar
 
 ```typescript

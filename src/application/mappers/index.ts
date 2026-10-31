@@ -10,6 +10,7 @@ export function mapNoteToDTO(note: Note): NoteDTO {
     chainId: note.chainId,
     position: note.position.value,
     role: note.role,
+    contentType: note.contentType,
     ...(note.title ? { title: note.title } : {}),
     createdAt: note.createdAt,
     updatedAt: note.updatedAt,

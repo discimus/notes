@@ -1,4 +1,4 @@
-﻿import { appState } from '../state/AppState.js';
+import { appState } from '../state/AppState.js';
 import type { AppState } from '../state/AppState.js';
 import { AppController } from '../pages/AppController.js';
 import { DraftStore } from '../state/DraftStore.js';
@@ -251,7 +251,11 @@ function renderNoteThread(note: NoteDTO, idx: number, total: number, chainId: st
 
   const contentDiv = el('div', 'note-thread__content');
 
-  const textEl = el('p', `note-thread__text note-thread__text--${note.role}`);
+  const isCode = note.contentType === 'code';
+  const textEl = el(
+    'p',
+    `note-thread__text note-thread__text--${note.role}${isCode ? ' note-thread__text--code' : ''}`
+  );
   textEl.textContent = note.content;
   contentDiv.appendChild(textEl);
 
@@ -270,10 +274,59 @@ function renderNoteThread(note: NoteDTO, idx: number, total: number, chainId: st
   wrapper.appendChild(contentDiv);
 
   (meta.querySelector('[data-action="edit"]') as HTMLElement).addEventListener('click', () => {
-    startNoteEdit(textEl, note, chainId);
+    if (isCode) startCodeNoteEdit(textEl, note, chainId);
+    else startNoteEdit(textEl, note, chainId);
   });
 
   return wrapper;
+}
+
+function startCodeNoteEdit(textEl: HTMLElement, note: NoteDTO, chainId: string): void {
+  const original = note.content;
+  const editor = el('textarea', 'chain-note__code-editor') as HTMLTextAreaElement;
+  editor.value = original;
+  editor.rows = Math.min(24, Math.max(4, original.split(/\r?\n/).length + 1));
+  editor.spellcheck = false;
+  editor.setAttribute('aria-label', 'Editar código da nota');
+
+  let finished = false;
+  const restore = (): void => {
+    if (editor.parentElement) editor.replaceWith(textEl);
+  };
+  const save = async (): Promise<void> => {
+    if (finished) return;
+    finished = true;
+    const content = editor.value;
+
+    if (!content.trim()) {
+      restore();
+      return;
+    }
+    if (content !== original) {
+      await AppController.updateNoteContent(chainId, note.id, content, 'code');
+    }
+    restore();
+  };
+
+  textEl.replaceWith(editor);
+  editor.focus();
+  editor.setSelectionRange(original.length, original.length);
+
+  editor.addEventListener('blur', () => {
+    void save();
+  }, { once: true });
+  editor.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      finished = true;
+      restore();
+      return;
+    }
+    if (event.key === 's' && (event.ctrlKey || event.metaKey)) {
+      event.preventDefault();
+      void save();
+    }
+  });
 }
 
 function startNoteEdit(textEl: HTMLElement, note: NoteDTO, chainId: string): void {

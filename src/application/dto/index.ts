@@ -1,6 +1,7 @@
 import type { UUID, ISODateString } from '@shared/types/index.js';
-import type { NoteRole } from '@domain/entities/index.js';
+import type { NoteContentType, NoteRole } from '@domain/entities/index.js';
 import type { TagOrigin } from '@domain/entities/index.js';
+export type { NoteContentType } from '@domain/entities/index.js';
 
 // ── Note DTOs ──────────────────────────────────────────────────────────────
 
@@ -10,6 +11,7 @@ export interface NoteDTO {
   chainId: UUID;
   position: number;
   role: NoteRole;
+  contentType?: NoteContentType | undefined;
   title?: string | undefined;
   createdAt: ISODateString;
   updatedAt: ISODateString;
@@ -86,6 +88,7 @@ export interface SearchResultDTO {
 
 export interface CreateChainCommand {
   content: string;
+  contentType?: NoteContentType | undefined;
   title?: string | undefined;
   tagNames?: string[] | undefined;
 }
@@ -93,12 +96,14 @@ export interface CreateChainCommand {
 export interface AppendNoteCommand {
   chainId: UUID;
   content: string;
+  contentType?: NoteContentType | undefined;
 }
 
 export interface UpdateNoteCommand {
   noteId: UUID;
   chainId: UUID;
   content: string;
+  contentType?: NoteContentType | undefined;
 }
 
 export interface UpdateChainTitleCommand {

@@ -350,7 +350,10 @@ function renderEntries(container: HTMLElement, entries: TimelineEntryDTO[]): voi
     timeEl.textContent = formatTime(entry.note.createdAt);
 
     const body = el('div', 'timeline-entry__body');
-    const textEl = el('p', 'timeline-entry__text');
+    const textEl = el(
+      'p',
+      `timeline-entry__text${entry.note.contentType === 'code' ? ' timeline-entry__text--code' : ''}`
+    );
     textEl.textContent = entry.note.content;
 
     const chainLink = el('button', 'timeline-entry__chain');

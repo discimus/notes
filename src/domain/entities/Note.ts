@@ -4,6 +4,7 @@ import { NotePosition } from '../value-objects/index.js';
 import { generateId, now } from '@shared/utilities/index.js';
 
 export type NoteRole = 'header' | 'tail';
+export type NoteContentType = 'text' | 'code';
 
 export interface NoteData {
   id: UUID;
@@ -11,9 +12,14 @@ export interface NoteData {
   chainId: UUID;
   position: number;
   role: NoteRole;
+  contentType?: NoteContentType | undefined;
   title?: string | undefined;
   createdAt: ISODateString;
   updatedAt: ISODateString;
+}
+
+function normalizedContent(content: string, contentType: NoteContentType): string {
+  return contentType === 'code' ? content : content.trim();
 }
 
 /**
@@ -27,6 +33,7 @@ export class Note {
   private readonly _chainId: UUID;
   private readonly _position: NotePosition;
   private readonly _role: NoteRole;
+  private _contentType: NoteContentType;
   private _title: string | undefined;
   private readonly _createdAt: ISODateString;
   private _updatedAt: ISODateString;
@@ -37,6 +44,7 @@ export class Note {
     this._chainId = data.chainId;
     this._position = NotePosition.of(data.position);
     this._role = data.role;
+    this._contentType = data.contentType ?? 'text';
     this._title = data.title;
     this._createdAt = data.createdAt;
     this._updatedAt = data.updatedAt;
@@ -46,18 +54,21 @@ export class Note {
   static createHeader(params: {
     content: string;
     chainId: UUID;
+    contentType?: NoteContentType;
     title?: string;
   }): Note {
     if (!params.content.trim()) {
       throw new ValidationError('O conteúdo da nota não pode ser vazio.');
     }
+    const contentType = params.contentType ?? 'text';
     const ts = now();
     return new Note({
       id: generateId(),
-      content: params.content.trim(),
+      content: normalizedContent(params.content, contentType),
       chainId: params.chainId,
       position: 0,
       role: 'header',
+      contentType,
       ...(params.title?.trim() ? { title: params.title.trim() } : {}),
       createdAt: ts,
       updatedAt: ts,
@@ -69,6 +80,7 @@ export class Note {
     content: string;
     chainId: UUID;
     position: number;
+    contentType?: NoteContentType;
   }): Note {
     if (!params.content.trim()) {
       throw new ValidationError('O conteúdo da nota não pode ser vazio.');
@@ -76,13 +88,15 @@ export class Note {
     if (params.position <= 0) {
       throw new ValidationError('A posição de uma tail deve ser maior que 0.');
     }
+    const contentType = params.contentType ?? 'text';
     const ts = now();
     return new Note({
       id: generateId(),
-      content: params.content.trim(),
+      content: normalizedContent(params.content, contentType),
       chainId: params.chainId,
       position: params.position,
       role: 'tail',
+      contentType,
       createdAt: ts,
       updatedAt: ts,
     });
@@ -97,6 +111,7 @@ export class Note {
   get chainId(): UUID { return this._chainId; }
   get position(): NotePosition { return this._position; }
   get role(): NoteRole { return this._role; }
+  get contentType(): NoteContentType { return this._contentType; }
   get title(): string | undefined { return this._title; }
   get createdAt(): ISODateString { return this._createdAt; }
   get updatedAt(): ISODateString { return this._updatedAt; }
@@ -105,11 +120,18 @@ export class Note {
     return this._role === 'header';
   }
 
-  updateContent(content: string): void {
+  updateContent(content: string, contentType: NoteContentType = this._contentType): void {
     if (!content.trim()) {
       throw new ValidationError('O conteúdo da nota não pode ser vazio.');
     }
-    this._content = content.trim();
+    this._content = normalizedContent(content, contentType);
+    this._contentType = contentType;
+    this._updatedAt = now();
+  }
+
+  updateContentType(contentType: NoteContentType): void {
+    if (this._contentType === contentType) return;
+    this._contentType = contentType;
     this._updatedAt = now();
   }
 
@@ -125,6 +147,7 @@ export class Note {
       chainId: this._chainId,
       position: this._position.value,
       role: this._role,
+      contentType: this._contentType,
       ...(this._title ? { title: this._title } : {}),
       createdAt: this._createdAt,
       updatedAt: this._updatedAt,

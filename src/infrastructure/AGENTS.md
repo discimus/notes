@@ -56,3 +56,9 @@ Ao adicionar campo obrigat√≥rio a uma entidade existente:
 2. Criar `InMemoryNomeRepository` espelhando os m√©todos para testes.
 3. Exportar ambos no barrel `src/infrastructure/repositories/index.ts`.
 4. Instanciar no `AppController` (n√£o usar DI container ‚Äî o projeto n√£o tem um).
+
+## Note.contentType
+
+- `contentType` È opcional no registro persistido; notas antigas s„o lidas como `text` por `Note.reconstitute`.
+- N„o È necess·rio incrementar `DB_VERSION`: n„o h· Ìndice nem store novo.
+- Novas notas e atualizaÁıes gravam o campo via `Note.toData()`.

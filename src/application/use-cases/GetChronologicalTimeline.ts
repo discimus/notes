@@ -44,6 +44,7 @@ export class GetChronologicalTimeline {
           chainId: e.note.chainId,
           position: e.note.position,
           role: e.note.role,
+          contentType: e.note.contentType ?? 'text',
           ...(e.note.title ? { title: e.note.title } : {}),
           createdAt: e.note.createdAt,
           updatedAt: e.note.updatedAt,

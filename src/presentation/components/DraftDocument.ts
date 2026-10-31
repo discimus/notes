@@ -1,10 +1,13 @@
+import type { NoteContentType } from '@application/dto/index.js';
 import type { DraftTab } from '../state/EditorStore.js';
-import { isEditorTabDirty } from '../state/EditorStore.js';
+import { contentTypeOf, isEditorTabDirty } from '../state/EditorStore.js';
 import { el } from '../dom.js';
 import { mountActiveLineHighlight } from './ActiveLineHighlight.js';
+import { mountContentTypeMenu } from './ContentTypeMenu.js';
 
 export interface DraftDocumentHandlers {
   onInput: (value: string) => void;
+  onContentTypeChange?: (contentType: NoteContentType) => void;
 }
 
 export interface DraftDocumentView {
@@ -44,6 +47,7 @@ export function mountDraftDocument(
           <span id="draft-target-text"></span>
         </span>
         <span class="editor-save-state" id="draft-save-state" role="status" aria-live="polite"></span>
+        <span id="draft-content-type"></span>
         <span class="editor-statusbar__shortcut">Ctrl+S para salvar</span>
       </div>
     </div>
@@ -58,11 +62,27 @@ export function mountDraftDocument(
   const stats = root.querySelector<HTMLElement>('#draft-stats')!;
   const body = root.querySelector<HTMLElement>('.editor-body')!;
   const activeLine = mountActiveLineHighlight(textarea, body);
-
+  const contentTypeHost = root.querySelector<HTMLElement>('#draft-content-type')!;
   let currentTab = tab;
+  const contentTypeMenu = mountContentTypeMenu({
+    value: contentTypeOf(tab),
+    onChange: (contentType) => {
+      currentTab = { ...currentTab, contentType };
+      handlers.onContentTypeChange?.(contentType);
+      syncSurface();
+      activeLine.refresh();
+    },
+  });
+  contentTypeHost.appendChild(contentTypeMenu.element);
 
   const syncSurface = (): void => {
     panel.setAttribute('aria-labelledby', `editor-tab-${currentTab.id}`);
+    const isCode = contentTypeOf(currentTab) === 'code';
+    root.classList.toggle('draft-document--code', isCode);
+    textarea.classList.toggle('editor-textarea--code', isCode);
+    textarea.spellcheck = !isCode;
+    textarea.placeholder = isCode ? 'Escreva um trecho de código...' : 'Comece a escrever...';
+    contentTypeMenu.update(isCode ? 'code' : 'text');
 
     target.hidden = !currentTab.target;
     targetText.textContent = currentTab.target
@@ -110,11 +130,16 @@ export function mountDraftDocument(
     syncSurface();
   };
 
+  syncSurface();
+
   return {
     element: root,
     update,
     setSaving,
     focus: () => textarea.focus(),
-    destroy: () => activeLine.destroy(),
+    destroy: () => {
+      contentTypeMenu.destroy();
+      activeLine.destroy();
+    },
   };
 }

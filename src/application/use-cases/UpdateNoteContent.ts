@@ -16,7 +16,11 @@ export class UpdateNoteContent {
     const note = chain.notes.find((n) => n.id === command.noteId);
     if (!note) throw new NotFoundError('Note', command.noteId);
 
-    note.updateContent(command.content);
+    if (command.contentType) {
+      note.updateContent(command.content, command.contentType);
+    } else {
+      note.updateContent(command.content);
+    }
     await this.chainRepo.saveNote(note);
     await this.chainRepo.saveChainOnly(chain);
 

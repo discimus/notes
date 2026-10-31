@@ -67,6 +67,14 @@ Não existe transição direta `arquivado → lixeira`. O código lança `Invari
 
 ## Tag — origem e ciclo de sugestão
 
+## Tipo de conteúdo da Note
+
+- `NoteContentType = 'text' | 'code'`; ausência em `NoteData` significa `text`.
+- `Note.contentType` é sempre normalizado.
+- Texto continua usando `.trim()`. Código valida conteúdo não vazio, mas preserva indentação, espaços e quebras exatamente como recebidos.
+- `createHeader`, `createTail`, `Chain.createWithHeader`, `Chain.appendNote` e `updateContent` aceitam o tipo.
+- Não é um value object: são apenas dois valores estáveis e sem validação adicional.
+
 `TagOrigin = 'manual' | 'suggested' | 'accepted' | 'rejected'`
 
 Tags criadas pelo usuário → `'manual'`. Tags vindas de classificadores → `'suggested'`.

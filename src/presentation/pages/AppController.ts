@@ -7,7 +7,7 @@ import { showConfirmDialog } from '../components/Dialog.js';
 import { DraftStore } from '../state/DraftStore.js';
 import { pushNavigation } from '../app/navigation.js';
 import { getSettings } from '../app/settings.js';
-import type { ChainDetailDTO, NoteDTO } from '@application/dto/index.js';
+import type { ChainDetailDTO, NoteContentType, NoteDTO } from '@application/dto/index.js';
 
 import {
   CreateChainWithHeader,
@@ -258,10 +258,16 @@ export const AppController = {
     await loadTags();
   },
 
-  async createChain(content: string, title?: string, tagNames?: string[]): Promise<void> {
+  async createChain(
+    content: string,
+    title?: string,
+    tagNames?: string[],
+    contentType?: NoteContentType
+  ): Promise<void> {
     try {
       const result = await createChain.execute({
         content,
+        ...(contentType ? { contentType } : {}),
         ...(title ? { title } : {}),
         ...(tagNames && tagNames.length > 0 ? { tagNames } : {}),
       });
@@ -276,9 +282,13 @@ export const AppController = {
     }
   },
 
-  async appendNote(chainId: string, content: string): Promise<void> {
+  async appendNote(
+    chainId: string,
+    content: string,
+    contentType?: NoteContentType
+  ): Promise<void> {
     try {
-      await appendNote.execute({ chainId, content });
+      await appendNote.execute({ chainId, content, ...(contentType ? { contentType } : {}) });
       DraftStore.clear();
       snackbar.success('Nota adicionada.');
       await openChain(chainId);
@@ -288,9 +298,19 @@ export const AppController = {
     }
   },
 
-  async updateNoteContent(chainId: string, noteId: string, content: string): Promise<void> {
+  async updateNoteContent(
+    chainId: string,
+    noteId: string,
+    content: string,
+    contentType?: NoteContentType
+  ): Promise<void> {
     try {
-      const note = await updateNote.execute({ chainId, noteId, content });
+      const note = await updateNote.execute({
+        chainId,
+        noteId,
+        content,
+        ...(contentType ? { contentType } : {}),
+      });
       snackbar.success('Nota atualizada.');
       editorStore.updateNoteInChainTabs(chainId, note);
       if (appState.get().view === 'editor') {
@@ -305,12 +325,14 @@ export const AppController = {
 
   async saveEditorAsNewChain(input: {
     content: string;
+    contentType?: NoteContentType;
     title?: string;
     tagNames?: string[];
   }): Promise<EditorSaveResult> {
     try {
       const result = await createChain.execute({
         content: input.content,
+        ...(input.contentType ? { contentType: input.contentType } : {}),
         ...(input.title?.trim() ? { title: input.title.trim() } : {}),
         ...(input.tagNames && input.tagNames.length > 0 ? { tagNames: input.tagNames } : {}),
       });
@@ -337,9 +359,17 @@ export const AppController = {
     }
   },
 
-  async saveEditorToChain(chainId: string, content: string): Promise<EditorSaveResult> {
+  async saveEditorToChain(
+    chainId: string,
+    content: string,
+    contentType?: NoteContentType
+  ): Promise<EditorSaveResult> {
     try {
-      const note = await appendNote.execute({ chainId, content });
+      const note = await appendNote.execute({
+        chainId,
+        content,
+        ...(contentType ? { contentType } : {}),
+      });
       await Promise.allSettled([loadChains()]);
 
       const chainTitle = chainTitleById(chainId);
@@ -361,12 +391,17 @@ export const AppController = {
     }
   },
 
-  async updateEditorNote(target: EditorTarget, content: string): Promise<EditorSaveResult> {
+  async updateEditorNote(
+    target: EditorTarget,
+    content: string,
+    contentType?: NoteContentType
+  ): Promise<EditorSaveResult> {
     try {
       const note = await updateNote.execute({
         chainId: target.chainId,
         noteId: target.noteId,
         content,
+        ...(contentType ? { contentType } : {}),
       });
       await Promise.allSettled([loadChains()]);
 
@@ -386,9 +421,17 @@ export const AppController = {
     }
   },
 
-  async appendToEditorChainTab(chainId: string, content: string): Promise<EditorAppendResult> {
+  async appendToEditorChainTab(
+    chainId: string,
+    content: string,
+    contentType?: NoteContentType
+  ): Promise<EditorAppendResult> {
     try {
-      const note = await appendNote.execute({ chainId, content });
+      const note = await appendNote.execute({
+        chainId,
+        content,
+        ...(contentType ? { contentType } : {}),
+      });
       await Promise.allSettled([loadChains()]);
       return { ok: true, note, chainTitle: chainTitleById(chainId) };
     } catch (error: unknown) {

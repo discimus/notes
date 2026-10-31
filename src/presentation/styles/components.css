@@ -1971,3 +1971,155 @@
   color: inherit;
   opacity: 0.8;
 }
+
+/* Content type control */
+.content-type-control {
+  display: inline-flex;
+  flex-shrink: 0;
+}
+.content-type-control__button {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  min-height: 32px;
+  padding: 0 var(--spacing-2);
+  border: none;
+  border-radius: var(--md-sys-shape-corner-full);
+  background: transparent;
+  color: var(--md-sys-color-on-surface-variant);
+  font-family: inherit;
+  font-size: var(--md-sys-typescale-body-small-size);
+  cursor: pointer;
+}
+.content-type-control__button:hover {
+  background-color: var(--md-sys-color-surface-container-high);
+}
+.content-type-control__button:focus-visible {
+  outline: 2px solid var(--md-sys-color-primary);
+  outline-offset: 1px;
+}
+.content-type-control__icon {
+  font-size: 18px;
+}
+.content-type-control__arrow {
+  font-size: 18px;
+  opacity: 0.72;
+}
+.content-type-menu {
+  position: fixed;
+  z-index: 100;
+  min-width: 190px;
+  padding: var(--spacing-2) 0;
+  border-radius: var(--md-sys-shape-corner-medium);
+  background-color: var(--md-sys-color-surface-container-high);
+  box-shadow: var(--md-sys-elevation-2);
+}
+.content-type-menu__heading {
+  padding: var(--spacing-1) var(--spacing-4) var(--spacing-2);
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: var(--md-sys-typescale-label-small-size);
+  font-weight: 500;
+}
+.content-type-menu__item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+  width: 100%;
+  min-height: 48px;
+  padding: 0 var(--spacing-4);
+  border: none;
+  background: none;
+  color: var(--md-sys-color-on-surface);
+  font-family: inherit;
+  font-size: var(--md-sys-typescale-body-medium-size);
+  text-align: left;
+  cursor: pointer;
+}
+.content-type-menu__item:hover,
+.content-type-menu__item:focus-visible {
+  background-color: var(--md-sys-color-surface-container-highest);
+}
+.content-type-menu__item:focus-visible {
+  outline: 2px solid var(--md-sys-color-primary);
+  outline-offset: -2px;
+}
+.content-type-menu__icon {
+  font-size: 20px;
+  color: var(--md-sys-color-on-surface-variant);
+}
+.content-type-menu__check {
+  margin-left: auto;
+  color: var(--md-sys-color-primary);
+  font-size: 20px;
+}
+
+.editor-textarea--code,
+.chain-composer__input--code {
+  font-family: var(--md-sys-font-mono);
+  font-size: var(--md-sys-typescale-body-medium-size);
+  line-height: 1.6;
+  letter-spacing: 0;
+  tab-size: 2;
+  font-variant-ligatures: none;
+  white-space: pre-wrap;
+}
+.chain-note__text--code {
+  padding: var(--spacing-3);
+  border-radius: var(--md-sys-shape-corner-small);
+  background-color: var(--md-sys-color-surface-container-low);
+  font-family: var(--md-sys-font-mono);
+  font-size: var(--md-sys-typescale-body-medium-size);
+  line-height: 1.6;
+  letter-spacing: 0;
+  tab-size: 2;
+  font-variant-ligatures: none;
+  white-space: pre-wrap;
+}
+.chain-note__format {
+  padding: 2px var(--spacing-2);
+  border-radius: var(--md-sys-shape-corner-full);
+  background-color: var(--md-sys-color-secondary-container);
+  color: var(--md-sys-color-on-secondary-container);
+  font-size: var(--md-sys-typescale-label-small-size);
+  font-weight: 500;
+}
+.chain-note__code-editor {
+  display: block;
+  width: 100%;
+  min-height: 120px;
+  padding: var(--spacing-3);
+  border: 1px solid var(--md-sys-color-primary);
+  border-radius: var(--md-sys-shape-corner-small);
+  outline: 2px solid color-mix(in srgb, var(--md-sys-color-primary) 24%, transparent);
+  outline-offset: 0;
+  background-color: var(--md-sys-color-surface-container-low);
+  color: var(--md-sys-color-on-surface);
+  font-family: var(--md-sys-font-mono);
+  font-size: var(--md-sys-typescale-body-medium-size);
+  line-height: 1.6;
+  letter-spacing: 0;
+  tab-size: 2;
+  font-variant-ligatures: none;
+  resize: vertical;
+}
+.app-shell--compact .content-type-control__button {
+  min-height: 28px;
+}
+.note-thread__text--code {
+  padding: var(--spacing-3);
+  border-radius: var(--md-sys-shape-corner-small);
+  background-color: var(--md-sys-color-surface-container-low);
+  font-family: var(--md-sys-font-mono);
+  font-size: var(--md-sys-typescale-body-medium-size);
+  line-height: 1.6;
+  letter-spacing: 0;
+  tab-size: 2;
+  font-variant-ligatures: none;
+}
+.timeline-entry__text--code {
+  font-family: var(--md-sys-font-mono);
+  font-size: var(--md-sys-typescale-body-medium-size);
+  line-height: 1.6;
+  tab-size: 2;
+  font-variant-ligatures: none;
+}

@@ -18,7 +18,7 @@ export class AppendNoteToChain {
       throw new InvariantViolationError('Não é possível adicionar notas a uma cadeia excluída.');
     }
 
-    const note = chain.appendNote(command.content);
+    const note = chain.appendNote(command.content, command.contentType);
     await this.chainRepo.saveNote(note);
     await this.chainRepo.saveChainOnly(chain);
 

@@ -22,6 +22,7 @@ export class CreateChainWithHeader {
   async execute(command: CreateChainCommand): Promise<ChainDetailDTO> {
     const { chain, header } = Chain.createWithHeader({
       content: command.content,
+      ...(command.contentType ? { contentType: command.contentType } : {}),
       ...(command.title ? { title: command.title } : {}),
     });
 

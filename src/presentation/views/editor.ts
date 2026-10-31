@@ -3,6 +3,7 @@ import { AppController } from '../pages/AppController.js';
 import { editorStore } from '../state/EditorStore.js';
 import type { ChainTab, DraftTab, EditorStore, EditorTab } from '../state/EditorStore.js';
 import {
+  contentTypeOf,
   deriveEditorTitle,
   isChainNoteTabDirty,
   isEditorTabDirty,
@@ -172,6 +173,11 @@ export function mountEditorView(
           const updated = store.getTab(tab.id);
           if (updated) updateTabDirtyState(tabsElement, updated);
         },
+        onContentTypeChange: (contentType) => {
+          store.updateDraftContentType(tab.id, contentType);
+          const updated = store.getTab(tab.id);
+          if (updated) updateTabDirtyState(tabsElement, updated);
+        },
       });
       activeDocument = { id: tab.id, kind: 'draft', view };
       documentHost.replaceChildren(view.element);
@@ -183,6 +189,9 @@ export function mountEditorView(
         store.updateChainNoteTab(tab.id, noteTabId, value);
         const updated = store.getTab(tab.id);
         if (updated) updateTabDirtyState(tabsElement, updated);
+      },
+      onContentTypeChange: (noteTabId, contentType) => {
+        store.updateChainNoteContentType(tab.id, noteTabId, contentType);
       },
       onSaveNote: (noteTabId) => {
         void saveChainNoteTab(tab.id, noteTabId);
@@ -251,10 +260,11 @@ export function mountEditorView(
     const noteTab = store.getChainNoteTab(chainTabId, noteTabId);
     if (!noteTab || !noteTab.content.trim()) return false;
 
-    const result = await AppController.appendToEditorChainTab(
-      chainTab.chainId,
-      noteTab.content
-    );
+    const contentType = contentTypeOf(noteTab);
+    const result =
+      contentType === 'code'
+        ? await AppController.appendToEditorChainTab(chainTab.chainId, noteTab.content, contentType)
+        : await AppController.appendToEditorChainTab(chainTab.chainId, noteTab.content);
     if (!result.ok) return false;
 
     store.appendNoteToChainTab(chainTabId, result.note);
@@ -370,9 +380,14 @@ export function mountEditorView(
 
     try {
       const content = tab.content;
+      const contentType = contentTypeOf(tab);
 
       if (tab.target) {
-        const result = await AppController.updateEditorNote(tab.target, content);
+        const result = await AppController.updateEditorNote(
+          tab.target,
+          content,
+          contentType
+        );
         if (!result.ok) return false;
 
         store.markDraftSaved(id, result.target, content);
@@ -388,7 +403,10 @@ export function mountEditorView(
       });
       if (!chain) return false;
 
-      const result = await AppController.saveEditorToChain(chain.chainId, content);
+      const result =
+        contentType === 'code'
+          ? await AppController.saveEditorToChain(chain.chainId, content, contentType)
+          : await AppController.saveEditorToChain(chain.chainId, content);
       if (!result.ok) return false;
 
       store.markDraftSaved(id, result.target, content);

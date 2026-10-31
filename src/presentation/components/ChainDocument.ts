@@ -1,6 +1,10 @@
-﻿import type { NoteDTO } from '@application/dto/index.js';
+import type { NoteContentType, NoteDTO } from '@application/dto/index.js';
 import type { ChainNoteTab, ChainTab } from '../state/EditorStore.js';
-import { deriveEditorTitle, isChainNoteTabDirty } from '../state/EditorStore.js';
+import {
+  contentTypeOf,
+  deriveEditorTitle,
+  isChainNoteTabDirty,
+} from '../state/EditorStore.js';
 import { appState } from '../state/AppState.js';
 import { AppController } from '../pages/AppController.js';
 import { groupNotesByDate } from '../app/editorGrouping.js';
@@ -9,11 +13,13 @@ import { showChainMenu } from '../views/menus.js';
 import { renderTabList } from './EditorTabs.js';
 import { mountActiveLineHighlight } from './ActiveLineHighlight.js';
 import { mountInlineTagEditor } from './InlineTagEditor.js';
+import { mountContentTypeMenu } from './ContentTypeMenu.js';
 import { el } from '../dom.js';
 import { formatDateFull, formatTime } from '@shared/utilities/index.js';
 
 export interface ChainDocumentHandlers {
   onNoteInput: (noteTabId: string, value: string) => void;
+  onContentTypeChange?: (noteTabId: string, contentType: NoteContentType) => void;
   onSaveNote: (noteTabId: string) => void;
   onCreateNote: () => void;
   onSelectNote: (noteTabId: string) => void;
@@ -74,6 +80,54 @@ function startNoteEdit(text: HTMLElement, note: NoteDTO, chainId: string): void 
   });
 }
 
+function startCodeNoteEdit(text: HTMLElement, note: NoteDTO, chainId: string): void {
+  const original = note.content;
+  const editor = el('textarea', 'chain-note__code-editor') as HTMLTextAreaElement;
+  editor.value = original;
+  editor.rows = Math.min(24, Math.max(4, original.split(/\r?\n/).length + 1));
+  editor.spellcheck = false;
+  editor.setAttribute('aria-label', 'Editar código da nota');
+
+  let finished = false;
+  const restore = (): void => {
+    if (editor.parentElement) editor.replaceWith(text);
+  };
+  const save = async (): Promise<void> => {
+    if (finished) return;
+    finished = true;
+    const content = editor.value;
+
+    if (!content.trim()) {
+      restore();
+      return;
+    }
+    if (content !== original) {
+      await AppController.updateNoteContent(chainId, note.id, content, 'code');
+    }
+    restore();
+  };
+
+  text.replaceWith(editor);
+  editor.focus();
+  editor.setSelectionRange(original.length, original.length);
+
+  editor.addEventListener('blur', () => {
+    void save();
+  }, { once: true });
+  editor.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      finished = true;
+      restore();
+      return;
+    }
+    if (event.key === 's' && (event.ctrlKey || event.metaKey)) {
+      event.preventDefault();
+      void save();
+    }
+  });
+}
+
 function renderNote(note: NoteDTO, chainId: string): HTMLElement {
   const article = el('article', 'chain-note');
   article.setAttribute('data-note-id', note.id);
@@ -93,6 +147,13 @@ function renderNote(note: NoteDTO, chainId: string): HTMLElement {
     meta.appendChild(edited);
   }
 
+  const isCode = note.contentType === 'code';
+  if (isCode) {
+    const format = el('span', 'chain-note__format');
+    format.textContent = 'Código';
+    meta.appendChild(format);
+  }
+
   const edit = el('button', 'btn-icon chain-note__edit');
   edit.type = 'button';
   edit.setAttribute('aria-label', 'Editar nota');
@@ -100,9 +161,15 @@ function renderNote(note: NoteDTO, chainId: string): HTMLElement {
   edit.innerHTML = '<span class="material-symbols-rounded" aria-hidden="true">edit</span>';
   meta.appendChild(edit);
 
-  const text = el('p', `chain-note__text chain-note__text--${note.role}`);
+  const text = el(
+    'p',
+    `chain-note__text chain-note__text--${note.role}${isCode ? ' chain-note__text--code' : ''}`
+  );
   text.textContent = note.content;
-  edit.addEventListener('click', () => startNoteEdit(text, note, chainId));
+  edit.addEventListener('click', () => {
+    if (isCode) startCodeNoteEdit(text, note, chainId);
+    else startNoteEdit(text, note, chainId);
+  });
 
   article.append(meta, text);
   return article;
@@ -176,6 +243,7 @@ export function mountChainDocument(
         <div class="chain-composer__footer">
           <span class="chain-composer__status" id="chain-composer-status" aria-live="polite"></span>
           <div class="chain-composer__actions">
+            <span id="chain-content-type"></span>
             <span class="chain-composer__hint">Ctrl+S para adicionar</span>
             <button class="btn btn-filled" id="chain-composer-save" type="button">
               <span class="material-symbols-rounded" aria-hidden="true">add</span>
@@ -200,6 +268,7 @@ export function mountChainDocument(
   const composer = root.querySelector<HTMLTextAreaElement>('#chain-composer-input')!;
   const emptyNote = root.querySelector<HTMLElement>('#chain-note-empty')!;
   const composerStatus = root.querySelector<HTMLElement>('#chain-composer-status')!;
+  const contentTypeHost = root.querySelector<HTMLElement>('#chain-content-type')!;
   const save = root.querySelector<HTMLButtonElement>('#chain-composer-save')!;
   const saveLabel = root.querySelector<HTMLElement>('#chain-composer-save-label')!;
   const activeLine = mountActiveLineHighlight(composer, panel);
@@ -362,6 +431,29 @@ export function mountChainDocument(
     currentTab.noteTabs.find((item) => item.id === currentTab.activeNoteTabId) ??
     null;
 
+  const contentTypeMenu = mountContentTypeMenu({
+    value: contentTypeOf(
+      tab.noteTabs.find((item) => item.id === tab.activeNoteTabId) ?? {
+        contentType: 'text',
+      }
+    ),
+    onChange: (contentType) => {
+      const active = activeNoteTab();
+      if (!active) return;
+      currentTab = {
+        ...currentTab,
+        noteTabs: currentTab.noteTabs.map((noteTab) =>
+          noteTab.id === active.id ? { ...noteTab, contentType } : noteTab
+        ),
+      };
+      handlers.onContentTypeChange?.(active.id, contentType);
+      syncNoteEditor();
+      renderNoteTabs();
+      activeLine.refresh();
+    },
+  });
+  contentTypeHost.appendChild(contentTypeMenu.element);
+
   const syncNoteEditor = (): void => {
     const noteTab = activeNoteTab();
 
@@ -370,6 +462,7 @@ export function mountChainDocument(
       composer.hidden = true;
       composer.value = '';
       emptyNote.hidden = false;
+      contentTypeMenu.element.hidden = true;
       panel.removeAttribute('aria-labelledby');
       save.disabled = true;
       composer.disabled = savingState;
@@ -378,8 +471,16 @@ export function mountChainDocument(
       return;
     }
 
+    const isCode = contentTypeOf(noteTab) === 'code';
     composer.hidden = false;
     emptyNote.hidden = true;
+    contentTypeMenu.element.hidden = false;
+    contentTypeMenu.update(isCode ? 'code' : 'text');
+    composer.classList.toggle('chain-composer__input--code', isCode);
+    composer.spellcheck = !isCode;
+    composer.placeholder = isCode
+      ? 'Escreva um trecho de código...'
+      : 'Escreva uma nova nota para esta cadeia...';
     panel.setAttribute('aria-labelledby', `editor-tab-${noteTab.id}`);
     save.disabled = savingState;
     composer.disabled = savingState;
@@ -401,7 +502,7 @@ export function mountChainDocument(
     const items = currentTab.noteTabs.map((noteTab) => ({
       id: noteTab.id,
       label: noteTabLabel(noteTab),
-      icon: 'edit_note',
+      icon: contentTypeOf(noteTab) === 'code' ? 'code' : 'edit_note',
       dirty: isChainNoteTabDirty(noteTab),
     }));
 
@@ -487,6 +588,7 @@ export function mountChainDocument(
 
   const destroy = (): void => {
     if (titleTimer) clearTimeout(titleTimer);
+    contentTypeMenu.destroy();
     activeLine.destroy();
     tagEditor.destroy();
   };

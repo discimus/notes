@@ -130,6 +130,8 @@
   --spacing-12: 48px;
   --spacing-16: 64px;
 
+  --md-sys-font-mono: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+
   /* ── Motion ──────────────────────────────────────────────── */
   --md-sys-motion-duration-short1: 50ms;
   --md-sys-motion-duration-short2: 100ms;

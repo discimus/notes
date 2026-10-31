@@ -1,4 +1,4 @@
-import type { ChainDetailDTO, NoteDTO } from '@application/dto/index.js';
+import type { ChainDetailDTO, NoteContentType, NoteDTO } from '@application/dto/index.js';
 import { generateId } from '@shared/utilities/index.js';
 
 export interface EditorTarget {
@@ -13,13 +13,16 @@ export interface DraftTab {
   id: string;
   title: string;
   content: string;
+  contentType?: NoteContentType | undefined;
   savedContent: string;
+  savedContentType?: NoteContentType | undefined;
   target: EditorTarget | null;
 }
 
 export interface ChainNoteTab {
   id: string;
   content: string;
+  contentType?: NoteContentType | undefined;
 }
 
 export interface ChainTab {
@@ -46,6 +49,14 @@ type Listener = (snapshot: EditorSnapshot) => void;
 export const EDITOR_STORAGE_KEY = 'threadnotes.editor.tabs';
 
 const PERSIST_DELAY_MS = 250;
+
+export function normalizeContentType(value: unknown): NoteContentType {
+  return value === 'code' ? 'code' : 'text';
+}
+
+export function contentTypeOf(tab: { contentType?: NoteContentType | undefined }): NoteContentType {
+  return normalizeContentType(tab.contentType);
+}
 
 function getSessionStorage(): Storage | null {
   try {
@@ -77,6 +88,12 @@ function isDraftTab(value: unknown): value is DraftTab {
     typeof value['title'] === 'string' &&
     typeof value['content'] === 'string' &&
     typeof value['savedContent'] === 'string' &&
+    (value['contentType'] === undefined ||
+      value['contentType'] === 'text' ||
+      value['contentType'] === 'code') &&
+    (value['savedContentType'] === undefined ||
+      value['savedContentType'] === 'text' ||
+      value['savedContentType'] === 'code') &&
     (value['target'] === null || isTarget(value['target']))
   );
 }
@@ -85,16 +102,19 @@ function isChainNoteTab(value: unknown): value is ChainNoteTab {
   return (
     isRecord(value) &&
     typeof value['id'] === 'string' &&
-    typeof value['content'] === 'string'
+    typeof value['content'] === 'string' &&
+    (value['contentType'] === undefined ||
+      value['contentType'] === 'text' ||
+      value['contentType'] === 'code')
   );
 }
 
 function createBlankNoteTab(): ChainNoteTab {
-  return { id: generateId(), content: '' };
+  return { id: generateId(), content: '', contentType: 'text' };
 }
 
 function cloneNoteTab(noteTab: ChainNoteTab): ChainNoteTab {
-  return { ...noteTab };
+  return { ...noteTab, contentType: contentTypeOf(noteTab) };
 }
 
 function cloneNote(note: NoteDTO): NoteDTO {
@@ -131,9 +151,11 @@ export function isChainNoteTabDirty(noteTab: ChainNoteTab): boolean {
 }
 
 export function isEditorTabDirty(tab: EditorTab): boolean {
-  return tab.kind === 'draft'
-    ? tab.content !== tab.savedContent
-    : tab.noteTabs.some(isChainNoteTabDirty);
+  if (tab.kind === 'chain') return tab.noteTabs.some(isChainNoteTabDirty);
+
+  const savedType = normalizeContentType(tab.savedContentType);
+  const typeChanged = tab.target !== null && contentTypeOf(tab) !== savedType;
+  return tab.content !== tab.savedContent || typeChanged;
 }
 
 export class EditorStore {
@@ -209,7 +231,9 @@ export class EditorStore {
       id: generateId(),
       title: 'Sem título',
       content: '',
+      contentType: 'text',
       savedContent: '',
+      savedContentType: 'text',
       target: null,
     };
 
@@ -323,6 +347,21 @@ export class EditorStore {
     this.persist();
   }
 
+  updateChainNoteContentType(
+    chainTabId: string,
+    noteTabId: string,
+    contentType: NoteContentType
+  ): void {
+    const tab = this.tabs.find((item) => item.id === chainTabId);
+    if (!tab || tab.kind !== 'chain') return;
+    const noteTab = tab.noteTabs.find((item) => item.id === noteTabId);
+    if (!noteTab || contentTypeOf(noteTab) === contentType) return;
+
+    noteTab.contentType = contentType;
+    this.persist();
+    this.notify();
+  }
+
   removeChainNoteTab(chainTabId: string, noteTabId: string): void {
     const tab = this.tabs.find((item) => item.id === chainTabId);
     if (!tab || tab.kind !== 'chain') return;
@@ -366,6 +405,15 @@ export class EditorStore {
     }
 
     this.persist();
+  }
+
+  updateDraftContentType(id: string, contentType: NoteContentType): void {
+    const tab = this.tabs.find((item) => item.id === id);
+    if (!tab || tab.kind !== 'draft' || contentTypeOf(tab) === contentType) return;
+
+    tab.contentType = contentType;
+    this.persist();
+    this.notify();
   }
 
   setChainTabStatus(id: string, status: ChainTab['status']): void {
@@ -443,6 +491,7 @@ export class EditorStore {
     if (!tab || tab.kind !== 'draft') return;
 
     tab.savedContent = savedContent;
+    tab.savedContentType = contentTypeOf(tab);
     tab.target = { ...target };
     this.persist();
     this.notify();
@@ -510,7 +559,9 @@ export class EditorStore {
             id: rawTab.id,
             title: deriveEditorTitle(rawTab.content),
             content: rawTab.content,
+            contentType: normalizeContentType(rawTab.contentType),
             savedContent: rawTab.savedContent,
+            savedContentType: normalizeContentType(rawTab.savedContentType),
             target: rawTab.target ? { ...rawTab.target } : null,
           });
         }
@@ -546,7 +597,7 @@ export class EditorStore {
     const noteTabs =
       storedTabs.length > 0
         ? storedTabs
-        : [{ id: generateId(), content: legacyComposer }];
+        : [{ id: generateId(), content: legacyComposer, contentType: 'text' as const }];
     const savedActiveId =
       typeof raw['activeNoteTabId'] === 'string' ? raw['activeNoteTabId'] : null;
     const activeNoteTabId = noteTabs.some((tab) => tab.id === savedActiveId)

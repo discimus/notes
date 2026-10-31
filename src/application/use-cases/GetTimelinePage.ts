@@ -9,6 +9,7 @@ function mapNoteData(note: NoteData): NoteDTO {
     chainId: note.chainId,
     position: note.position,
     role: note.role,
+    contentType: note.contentType ?? 'text',
     ...(note.title ? { title: note.title } : {}),
     createdAt: note.createdAt,
     updatedAt: note.updatedAt,

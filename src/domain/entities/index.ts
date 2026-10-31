@@ -1,5 +1,5 @@
 export { Note } from './Note.js';
-export type { NoteData, NoteRole } from './Note.js';
+export type { NoteData, NoteContentType, NoteRole } from './Note.js';
 export { Chain } from './Chain.js';
 export type { ChainData } from './Chain.js';
 export { Tag } from './Tag.js';
