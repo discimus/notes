@@ -626,15 +626,20 @@
   }
   .nav-drawer__footer {
     display: flex;
+    flex-direction: column;
+    align-items: center;
     justify-content: center;
+    gap: var(--spacing-1);
     padding: var(--spacing-2) 0;
   }
+  .nav-drawer__settings,
   .nav-drawer__theme {
     width: 56px;
     height: 56px;
     padding: 0;
     justify-content: center;
   }
+  .nav-drawer__settings-label,
   .nav-drawer__theme-label {
     display: none;
   }

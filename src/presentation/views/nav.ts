@@ -3,6 +3,7 @@ import type { AppState, AppView } from '../state/AppState.js';
 import { AppController } from '../pages/AppController.js';
 import { el, qs, qsa } from '../dom.js';
 import { cycleTheme, themeIcon, themeLabel } from '../app/theme.js';
+import { showSettingsDialog } from '../components/SettingsDialog.js';
 
 const COMPACT_NAV_QUERY = '(max-width: 768px)';
 const DESKTOP_NAV_QUERY = '(min-width: 769px)';
@@ -93,7 +94,11 @@ export function renderNavDrawer(): HTMLElement {
 
   const footer = el('div', 'nav-drawer__footer');
   footer.innerHTML = `
-    <button class="nav-drawer__theme" id="theme-toggle" aria-label="Alternar tema" title="Alternar tema">
+    <button class="nav-drawer__settings" id="settings-toggle" type="button" aria-label="Configurações" title="Configurações" aria-haspopup="dialog">
+      <span class="nav-drawer__settings-icon material-symbols-rounded" aria-hidden="true">settings</span>
+      <span class="nav-drawer__settings-label">Configurações</span>
+    </button>
+    <button class="nav-drawer__theme" id="theme-toggle" type="button" aria-label="Alternar tema" title="Alternar tema">
       <span class="nav-drawer__theme-icon material-symbols-rounded" aria-hidden="true">dark_mode</span>
       <span class="nav-drawer__theme-label">Tema</span>
     </button>
@@ -128,6 +133,12 @@ export function updateNavDrawer(state: AppState): void {
   });
 
   drawer.classList.toggle('nav-drawer--open', state.drawerOpen);
+
+  const settingsBtn = qs('#settings-toggle', drawer);
+  if (settingsBtn && !(settingsBtn as HTMLElement).dataset['bound']) {
+    (settingsBtn as HTMLElement).dataset['bound'] = '1';
+    settingsBtn.addEventListener('click', () => showSettingsDialog());
+  }
 
   const themeBtn = qs('#theme-toggle', drawer);
   if (themeBtn) {

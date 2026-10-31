@@ -4,6 +4,7 @@ import { snackbar } from '../components/Snackbar.js';
 import { showConfirmDialog } from '../components/Dialog.js';
 import { DraftStore } from '../state/DraftStore.js';
 import { pushNavigation } from '../app/navigation.js';
+import { getSettings } from '../app/settings.js';
 
 import {
   CreateChainWithHeader,
@@ -208,14 +209,16 @@ export const AppController = {
   },
 
   async deleteChain(chainId: string): Promise<void> {
-    const confirmed = await showConfirmDialog({
-      title: 'Mover para a lixeira?',
-      body: 'A cadeia será movida para a lixeira. Você pode restaurá-la ou excluí-la permanentemente.',
-      icon: 'delete',
-      confirmLabel: 'Mover para lixeira',
-      destructive: true,
-    });
-    if (!confirmed) return;
+    if (getSettings().confirmBeforeTrash) {
+      const confirmed = await showConfirmDialog({
+        title: 'Mover para a lixeira?',
+        body: 'A cadeia será movida para a lixeira. Você pode restaurá-la ou excluí-la permanentemente.',
+        icon: 'delete',
+        confirmLabel: 'Mover para lixeira',
+        destructive: true,
+      });
+      if (!confirmed) return;
+    }
     try {
       await deleteChain.execute(chainId, false);
       snackbar.success('Cadeia movida para a lixeira.', {

@@ -5,9 +5,10 @@
 ```
 app/shell.ts        → renderApp, subscrição do estado, updateContent e FAB
 app/theme.ts        → preferência de tema e aplicação de data-theme
+app/settings.ts     → preferências persistidas (confirmação da lixeira)
 app/navigation.ts   → histórico (pushState/popstate)
 views/              → nav, topbar, chains, search, timeline, tags, menus
-components/         → Dialog, Snackbar, states (empty/loading)
+components/         → Dialog, SettingsDialog, Snackbar, states (empty/loading)
 dom.ts              → el(), qs(), qsa()
 filters.ts          → filtros puros de apresentação
 pages/AppController.ts
@@ -57,6 +58,13 @@ DraftStore.load()  // Draft | null
 DraftStore.clear() // sempre chamar após criar/anexar nota com sucesso
 ```
 
+## Configurações
+
+- A engrenagem `#settings-toggle` fica no rodapé do rail/drawer, acima do tema.
+- `threadnotes.settings.confirmBeforeTrash` persiste em `localStorage`; default `true`.
+- A preferência controla apenas mover cadeias para a lixeira. Exclusão permanente, remoção de tags e arquivamento continuam sempre confirmando.
+- `showSettingsDialog()` usa `mountDialog`; a alteração é aplicada imediatamente.
+
 ## Dialog e Snackbar
 
 ```typescript
@@ -66,13 +74,16 @@ const ok = await showConfirmDialog({ title, body?, icon?, confirmLabel?, destruc
 // Input simples
 const value = await showInputDialog({ title, label, initialValue?, placeholder? });
 
+// Configurações
+showSettingsDialog();
+
 // Feedback
 snackbar.success('Mensagem.');
 snackbar.error('Erro.');
 snackbar.success('Ação feita.', { label: 'Desfazer', onClick: () => desfazer() });
 ```
 
-Ações destrutivas **sempre** pedem confirmação via `showConfirmDialog` antes de chamar o controller.
+Ações destrutivas **sempre** pedem confirmação via `showConfirmDialog` antes de chamar o controller, exceto mover para a lixeira quando `confirmBeforeTrash` está desativado; nesse caso o snackbar de “Desfazer” permanece obrigatório.
 
 ## CSS — `src/presentation/styles/`
 
@@ -88,7 +99,7 @@ Ações destrutivas **sempre** pedem confirmação via `showConfirmDialog` antes
 - Lista de cadeias: item compacto de 2 linhas em 64px, com título + data/notas + favorito. Excerpt e tags ficam no detalhe, não na lista.
 - Tokens MD3: use `var(--md-sys-color-primary)` etc. — nunca valores de cor literais.
 - **Nunca** ler `components.css` inteiro — use grep para a classe específica.
-- Navegação: rail fixo de 80px em `≥769px`; drawer modal de 280px em `≤768px`. O hambúrguer (`#nav-toggle`) só aparece no compacto. O toggle de tema fica no rodapé do rail/drawer.
+- Navegação: rail fixo de 80px em `≥769px`; drawer modal de 280px em `≤768px`. O hambúrguer (`#nav-toggle`) só aparece no compacto. Configurações e toggle de tema ficam no rodapé do rail/drawer.
 
 ## Renderização DOM — sem framework
 
