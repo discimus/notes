@@ -17,6 +17,7 @@ export interface ChainDocumentHandlers {
   onCreateNote: () => void;
   onSelectNote: (noteTabId: string) => void;
   onCloseNote: (noteTabId: string) => void;
+  onToggleComposer: () => void;
 }
 
 export interface ChainDocumentView {
@@ -158,36 +159,49 @@ export function mountChainDocument(
     </div>
 
     <div class="chain-composer" id="chain-composer">
-      <div class="chain-note-tabbar">
-        <div class="editor-tabs editor-tabs--nested" id="chain-note-tabs"></div>
-        <button class="btn-icon" id="chain-note-new" type="button" aria-label="Novo documento" title="Novo documento">
-          <span class="material-symbols-rounded" aria-hidden="true">add</span>
+      <div class="chain-composer__header">
+        <button class="chain-composer__toggle" id="chain-composer-toggle" type="button"
+          aria-expanded="true" aria-controls="chain-composer-body">
+          <span class="chain-composer__toggle-icon material-symbols-rounded" aria-hidden="true">edit_note</span>
+          <span class="chain-composer__toggle-label">Notas em edição</span>
+          <span class="chain-composer__count" id="chain-composer-count"></span>
+          <span class="chain-composer__dirty" id="chain-composer-dirty" hidden aria-hidden="true"></span>
+          <span class="chain-composer__chevron material-symbols-rounded" id="chain-composer-chevron" aria-hidden="true">expand_less</span>
         </button>
       </div>
 
-      <div class="chain-note-editor" id="chain-note-panel" role="tabpanel">
-        <textarea class="chain-composer__input" id="chain-composer-input"
-          placeholder="Escreva uma nova nota para esta cadeia..."
-          aria-label="Conteúdo da nota"></textarea>
-        <div class="chain-note-empty" id="chain-note-empty" hidden>
-          <span class="material-symbols-rounded chain-note-empty__icon" aria-hidden="true">edit_note</span>
-          <p class="chain-note-empty__title">Nenhuma nota em edição</p>
-          <p class="chain-note-empty__body">Crie um novo documento para adicionar à cadeia.</p>
-          <button class="btn btn-tonal" id="chain-note-empty-new" type="button">
+      <div class="chain-composer__body" id="chain-composer-body">
+        <div class="chain-note-tabbar">
+          <div class="editor-tabs editor-tabs--nested" id="chain-note-tabs"></div>
+          <button class="btn-icon" id="chain-note-new" type="button" aria-label="Novo documento" title="Novo documento">
             <span class="material-symbols-rounded" aria-hidden="true">add</span>
-            Novo documento
           </button>
         </div>
-      </div>
 
-      <div class="chain-composer__footer">
-        <span class="chain-composer__status" id="chain-composer-status" aria-live="polite"></span>
-        <div class="chain-composer__actions">
-          <span class="chain-composer__hint">Ctrl+S para adicionar</span>
-          <button class="btn btn-filled" id="chain-composer-save" type="button">
-            <span class="material-symbols-rounded" aria-hidden="true">add</span>
-            <span id="chain-composer-save-label">Adicionar</span>
-          </button>
+        <div class="chain-note-editor" id="chain-note-panel" role="tabpanel">
+          <textarea class="chain-composer__input" id="chain-composer-input"
+            placeholder="Escreva uma nova nota para esta cadeia..."
+            aria-label="Conteúdo da nota"></textarea>
+          <div class="chain-note-empty" id="chain-note-empty" hidden>
+            <span class="material-symbols-rounded chain-note-empty__icon" aria-hidden="true">edit_note</span>
+            <p class="chain-note-empty__title">Nenhuma nota em edição</p>
+            <p class="chain-note-empty__body">Crie um novo documento para adicionar à cadeia.</p>
+            <button class="btn btn-tonal" id="chain-note-empty-new" type="button">
+              <span class="material-symbols-rounded" aria-hidden="true">add</span>
+              Novo documento
+            </button>
+          </div>
+        </div>
+
+        <div class="chain-composer__footer">
+          <span class="chain-composer__status" id="chain-composer-status" aria-live="polite"></span>
+          <div class="chain-composer__actions">
+            <span class="chain-composer__hint">Ctrl+S para adicionar</span>
+            <button class="btn btn-filled" id="chain-composer-save" type="button">
+              <span class="material-symbols-rounded" aria-hidden="true">add</span>
+              <span id="chain-composer-save-label">Adicionar</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -209,6 +223,11 @@ export function mountChainDocument(
   const composerStatus = root.querySelector<HTMLElement>('#chain-composer-status')!;
   const save = root.querySelector<HTMLButtonElement>('#chain-composer-save')!;
   const saveLabel = root.querySelector<HTMLElement>('#chain-composer-save-label')!;
+  const composerToggle = root.querySelector<HTMLButtonElement>('#chain-composer-toggle')!;
+  const composerBody = root.querySelector<HTMLElement>('#chain-composer-body')!;
+  const composerCount = root.querySelector<HTMLElement>('#chain-composer-count')!;
+  const composerDirty = root.querySelector<HTMLElement>('#chain-composer-dirty')!;
+  const composerChevron = root.querySelector<HTMLElement>('#chain-composer-chevron')!;
 
   let currentTab = tab;
   let titleTimer: ReturnType<typeof setTimeout> | null = null;
@@ -253,6 +272,25 @@ export function mountChainDocument(
   more.addEventListener('click', (event) => {
     showChainMenu(event, currentTab.chainId);
   });
+  composerToggle.addEventListener('click', handlers.onToggleComposer);
+
+  const syncComposerHeader = (tabValue: ChainTab): void => {
+    const dirty = tabValue.noteTabs.some(isChainNoteTabDirty);
+    const count = tabValue.noteTabs.length;
+    const collapsed = tabValue.composerCollapsed;
+    const summary = `${count} ${count === 1 ? 'nota' : 'notas'} em edição${
+      dirty ? ', com alterações não salvas' : ''
+    }`;
+
+    root.classList.toggle('chain-document--notes-collapsed', collapsed);
+    composerBody.hidden = collapsed;
+    composerToggle.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+    composerToggle.setAttribute('aria-label', `${collapsed ? 'Expandir' : 'Recolher'} ${summary}`);
+    composerToggle.title = `${collapsed ? 'Expandir' : 'Recolher'} notas em edição`;
+    composerChevron.textContent = collapsed ? 'expand_more' : 'expand_less';
+    composerCount.textContent = count > 0 ? String(count) : '';
+    composerDirty.hidden = !dirty;
+  };
 
   const renderTags = (): void => {
     tags.innerHTML = '';
@@ -463,6 +501,7 @@ export function mountChainDocument(
     root.setAttribute('aria-label', `Cadeia ${tabValue.title}`);
     root.dataset['chainId'] = tabValue.chainId;
 
+    syncComposerHeader(tabValue);
     renderTags();
     renderNotes();
     renderNoteTabs();
@@ -502,6 +541,10 @@ export function mountChainDocument(
     update,
     setSaving,
     focusNoteEditor: () => {
+      if (currentTab.composerCollapsed) {
+        composerToggle.focus();
+        return;
+      }
       const noteTab = activeNoteTab();
       if (noteTab) composer.focus();
       else newNote.focus();

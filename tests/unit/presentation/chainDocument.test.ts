@@ -26,6 +26,7 @@ function makeTab(overrides: Partial<ChainTab> = {}): ChainTab {
     notes: [makeNote()],
     noteTabs: [{ id: 'note-tab-1', content: '' }],
     activeNoteTabId: 'note-tab-1',
+    composerCollapsed: false,
     status: 'loaded',
     ...overrides,
   };
@@ -38,6 +39,7 @@ function makeHandlers() {
     onCreateNote: vi.fn(),
     onSelectNote: vi.fn(),
     onCloseNote: vi.fn(),
+    onToggleComposer: vi.fn(),
   };
 }
 
@@ -83,6 +85,38 @@ describe('ChainDocument', () => {
     expect(view.element.querySelector('#chain-composer-save-label')?.textContent).toBe(
       'Adicionar'
     );
+  });
+
+  it('recolhe e expande a área de notas com estado acessível', () => {
+    const handlers = makeHandlers();
+    const view = mountChainDocument(
+      makeTab({
+        composerCollapsed: true,
+        noteTabs: [{ id: 'note-tab-1', content: 'Rascunho' }],
+      }),
+      handlers
+    );
+
+    const toggle = view.element.querySelector<HTMLButtonElement>(
+      '#chain-composer-toggle'
+    );
+    const body = view.element.querySelector<HTMLElement>('#chain-composer-body');
+
+    expect(toggle?.getAttribute('aria-expanded')).toBe('false');
+    expect(toggle?.getAttribute('aria-controls')).toBe('chain-composer-body');
+    expect(body?.hidden).toBe(true);
+    expect(view.element.classList.contains('chain-document--notes-collapsed')).toBe(
+      true
+    );
+    expect(
+      view.element.querySelector<HTMLElement>('#chain-composer-count')?.textContent
+    ).toBe('1');
+    expect(
+      view.element.querySelector<HTMLElement>('#chain-composer-dirty')?.hidden
+    ).toBe(false);
+
+    toggle?.click();
+    expect(handlers.onToggleComposer).toHaveBeenCalled();
   });
 
   it('encaminha digitação, adição e criação de nova aba', () => {

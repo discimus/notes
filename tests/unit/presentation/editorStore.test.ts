@@ -61,6 +61,7 @@ describe('EditorStore', () => {
     expect(tab.kind).toBe('chain');
     expect(tab.noteTabs).toHaveLength(1);
     expect(tab.activeNoteTabId).toBe(tab.noteTabs[0]?.id);
+    expect(tab.composerCollapsed).toBe(false);
 
     const noteTab = store.getActiveChainNoteTab(tab.id)!;
     store.updateChainNoteTab(tab.id, noteTab.id, 'Nova nota');
@@ -107,6 +108,7 @@ describe('EditorStore', () => {
     const chain = store.openChainTab('chain-1', 'Projeto');
     const noteTab = store.getActiveChainNoteTab(chain.id)!;
     store.updateChainNoteTab(chain.id, noteTab.id, 'Nota pendente persistida');
+    store.setChainComposerCollapsed(chain.id, true);
     store.flush();
 
     const restored = new EditorStore();
@@ -123,6 +125,7 @@ describe('EditorStore', () => {
     }
     expect(restoredChain.noteTabs[0]?.content).toBe('Nota pendente persistida');
     expect(restoredChain.activeNoteTabId).toBe(restoredChain.noteTabs[0]?.id);
+    expect(restoredChain.composerCollapsed).toBe(true);
     expect(restoredChain.notes).toHaveLength(0);
     expect(restoredChain.status).toBe('idle');
   });

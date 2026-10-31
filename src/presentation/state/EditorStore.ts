@@ -30,6 +30,7 @@ export interface ChainTab {
   notes: NoteDTO[];
   noteTabs: ChainNoteTab[];
   activeNoteTabId: string | null;
+  composerCollapsed: boolean;
   status: 'idle' | 'loading' | 'loaded' | 'error';
 }
 
@@ -242,6 +243,7 @@ export class EditorStore {
       notes: [],
       noteTabs: [noteTab],
       activeNoteTabId: noteTab.id,
+      composerCollapsed: false,
       status: 'idle',
     };
 
@@ -370,6 +372,14 @@ export class EditorStore {
     const tab = this.tabs.find((item) => item.id === id);
     if (!tab || tab.kind !== 'chain') return;
     tab.status = status;
+    this.notify();
+  }
+
+  setChainComposerCollapsed(id: string, collapsed: boolean): void {
+    const tab = this.tabs.find((item) => item.id === id);
+    if (!tab || tab.kind !== 'chain' || tab.composerCollapsed === collapsed) return;
+    tab.composerCollapsed = collapsed;
+    this.persist();
     this.notify();
   }
 
@@ -551,6 +561,7 @@ export class EditorStore {
       notes: [],
       noteTabs,
       activeNoteTabId,
+      composerCollapsed: raw['composerCollapsed'] === true,
       status: 'idle',
     };
   }
@@ -582,6 +593,7 @@ export class EditorStore {
               title: tab.title,
               noteTabs: tab.noteTabs,
               activeNoteTabId: tab.activeNoteTabId,
+              composerCollapsed: tab.composerCollapsed,
             }
       );
 

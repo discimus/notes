@@ -192,6 +192,11 @@ export function mountEditorView(
       onCloseNote: (noteTabId) => {
         void requestCloseChainNoteTab(tab.id, noteTabId);
       },
+      onToggleComposer: () => {
+        const current = store.getTab(tab.id);
+        if (!current || current.kind !== 'chain') return;
+        store.setChainComposerCollapsed(tab.id, !current.composerCollapsed);
+      },
     });
     activeDocument = { id: tab.id, kind: 'chain', view };
     documentHost.replaceChildren(view.element);

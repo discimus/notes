@@ -121,6 +121,33 @@ describe('EditorView', () => {
     );
   });
 
+  it('recolhe o rodapé de notas e amplia a leitura da cadeia', () => {
+    const store = new EditorStore();
+    const host = mount(store);
+    const chain = store.openChainTab('chain-1', 'Projeto principal');
+
+    host.querySelector<HTMLButtonElement>('#chain-composer-toggle')?.click();
+
+    const collapsed = store.getTab(chain.id);
+    expect(
+      collapsed?.kind === 'chain' && collapsed.composerCollapsed
+    ).toBe(true);
+    expect(
+      host.querySelector('.chain-document')?.classList.contains(
+        'chain-document--notes-collapsed'
+      )
+    ).toBe(true);
+    expect(
+      host.querySelector<HTMLElement>('#chain-composer-body')?.hidden
+    ).toBe(true);
+
+    host.querySelector<HTMLButtonElement>('#chain-composer-toggle')?.click();
+    const expanded = store.getTab(chain.id);
+    expect(
+      expanded?.kind === 'chain' && expanded.composerCollapsed
+    ).toBe(false);
+  });
+
   it('pede uma cadeia no primeiro salvamento e vincula o rascunho', async () => {
     const store = new EditorStore();
     const host = mount(store);
