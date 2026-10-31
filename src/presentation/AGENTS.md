@@ -162,4 +162,10 @@ Não modifique `main.ts` para adicionar features — adicione no `AppController`
 
 Testes de apresentação ficam em `tests/unit/presentation/` e usam jsdom. Não edite testes existentes; adicione novos arquivos de teste.
 
+- `npm run test` é a validação principal para mudanças de UI, com timeout de **120000 ms**.
+- Cobrir, quando aplicável: tabs e navegação por teclado, dirty state, fechamento com confirmação, diálogos, foco, classes/atributos ARIA, sidebar desktop/mobile e estado do `EditorStore`.
+- Não iniciar Vite, Chrome ou Playwright para QA automático.
+- QA visual ou interação real com a aplicação só quando o usuário solicitar explicitamente.
+- Novas features de UI devem vir com teste de comportamento; não considerar inspeção visual manual como validação suficiente.
+
 Exceção autorizada: `nav.test.ts` valida os 6 destinos com Editor como view inicial. Testes do editor: `editorStore`, `editorTabs`, `editorSidebar`, `editorGrouping`, `chainDocument`, `appendToChainDialog` e `editorView`.
