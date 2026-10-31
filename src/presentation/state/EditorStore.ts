@@ -17,14 +17,19 @@ export interface DraftTab {
   target: EditorTarget | null;
 }
 
+export interface ChainNoteTab {
+  id: string;
+  content: string;
+}
+
 export interface ChainTab {
   kind: 'chain';
   id: string;
   chainId: string;
   title: string;
   notes: NoteDTO[];
-  composer: string;
-  savedComposer: string;
+  noteTabs: ChainNoteTab[];
+  activeNoteTabId: string | null;
   status: 'idle' | 'loading' | 'loaded' | 'error';
 }
 
@@ -75,16 +80,20 @@ function isDraftTab(value: unknown): value is DraftTab {
   );
 }
 
-function isChainTab(value: unknown): value is ChainTab {
-  if (!isRecord(value)) return false;
+function isChainNoteTab(value: unknown): value is ChainNoteTab {
   return (
-    value['kind'] === 'chain' &&
+    isRecord(value) &&
     typeof value['id'] === 'string' &&
-    typeof value['chainId'] === 'string' &&
-    typeof value['title'] === 'string' &&
-    typeof value['composer'] === 'string' &&
-    typeof value['savedComposer'] === 'string'
+    typeof value['content'] === 'string'
   );
+}
+
+function createBlankNoteTab(): ChainNoteTab {
+  return { id: generateId(), content: '' };
+}
+
+function cloneNoteTab(noteTab: ChainNoteTab): ChainNoteTab {
+  return { ...noteTab };
 }
 
 function cloneNote(note: NoteDTO): NoteDTO {
@@ -102,6 +111,7 @@ function cloneTab(tab: EditorTab): EditorTab {
   return {
     ...tab,
     notes: tab.notes.map(cloneNote),
+    noteTabs: tab.noteTabs.map(cloneNoteTab),
   };
 }
 
@@ -115,10 +125,14 @@ export function deriveEditorTitle(content: string): string {
   return firstLine.length > 52 ? `${firstLine.slice(0, 52).trimEnd()}…` : firstLine;
 }
 
+export function isChainNoteTabDirty(noteTab: ChainNoteTab): boolean {
+  return noteTab.content.trim().length > 0;
+}
+
 export function isEditorTabDirty(tab: EditorTab): boolean {
   return tab.kind === 'draft'
     ? tab.content !== tab.savedContent
-    : tab.composer !== tab.savedComposer;
+    : tab.noteTabs.some(isChainNoteTabDirty);
 }
 
 export class EditorStore {
@@ -153,6 +167,24 @@ export class EditorStore {
       (item) => item.kind === 'chain' && item.chainId === chainId
     );
     return tab && tab.kind === 'chain' ? (cloneTab(tab) as ChainTab) : null;
+  }
+
+  getChainNoteTab(chainTabId: string, noteTabId: string): ChainNoteTab | null {
+    const tab = this.tabs.find((item) => item.id === chainTabId);
+    if (!tab || tab.kind !== 'chain') return null;
+    const noteTab = tab.noteTabs.find((item) => item.id === noteTabId);
+    return noteTab ? cloneNoteTab(noteTab) : null;
+  }
+
+  getActiveChainNoteTab(chainTabId: string): ChainNoteTab | null {
+    const tab = this.tabs.find((item) => item.id === chainTabId);
+    if (!tab || tab.kind !== 'chain' || !tab.activeNoteTabId) return null;
+    return this.getChainNoteTab(chainTabId, tab.activeNoteTabId);
+  }
+
+  hasDirtyChainNoteTabs(chainTabId: string): boolean {
+    const tab = this.tabs.find((item) => item.id === chainTabId);
+    return tab?.kind === 'chain' ? tab.noteTabs.some(isChainNoteTabDirty) : false;
   }
 
   ensureTab(): EditorTab {
@@ -201,14 +233,15 @@ export class EditorStore {
       return cloneTab(existing) as ChainTab;
     }
 
+    const noteTab = createBlankNoteTab();
     const tab: ChainTab = {
       kind: 'chain',
       id: generateId(),
       chainId,
       title,
       notes: [],
-      composer: '',
-      savedComposer: '',
+      noteTabs: [noteTab],
+      activeNoteTabId: noteTab.id,
       status: 'idle',
     };
 
@@ -217,6 +250,93 @@ export class EditorStore {
     this.persist();
     this.notify();
     return cloneTab(tab) as ChainTab;
+  }
+
+  ensureChainNoteTab(chainTabId: string): ChainNoteTab | null {
+    const tab = this.tabs.find((item) => item.id === chainTabId);
+    if (!tab || tab.kind !== 'chain') return null;
+
+    if (tab.noteTabs.length === 0) {
+      const noteTab = createBlankNoteTab();
+      tab.noteTabs.push(noteTab);
+      tab.activeNoteTabId = noteTab.id;
+      this.persist();
+      this.notify();
+      return cloneNoteTab(noteTab);
+    }
+
+    const activeExists = tab.noteTabs.some((item) => item.id === tab.activeNoteTabId);
+    if (!activeExists) {
+      tab.activeNoteTabId = tab.noteTabs[0]?.id ?? null;
+      this.persist();
+      this.notify();
+    }
+
+    return tab.activeNoteTabId
+      ? this.getChainNoteTab(chainTabId, tab.activeNoteTabId)
+      : null;
+  }
+
+  createChainNoteTab(chainTabId: string): ChainNoteTab | null {
+    const tab = this.tabs.find((item) => item.id === chainTabId);
+    if (!tab || tab.kind !== 'chain') return null;
+
+    const noteTab = createBlankNoteTab();
+    tab.noteTabs.push(noteTab);
+    tab.activeNoteTabId = noteTab.id;
+    this.persist();
+    this.notify();
+    return cloneNoteTab(noteTab);
+  }
+
+  selectChainNoteTab(chainTabId: string, noteTabId: string): boolean {
+    const tab = this.tabs.find((item) => item.id === chainTabId);
+    if (!tab || tab.kind !== 'chain') return false;
+    if (!tab.noteTabs.some((item) => item.id === noteTabId)) return false;
+    if (tab.activeNoteTabId === noteTabId) return true;
+
+    tab.activeNoteTabId = noteTabId;
+    this.persist();
+    this.notify();
+    return true;
+  }
+
+  updateChainNoteTab(chainTabId: string, noteTabId: string, content: string): void {
+    const tab = this.tabs.find((item) => item.id === chainTabId);
+    if (!tab || tab.kind !== 'chain') return;
+    const noteTab = tab.noteTabs.find((item) => item.id === noteTabId);
+    if (!noteTab) return;
+
+    const wasDirty = isChainNoteTabDirty(noteTab);
+    const previousTitle = deriveEditorTitle(noteTab.content);
+    noteTab.content = content;
+
+    if (
+      wasDirty !== isChainNoteTabDirty(noteTab) ||
+      previousTitle !== deriveEditorTitle(noteTab.content)
+    ) {
+      this.notify();
+    }
+
+    this.persist();
+  }
+
+  removeChainNoteTab(chainTabId: string, noteTabId: string): void {
+    const tab = this.tabs.find((item) => item.id === chainTabId);
+    if (!tab || tab.kind !== 'chain') return;
+
+    const index = tab.noteTabs.findIndex((item) => item.id === noteTabId);
+    if (index < 0) return;
+
+    tab.noteTabs.splice(index, 1);
+
+    if (tab.activeNoteTabId === noteTabId) {
+      const next = tab.noteTabs[index] ?? tab.noteTabs[index - 1] ?? null;
+      tab.activeNoteTabId = next?.id ?? null;
+    }
+
+    this.persist();
+    this.notify();
   }
 
   selectTab(id: string): boolean {
@@ -240,20 +360,6 @@ export class EditorStore {
     tab.title = deriveEditorTitle(content);
 
     if (wasDirty !== isEditorTabDirty(tab) || previousTitle !== tab.title) {
-      this.notify();
-    }
-
-    this.persist();
-  }
-
-  updateComposer(id: string, composer: string): void {
-    const tab = this.tabs.find((item) => item.id === id);
-    if (!tab || tab.kind !== 'chain') return;
-
-    const wasDirty = isEditorTabDirty(tab);
-    tab.composer = composer;
-
-    if (wasDirty !== isEditorTabDirty(tab)) {
       this.notify();
     }
 
@@ -332,30 +438,6 @@ export class EditorStore {
     this.notify();
   }
 
-  markComposerAppended(id: string, savedComposer: string): void {
-    const tab = this.tabs.find((item) => item.id === id);
-    if (!tab || tab.kind !== 'chain') return;
-
-    tab.savedComposer = savedComposer;
-    this.persist();
-    this.notify();
-  }
-
-  settleComposerAfterAppend(id: string, savedContent: string): void {
-    const tab = this.tabs.find((item) => item.id === id);
-    if (!tab || tab.kind !== 'chain') return;
-
-    if (tab.composer === savedContent) {
-      tab.composer = '';
-      tab.savedComposer = '';
-    } else {
-      tab.savedComposer = savedContent;
-    }
-
-    this.persist();
-    this.notify();
-  }
-
   closeTab(id: string): void {
     const index = this.tabs.findIndex((tab) => tab.id === id);
     if (index < 0) return;
@@ -409,17 +491,9 @@ export class EditorStore {
       const restored: EditorTab[] = [];
 
       for (const rawTab of parsed['tabs']) {
-        if (isChainTab(rawTab)) {
-          restored.push({
-            kind: 'chain',
-            id: rawTab.id,
-            chainId: rawTab.chainId,
-            title: rawTab.title,
-            notes: [],
-            composer: rawTab.composer,
-            savedComposer: rawTab.savedComposer,
-            status: 'idle',
-          });
+        if (isRecord(rawTab) && rawTab['kind'] === 'chain') {
+          const chainTab = this.normalizeChainTab(rawTab);
+          if (chainTab) restored.push(chainTab);
         } else if (isDraftTab(rawTab)) {
           restored.push({
             kind: 'draft',
@@ -443,6 +517,42 @@ export class EditorStore {
       this.tabs = [];
       this.activeTabId = null;
     }
+  }
+
+  private normalizeChainTab(raw: Record<string, unknown>): ChainTab | null {
+    if (
+      typeof raw['id'] !== 'string' ||
+      typeof raw['chainId'] !== 'string' ||
+      typeof raw['title'] !== 'string'
+    ) {
+      return null;
+    }
+
+    const storedTabs = Array.isArray(raw['noteTabs'])
+      ? raw['noteTabs'].filter(isChainNoteTab).map(cloneNoteTab)
+      : [];
+    const legacyComposer =
+      typeof raw['composer'] === 'string' ? raw['composer'] : '';
+    const noteTabs =
+      storedTabs.length > 0
+        ? storedTabs
+        : [{ id: generateId(), content: legacyComposer }];
+    const savedActiveId =
+      typeof raw['activeNoteTabId'] === 'string' ? raw['activeNoteTabId'] : null;
+    const activeNoteTabId = noteTabs.some((tab) => tab.id === savedActiveId)
+      ? savedActiveId
+      : noteTabs[0]!.id;
+
+    return {
+      kind: 'chain',
+      id: raw['id'],
+      chainId: raw['chainId'],
+      title: raw['title'],
+      notes: [],
+      noteTabs,
+      activeNoteTabId,
+      status: 'idle',
+    };
   }
 
   private persist(): void {
@@ -470,8 +580,8 @@ export class EditorStore {
               id: tab.id,
               chainId: tab.chainId,
               title: tab.title,
-              composer: tab.composer,
-              savedComposer: tab.savedComposer,
+              noteTabs: tab.noteTabs,
+              activeNoteTabId: tab.activeNoteTabId,
             }
       );
 

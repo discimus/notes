@@ -2,7 +2,11 @@ import { appState } from '../state/AppState.js';
 import { AppController } from '../pages/AppController.js';
 import { editorStore } from '../state/EditorStore.js';
 import type { ChainTab, DraftTab, EditorStore, EditorTab } from '../state/EditorStore.js';
-import { isEditorTabDirty } from '../state/EditorStore.js';
+import {
+  deriveEditorTitle,
+  isChainNoteTabDirty,
+  isEditorTabDirty,
+} from '../state/EditorStore.js';
 import {
   focusEditorTab,
   renderEditorTabs,
@@ -61,7 +65,7 @@ export function mountEditorView(
 
   const sidebarView = mountEditorSidebar({
     onOpenChain: (chainId) => {
-      focusComposerOnNextChain = true;
+      focusNoteEditorOnNextChain = true;
       setSidebarOpen(false);
       void AppController.openChainInEditor(chainId);
     },
@@ -102,7 +106,7 @@ export function mountEditorView(
 
   let activeDocument: ActiveDocument | null = null;
   let saving = false;
-  let focusComposerOnNextChain = false;
+  let focusNoteEditorOnNextChain = false;
 
   const setSidebarOpen = (open: boolean): void => {
     root.classList.toggle('editor-view--sidebar-open', open);
@@ -169,13 +173,24 @@ export function mountEditorView(
     }
 
     const view = mountChainDocument(tab as ChainTab, {
-      onComposerInput: (value) => {
-        store.updateComposer(tab.id, value);
+      onNoteInput: (noteTabId, value) => {
+        store.updateChainNoteTab(tab.id, noteTabId, value);
         const updated = store.getTab(tab.id);
         if (updated) updateTabDirtyState(tabsElement, updated);
       },
-      onAppend: () => {
-        void saveTab(tab.id);
+      onSaveNote: (noteTabId) => {
+        void saveChainNoteTab(tab.id, noteTabId);
+      },
+      onCreateNote: () => {
+        createChainNoteTab(tab.id);
+      },
+      onSelectNote: (noteTabId) => {
+        if (store.selectChainNoteTab(tab.id, noteTabId)) {
+          focusEditorTab(noteTabId);
+        }
+      },
+      onCloseNote: (noteTabId) => {
+        void requestCloseChainNoteTab(tab.id, noteTabId);
       },
     });
     activeDocument = { id: tab.id, kind: 'chain', view };
@@ -196,22 +211,145 @@ export function mountEditorView(
     }
   };
 
+  const focusChainNoteEditor = (chainTabId: string): void => {
+    requestAnimationFrame(() => {
+      if (activeDocument?.id === chainTabId && activeDocument.kind === 'chain') {
+        activeDocument.view.focusNoteEditor();
+      }
+    });
+  };
+
+  const createChainNoteTab = (chainTabId: string): void => {
+    if (!store.createChainNoteTab(chainTabId)) return;
+    focusChainNoteEditor(chainTabId);
+  };
+
+  const removeChainNoteTabAndEnsure = (chainTabId: string, noteTabId: string): void => {
+    store.removeChainNoteTab(chainTabId, noteTabId);
+    store.ensureChainNoteTab(chainTabId);
+    focusChainNoteEditor(chainTabId);
+  };
+
+  const appendChainNoteTab = async (
+    chainTabId: string,
+    noteTabId: string
+  ): Promise<boolean> => {
+    const chainTab = store.getTab(chainTabId);
+    if (!chainTab || chainTab.kind !== 'chain') return false;
+
+    const noteTab = store.getChainNoteTab(chainTabId, noteTabId);
+    if (!noteTab || !noteTab.content.trim()) return false;
+
+    const result = await AppController.appendToEditorChainTab(
+      chainTab.chainId,
+      noteTab.content
+    );
+    if (!result.ok) return false;
+
+    store.appendNoteToChainTab(chainTabId, result.note);
+    store.removeChainNoteTab(chainTabId, noteTabId);
+    store.ensureChainNoteTab(chainTabId);
+    return true;
+  };
+
+  const saveChainNoteTab = async (
+    chainTabId: string,
+    noteTabId: string
+  ): Promise<boolean> => {
+    if (saving) return false;
+
+    const noteTab = store.getChainNoteTab(chainTabId, noteTabId);
+    if (!noteTab) return false;
+
+    if (!noteTab.content.trim()) {
+      focusChainNoteEditor(chainTabId);
+      return false;
+    }
+
+    saving = true;
+    setSaving(chainTabId, true);
+
+    try {
+      const saved = await appendChainNoteTab(chainTabId, noteTabId);
+      if (saved) snackbar.success('Nota adicionada à cadeia.');
+      return saved;
+    } finally {
+      saving = false;
+      setSaving(chainTabId, false);
+      focusChainNoteEditor(chainTabId);
+    }
+  };
+
+  const saveAllChainNoteTabs = async (chainTabId: string): Promise<boolean> => {
+    if (saving) return false;
+
+    const chainTab = store.getTab(chainTabId);
+    if (!chainTab || chainTab.kind !== 'chain') return false;
+
+    const noteTabIds = chainTab.noteTabs
+      .filter((noteTab) => noteTab.content.trim().length > 0)
+      .map((noteTab) => noteTab.id);
+
+    if (noteTabIds.length === 0) return true;
+
+    saving = true;
+    setSaving(chainTabId, true);
+
+    try {
+      for (const noteTabId of noteTabIds) {
+        const current = store.getChainNoteTab(chainTabId, noteTabId);
+        if (!current || !current.content.trim()) continue;
+        const saved = await appendChainNoteTab(chainTabId, noteTabId);
+        if (!saved) return false;
+      }
+
+      snackbar.success(
+        noteTabIds.length === 1
+          ? 'Nota adicionada à cadeia.'
+          : 'Notas adicionadas à cadeia.'
+      );
+      return true;
+    } finally {
+      saving = false;
+      setSaving(chainTabId, false);
+      focusChainNoteEditor(chainTabId);
+    }
+  };
+
+  const requestCloseChainNoteTab = async (
+    chainTabId: string,
+    noteTabId: string
+  ): Promise<void> => {
+    const noteTab = store.getChainNoteTab(chainTabId, noteTabId);
+    if (!noteTab) return;
+
+    if (!isChainNoteTabDirty(noteTab)) {
+      removeChainNoteTabAndEnsure(chainTabId, noteTabId);
+      return;
+    }
+
+    const title = deriveEditorTitle(noteTab.content);
+    const choice = await showCloseTabDialog(
+      title === 'Sem título' ? 'Novo documento' : title
+    );
+    if (choice === 'cancel') return;
+    if (choice === 'discard') {
+      removeChainNoteTabAndEnsure(chainTabId, noteTabId);
+      return;
+    }
+
+    await saveChainNoteTab(chainTabId, noteTabId);
+  };
+
   const saveTab = async (id: string): Promise<boolean> => {
     if (saving) return false;
 
     const tab = store.getTab(id);
     if (!tab) return false;
 
-    if (tab.kind === 'draft' && !tab.content.trim()) {
+    if (tab.kind !== 'draft' || !tab.content.trim()) {
       if (activeDocument?.id === id && activeDocument.kind === 'draft') {
         activeDocument.view.focus();
-      }
-      return false;
-    }
-
-    if (tab.kind === 'chain' && !tab.composer.trim()) {
-      if (activeDocument?.id === id && activeDocument.kind === 'chain') {
-        activeDocument.view.focusComposer();
       }
       return false;
     }
@@ -220,49 +358,33 @@ export function mountEditorView(
     setSaving(id, true);
 
     try {
-      if (tab.kind === 'draft') {
-        const content = tab.content;
+      const content = tab.content;
 
-        if (tab.target) {
-          const result = await AppController.updateEditorNote(tab.target, content);
-          if (!result.ok) return false;
-
-          store.markDraftSaved(id, result.target, content);
-          snackbar.success('Documento salvo.', {
-            label: 'Abrir cadeia',
-            onClick: () => openChainAction(result.target.chainId),
-          });
-          return true;
-        }
-
-        const chain = await showAppendToChainDialog({
-          chains: appState.get().chainSummaries,
-        });
-        if (!chain) return false;
-
-        const result = await AppController.saveEditorToChain(chain.chainId, content);
+      if (tab.target) {
+        const result = await AppController.updateEditorNote(tab.target, content);
         if (!result.ok) return false;
 
         store.markDraftSaved(id, result.target, content);
-        snackbar.success('Nota adicionada à cadeia.', {
+        snackbar.success('Documento salvo.', {
           label: 'Abrir cadeia',
           onClick: () => openChainAction(result.target.chainId),
         });
         return true;
       }
 
-      const content = tab.composer;
-      const result = await AppController.appendToEditorChainTab(tab.chainId, content);
+      const chain = await showAppendToChainDialog({
+        chains: appState.get().chainSummaries,
+      });
+      if (!chain) return false;
+
+      const result = await AppController.saveEditorToChain(chain.chainId, content);
       if (!result.ok) return false;
 
-      store.appendNoteToChainTab(id, result.note);
-      store.settleComposerAfterAppend(id, content);
-
-      if (activeDocument?.id === id && activeDocument.kind === 'chain') {
-        activeDocument.view.clearComposerIf(content);
-      }
-
-      snackbar.success('Nota adicionada à cadeia.');
+      store.markDraftSaved(id, result.target, content);
+      snackbar.success('Nota adicionada à cadeia.', {
+        label: 'Abrir cadeia',
+        onClick: () => openChainAction(result.target.chainId),
+      });
       return true;
     } finally {
       saving = false;
@@ -286,7 +408,9 @@ export function mountEditorView(
       return;
     }
 
-    const saved = await saveTab(id);
+    const saved = tab.kind === 'chain'
+      ? await saveAllChainNoteTabs(id)
+      : await saveTab(id);
     if (!saved) return;
 
     const latest = store.getTab(id);
@@ -337,13 +461,13 @@ export function mountEditorView(
 
     const currentDocument = activeDocument;
     if (
-      focusComposerOnNextChain &&
+      focusNoteEditorOnNextChain &&
       active.kind === 'chain' &&
       currentDocument?.kind === 'chain'
     ) {
-      focusComposerOnNextChain = false;
+      focusNoteEditorOnNextChain = false;
       requestAnimationFrame(() => {
-        currentDocument.view.focusComposer();
+        currentDocument.view.focusNoteEditor();
       });
     }
 
@@ -376,6 +500,17 @@ export function mountEditorView(
     const active = store.getActiveTab();
     if (!active) {
       createDraftTab();
+      return;
+    }
+
+    if (active.kind === 'chain') {
+      const noteTab = store.getActiveChainNoteTab(active.id);
+      if (!noteTab) {
+        store.ensureChainNoteTab(active.id);
+        focusChainNoteEditor(active.id);
+        return;
+      }
+      void saveChainNoteTab(active.id, noteTab.id);
       return;
     }
 

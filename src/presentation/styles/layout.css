@@ -775,13 +775,22 @@
     margin: 0;
     padding: 0;
   }
-  .chain-composer__toolbar,
   .chain-composer__footer {
     padding-left: var(--spacing-4);
     padding-right: var(--spacing-4);
   }
   .chain-composer__input {
     padding: var(--spacing-3) var(--spacing-4);
+  }
+  .chain-note-tabbar {
+    padding: 0 var(--spacing-1);
+  }
+  .editor-tabs--nested .editor-tab {
+    flex-basis: 140px;
+    min-width: 100px;
+  }
+  .chain-composer__hint {
+    display: none;
   }
   .chain-note__edit {
     opacity: 1;

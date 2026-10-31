@@ -24,10 +24,20 @@ function makeTab(overrides: Partial<ChainTab> = {}): ChainTab {
     chainId: 'chain-1',
     title: 'Projeto principal',
     notes: [makeNote()],
-    composer: '',
-    savedComposer: '',
+    noteTabs: [{ id: 'note-tab-1', content: '' }],
+    activeNoteTabId: 'note-tab-1',
     status: 'loaded',
     ...overrides,
+  };
+}
+
+function makeHandlers() {
+  return {
+    onNoteInput: vi.fn(),
+    onSaveNote: vi.fn(),
+    onCreateNote: vi.fn(),
+    onSelectNote: vi.fn(),
+    onCloseNote: vi.fn(),
   };
 }
 
@@ -51,11 +61,8 @@ describe('ChainDocument', () => {
     });
   });
 
-  it('renderiza histórico agrupado por data e compositor', () => {
-    const view = mountChainDocument(makeTab(), {
-      onComposerInput: vi.fn(),
-      onAppend: vi.fn(),
-    });
+  it('renderiza histórico agrupado por data e aba inicial de novo documento', () => {
+    const view = mountChainDocument(makeTab(), makeHandlers());
 
     expect(view.element.querySelector('.chain-document__title')?.textContent).toBe(
       'Projeto principal'
@@ -66,10 +73,11 @@ describe('ChainDocument', () => {
     );
     expect(view.element.querySelector('#chain-note-count')?.textContent).toBe('1 nota');
     expect(view.element.querySelector('#chain-composer-input')).not.toBeNull();
-    expect(view.element.querySelector('.chain-composer__label')?.textContent).toBe(
+    expect(view.element.querySelectorAll('#chain-note-tabs [role="tab"]')).toHaveLength(1);
+    expect(view.element.querySelector('.editor-tab__label')?.textContent).toBe(
       'Novo documento'
     );
-    expect(view.element.querySelector('.chain-composer__icon')?.textContent).toBe(
+    expect(view.element.querySelector('.editor-tab__icon')?.textContent).toBe(
       'edit_note'
     );
     expect(view.element.querySelector('#chain-composer-save-label')?.textContent).toBe(
@@ -77,13 +85,9 @@ describe('ChainDocument', () => {
     );
   });
 
-  it('encaminha digitação e adição no compositor', () => {
-    const onComposerInput = vi.fn();
-    const onAppend = vi.fn();
-    const view = mountChainDocument(makeTab(), {
-      onComposerInput,
-      onAppend,
-    });
+  it('encaminha digitação, adição e criação de nova aba', () => {
+    const handlers = makeHandlers();
+    const view = mountChainDocument(makeTab(), handlers);
 
     const composer = view.element.querySelector<HTMLTextAreaElement>(
       '#chain-composer-input'
@@ -92,38 +96,38 @@ describe('ChainDocument', () => {
 
     composer.value = 'Nova nota';
     composer.dispatchEvent(new Event('input', { bubbles: true }));
-    expect(onComposerInput).toHaveBeenCalledWith('Nova nota');
+    expect(handlers.onNoteInput).toHaveBeenCalledWith('note-tab-1', 'Nova nota');
 
     view.element.querySelector<HTMLButtonElement>('#chain-composer-save')?.click();
-    expect(onAppend).toHaveBeenCalled();
+    expect(handlers.onSaveNote).toHaveBeenCalledWith('note-tab-1');
+
+    view.element.querySelector<HTMLButtonElement>('#chain-note-new')?.click();
+    expect(handlers.onCreateNote).toHaveBeenCalled();
   });
 
-  it('limpa o compositor apenas quando o conteúdo salvo ainda está presente', () => {
-    const onComposerInput = vi.fn();
-    const view = mountChainDocument(makeTab({ composer: 'Salvo' }), {
-      onComposerInput,
-      onAppend: vi.fn(),
-    });
-
-    const composer = view.element.querySelector<HTMLTextAreaElement>(
-      '#chain-composer-input'
+  it('exibe múltiplas abas e o conteúdo da aba ativa', () => {
+    const view = mountChainDocument(
+      makeTab({
+        noteTabs: [
+          { id: 'note-tab-1', content: 'Primeira nota' },
+          { id: 'note-tab-2', content: 'Segunda nota' },
+        ],
+        activeNoteTabId: 'note-tab-2',
+      }),
+      makeHandlers()
     );
-    if (!composer) throw new Error('Compositor não encontrado');
-    expect(composer.value).toBe('Salvo');
 
-    view.clearComposerIf('Outro texto');
-    expect(composer.value).toBe('Salvo');
-
-    view.clearComposerIf('Salvo');
-    expect(composer.value).toBe('');
-    expect(onComposerInput).toHaveBeenCalledWith('');
+    const tabs = view.element.querySelectorAll('#chain-note-tabs [role="tab"]');
+    expect(tabs).toHaveLength(2);
+    expect(tabs[1]?.getAttribute('aria-selected')).toBe('true');
+    expect(
+      view.element.querySelector<HTMLTextAreaElement>('#chain-composer-input')?.value
+    ).toBe('Segunda nota');
+    expect(view.element.querySelectorAll('.editor-tab--dirty')).toHaveLength(2);
   });
 
-  it('desabilita o compositor durante o salvamento', () => {
-    const view = mountChainDocument(makeTab(), {
-      onComposerInput: vi.fn(),
-      onAppend: vi.fn(),
-    });
+  it('desabilita a edição durante o salvamento', () => {
+    const view = mountChainDocument(makeTab(), makeHandlers());
 
     view.setSaving(true);
     expect(
@@ -131,6 +135,9 @@ describe('ChainDocument', () => {
     ).toBe(true);
     expect(
       view.element.querySelector<HTMLTextAreaElement>('#chain-composer-input')?.disabled
+    ).toBe(true);
+    expect(
+      view.element.querySelector<HTMLButtonElement>('#chain-note-new')?.disabled
     ).toBe(true);
   });
 });

@@ -1,26 +1,35 @@
 ﻿import type { NoteDTO, TagDTO } from '@application/dto/index.js';
-import type { ChainTab } from '../state/EditorStore.js';
+import type { ChainNoteTab, ChainTab } from '../state/EditorStore.js';
+import { deriveEditorTitle, isChainNoteTabDirty } from '../state/EditorStore.js';
 import { appState } from '../state/AppState.js';
 import { AppController } from '../pages/AppController.js';
 import { groupNotesByDate } from '../app/editorGrouping.js';
 import { showInputDialog } from './Dialog.js';
 import { renderEmptyDetail, renderLoadingState } from './states.js';
 import { showChainMenu } from '../views/menus.js';
+import { renderTabList } from './EditorTabs.js';
 import { el } from '../dom.js';
 import { formatDateFull, formatTime } from '@shared/utilities/index.js';
 
 export interface ChainDocumentHandlers {
-  onComposerInput: (value: string) => void;
-  onAppend: () => void;
+  onNoteInput: (noteTabId: string, value: string) => void;
+  onSaveNote: (noteTabId: string) => void;
+  onCreateNote: () => void;
+  onSelectNote: (noteTabId: string) => void;
+  onCloseNote: (noteTabId: string) => void;
 }
 
 export interface ChainDocumentView {
   element: HTMLElement;
   update: (tab: ChainTab) => void;
   setSaving: (saving: boolean) => void;
-  clearComposerIf: (content: string) => void;
-  focusComposer: () => void;
+  focusNoteEditor: () => void;
   destroy: () => void;
+}
+
+function noteTabLabel(noteTab: ChainNoteTab): string {
+  const title = deriveEditorTitle(noteTab.content);
+  return title === 'Sem título' ? 'Novo documento' : title;
 }
 
 function renderTagChip(tag: TagDTO, chainId: string): HTMLElement {
@@ -149,21 +158,37 @@ export function mountChainDocument(
     </div>
 
     <div class="chain-composer" id="chain-composer">
-      <div class="chain-composer__toolbar">
-        <div class="chain-composer__title">
-          <span class="chain-composer__icon material-symbols-rounded" aria-hidden="true">edit_note</span>
-          <label class="chain-composer__label" for="chain-composer-input">Novo documento</label>
-        </div>
-        <span class="chain-composer__status" id="chain-composer-status" aria-live="polite"></span>
-      </div>
-      <textarea class="chain-composer__input" id="chain-composer-input" rows="3"
-        placeholder="Adicione uma nota a esta cadeia..." aria-describedby="chain-composer-status"></textarea>
-      <div class="chain-composer__footer">
-        <span class="chain-composer__hint">Ctrl+S para adicionar</span>
-        <button class="btn btn-filled" id="chain-composer-save" type="button">
+      <div class="chain-note-tabbar">
+        <div class="editor-tabs editor-tabs--nested" id="chain-note-tabs"></div>
+        <button class="btn-icon" id="chain-note-new" type="button" aria-label="Novo documento" title="Novo documento">
           <span class="material-symbols-rounded" aria-hidden="true">add</span>
-          <span id="chain-composer-save-label">Adicionar</span>
         </button>
+      </div>
+
+      <div class="chain-note-editor" id="chain-note-panel" role="tabpanel">
+        <textarea class="chain-composer__input" id="chain-composer-input"
+          placeholder="Escreva uma nova nota para esta cadeia..."
+          aria-label="Conteúdo da nota"></textarea>
+        <div class="chain-note-empty" id="chain-note-empty" hidden>
+          <span class="material-symbols-rounded chain-note-empty__icon" aria-hidden="true">edit_note</span>
+          <p class="chain-note-empty__title">Nenhuma nota em edição</p>
+          <p class="chain-note-empty__body">Crie um novo documento para adicionar à cadeia.</p>
+          <button class="btn btn-tonal" id="chain-note-empty-new" type="button">
+            <span class="material-symbols-rounded" aria-hidden="true">add</span>
+            Novo documento
+          </button>
+        </div>
+      </div>
+
+      <div class="chain-composer__footer">
+        <span class="chain-composer__status" id="chain-composer-status" aria-live="polite"></span>
+        <div class="chain-composer__actions">
+          <span class="chain-composer__hint">Ctrl+S para adicionar</span>
+          <button class="btn btn-filled" id="chain-composer-save" type="button">
+            <span class="material-symbols-rounded" aria-hidden="true">add</span>
+            <span id="chain-composer-save-label">Adicionar</span>
+          </button>
+        </div>
       </div>
     </div>
   `;
@@ -175,7 +200,12 @@ export function mountChainDocument(
   const count = root.querySelector<HTMLElement>('#chain-note-count')!;
   const scroll = root.querySelector<HTMLElement>('#chain-document-scroll')!;
   const history = root.querySelector<HTMLElement>('#chain-history')!;
+  const noteTabs = root.querySelector<HTMLElement>('#chain-note-tabs')!;
+  const newNote = root.querySelector<HTMLButtonElement>('#chain-note-new')!;
+  const emptyNewNote = root.querySelector<HTMLButtonElement>('#chain-note-empty-new')!;
+  const panel = root.querySelector<HTMLElement>('#chain-note-panel')!;
   const composer = root.querySelector<HTMLTextAreaElement>('#chain-composer-input')!;
+  const emptyNote = root.querySelector<HTMLElement>('#chain-note-empty')!;
   const composerStatus = root.querySelector<HTMLElement>('#chain-composer-status')!;
   const save = root.querySelector<HTMLButtonElement>('#chain-composer-save')!;
   const saveLabel = root.querySelector<HTMLElement>('#chain-composer-save-label')!;
@@ -184,6 +214,8 @@ export function mountChainDocument(
   let titleTimer: ReturnType<typeof setTimeout> | null = null;
   let previousStatus = tab.status;
   let renderedNotesSignature = '';
+  let renderedNoteTabId: string | null = null;
+  let savingState = false;
 
   title.textContent = tab.title;
 
@@ -307,7 +339,7 @@ export function mountChainDocument(
         renderEmptyDetail(
           'edit_note',
           'Nenhuma nota ainda',
-          'Escreva a primeira nota no compositor abaixo.'
+          'Escreva a primeira nota nas abas abaixo.'
         )
       );
     } else {
@@ -332,27 +364,93 @@ export function mountChainDocument(
     scroll.scrollTop = previousScroll;
   };
 
-  const syncComposer = (): void => {
-    const dirty = composer.value !== currentTab.savedComposer;
-    composerStatus.textContent = dirty
-      ? 'Alterações não salvas'
-      : currentTab.composer
-        ? 'Pronto para adicionar'
-        : '';
-    composerStatus.classList.toggle('chain-composer__status--dirty', dirty);
+  const activeNoteTab = (): ChainNoteTab | null =>
+    currentTab.noteTabs.find((item) => item.id === currentTab.activeNoteTabId) ??
+    null;
+
+  const syncNoteEditor = (): void => {
+    const noteTab = activeNoteTab();
+
+    if (!noteTab) {
+      renderedNoteTabId = null;
+      composer.hidden = true;
+      composer.value = '';
+      emptyNote.hidden = false;
+      panel.removeAttribute('aria-labelledby');
+      save.disabled = true;
+      composer.disabled = savingState;
+      composerStatus.textContent = '';
+      return;
+    }
+
+    composer.hidden = false;
+    emptyNote.hidden = true;
+    panel.setAttribute('aria-labelledby', `editor-tab-${noteTab.id}`);
+    save.disabled = savingState;
+    composer.disabled = savingState;
+
+    if (renderedNoteTabId !== noteTab.id) {
+      composer.value = noteTab.content;
+      renderedNoteTabId = noteTab.id;
+    } else if (composer !== document.activeElement && composer.value !== noteTab.content) {
+      composer.value = noteTab.content;
+    }
+
+    composerStatus.textContent = isChainNoteTabDirty(noteTab)
+      ? 'Pronto para adicionar'
+      : '';
+  };
+
+  const renderNoteTabs = (): void => {
+    const items = currentTab.noteTabs.map((noteTab) => ({
+      id: noteTab.id,
+      label: noteTabLabel(noteTab),
+      icon: 'edit_note',
+      dirty: isChainNoteTabDirty(noteTab),
+    }));
+
+    renderTabList(
+      noteTabs,
+      items,
+      currentTab.activeNoteTabId,
+      {
+        onSelect: handlers.onSelectNote,
+        onClose: handlers.onCloseNote,
+      },
+      {
+        panelId: 'chain-note-panel',
+        ariaLabel: 'Notas em edição',
+      }
+    );
   };
 
   composer.addEventListener('input', () => {
-    currentTab = { ...currentTab, composer: composer.value };
-    handlers.onComposerInput(composer.value);
-    syncComposer();
+    const active = activeNoteTab();
+    if (!active) return;
+
+    currentTab = {
+      ...currentTab,
+      noteTabs: currentTab.noteTabs.map((noteTab) =>
+        noteTab.id === active.id ? { ...noteTab, content: composer.value } : noteTab
+      ),
+    };
+    handlers.onNoteInput(active.id, composer.value);
+    renderNoteTabs();
+    syncNoteEditor();
   });
   composer.addEventListener('keydown', (event) => {
     if (event.key !== 'Enter' || (!event.ctrlKey && !event.metaKey)) return;
     event.preventDefault();
-    handlers.onAppend();
+    const active = activeNoteTab();
+    if (active) handlers.onSaveNote(active.id);
   });
-  save.addEventListener('click', () => handlers.onAppend());
+
+  newNote.addEventListener('click', handlers.onCreateNote);
+  emptyNewNote.addEventListener('click', handlers.onCreateNote);
+  save.addEventListener('click', () => {
+    const active = activeNoteTab();
+    if (active) handlers.onSaveNote(active.id);
+  });
 
   const update = (tabValue: ChainTab): void => {
     const justLoaded =
@@ -367,11 +465,8 @@ export function mountChainDocument(
 
     renderTags();
     renderNotes();
-
-    if (composer !== document.activeElement) {
-      composer.value = tabValue.composer;
-    }
-    syncComposer();
+    renderNoteTabs();
+    syncNoteEditor();
 
     if (justLoaded) {
       requestAnimationFrame(() => {
@@ -383,19 +478,13 @@ export function mountChainDocument(
   };
 
   const setSaving = (saving: boolean): void => {
-    save.disabled = saving;
-    composer.disabled = saving;
+    savingState = saving;
+    newNote.disabled = saving;
+    emptyNewNote.disabled = saving;
     saveLabel.textContent = saving ? 'Adicionando...' : 'Adicionar';
     const icon = save.querySelector<HTMLElement>('.material-symbols-rounded');
     if (icon) icon.textContent = saving ? 'hourglass_top' : 'add';
-  };
-
-  const clearComposerIf = (content: string): void => {
-    if (composer.value !== content) return;
-    composer.value = '';
-    currentTab = { ...currentTab, composer: '' };
-    handlers.onComposerInput('');
-    syncComposer();
+    syncNoteEditor();
   };
 
   const destroy = (): void => {
@@ -412,8 +501,11 @@ export function mountChainDocument(
     element: root,
     update,
     setSaving,
-    clearComposerIf,
-    focusComposer: () => composer.focus(),
+    focusNoteEditor: () => {
+      const noteTab = activeNoteTab();
+      if (noteTab) composer.focus();
+      else newNote.focus();
+    },
     destroy,
   };
 }

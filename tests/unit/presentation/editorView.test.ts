@@ -193,8 +193,60 @@ describe('EditorView', () => {
     expect(append).toHaveBeenCalledWith('chain-1', 'Nova nota');
     const active = store.getTab(chain.id);
     if (!active || active.kind !== 'chain') throw new Error('Cadeia não encontrada');
-    expect(active.composer).toBe('');
+    expect(active.noteTabs).toHaveLength(1);
+    expect(active.noteTabs[0]?.content).toBe('');
     expect(host.querySelector<HTMLTextAreaElement>('#chain-composer-input')?.value).toBe('');
+  });
+
+  it('salva todas as notas pendentes ao fechar a aba da cadeia', async () => {
+    const store = new EditorStore();
+    const host = mount(store);
+    const chain = store.openChainTab('chain-1', 'Projeto principal');
+
+    const firstComposer = host.querySelector<HTMLTextAreaElement>(
+      '#chain-composer-input'
+    );
+    if (!firstComposer) throw new Error('Compositor não encontrado');
+    firstComposer.value = 'Nota A';
+    firstComposer.dispatchEvent(new Event('input', { bubbles: true }));
+
+    host.querySelector<HTMLButtonElement>('#chain-note-new')?.click();
+    const secondComposer = host.querySelector<HTMLTextAreaElement>(
+      '#chain-composer-input'
+    );
+    if (!secondComposer) throw new Error('Compositor não encontrado');
+    secondComposer.value = 'Nota B';
+    secondComposer.dispatchEvent(new Event('input', { bubbles: true }));
+
+    const append = vi
+      .spyOn(AppController, 'appendToEditorChainTab')
+      .mockResolvedValueOnce({
+        ok: true,
+        note: makeNote({ id: 'note-a', content: 'Nota A' }),
+        chainTitle: 'Projeto principal',
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        note: makeNote({ id: 'note-b', content: 'Nota B' }),
+        chainTitle: 'Projeto principal',
+      });
+
+    document
+      .querySelector<HTMLButtonElement>(
+        `[data-tab-id="${chain.id}"] .editor-tab__close`
+      )
+      ?.click();
+    document.querySelector<HTMLButtonElement>('[id^="close-tab-save-"]')?.click();
+
+    await vi.waitFor(() => {
+      expect(append).toHaveBeenCalledTimes(2);
+      expect(store.getSnapshot().tabs.some((tab) => tab.id === chain.id)).toBe(false);
+    });
+
+    expect(append.mock.calls.map(([chainId, content]) => [chainId, content])).toEqual([
+      ['chain-1', 'Nota A'],
+      ['chain-1', 'Nota B'],
+    ]);
   });
 
   it('protege o fechamento de uma aba com alterações não salvas', async () => {

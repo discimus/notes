@@ -71,10 +71,13 @@ editorStore.createDraftTab()
 editorStore.openChainTab(chainId, title)
 editorStore.selectTab(id)
 editorStore.updateDraftContent(id, content)
-editorStore.updateComposer(id, content)
+editorStore.createChainNoteTab(chainTabId)
+editorStore.selectChainNoteTab(chainTabId, noteTabId)
+editorStore.updateChainNoteTab(chainTabId, noteTabId, content)
+editorStore.removeChainNoteTab(chainTabId, noteTabId)
+editorStore.ensureChainNoteTab(chainTabId)
 editorStore.setChainTabNotes(id, detail)
 editorStore.appendNoteToChainTab(id, note)
-editorStore.settleComposerAfterAppend(id, savedContent)
 editorStore.markDraftSaved(id, target, savedContent)
 editorStore.closeTab(id)
 editorStore.closeChainTabs(chainId)
@@ -82,12 +85,14 @@ editorStore.hasDirtyTabs()
 editorStore.flush()
 ```
 
-- Existem dois tipos de aba: `DraftTab` e `ChainTab`.
+- Existem dois níveis de aba: `DraftTab`/`ChainTab` no topo e `ChainNoteTab` no rodapé da cadeia.
 - `DraftTab`: texto independente; primeiro salvamento abre `AppendToChainDialog`; próximos `Ctrl+S` atualizam a nota anexada.
-- `ChainTab`: histórico da cadeia agrupado por data + compositor de nova nota; cada append cria uma nova tail.
-- Persiste abas, aba ativa e compositores em `sessionStorage` (`threadnotes.editor.tabs`) com debounce. Notas de cadeias não são persistidas; são recarregadas do IndexedDB.
+- `ChainTab`: histórico da cadeia agrupado por data + abas de notas pendentes.
+- `ChainNoteTab`: nota ainda não persistida. Ao salvar, vira uma nova tail da cadeia pai e a aba é fechada; uma nova aba vazia é criada. Notas já salvas são editadas pelo histórico.
+- O dirty state da `ChainTab` é agregado de todas as `ChainNoteTab`.
+- Persiste abas, aba ativa e notas pendentes em `sessionStorage` (`threadnotes.editor.tabs`) com debounce. Notas já persistidas são recarregadas do IndexedDB.
 - `openChainInEditor`, `loadEditorChainTab`, `appendToEditorChainTab`, `saveEditorToChain` e `updateEditorNote` vivem no `AppController`.
-- `Ctrl+S`, `beforeunload`, sidebar mobile e foco do compositor ficam na view Editor/sessão, não em `main.ts`.
+- `Ctrl+S`, `beforeunload`, sidebar mobile e foco das notas ficam na view Editor/sessão, não em `main.ts`.
 
 ## Configurações
 
