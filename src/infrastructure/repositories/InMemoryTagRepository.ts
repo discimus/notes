@@ -26,6 +26,16 @@ export class InMemoryTagRepository implements ITagRepository {
     return tagIds.map((id) => this.tags.get(id)).filter((t): t is Tag => t !== undefined);
   }
 
+  async findChainIdsByTag(tagId: UUID): Promise<UUID[]> {
+    return [
+      ...new Set(
+        this.chainTags
+          .filter((chainTag) => chainTag.tagId === tagId)
+          .map((chainTag) => chainTag.chainId)
+      ),
+    ];
+  }
+
   async save(tag: Tag): Promise<void> {
     this.tags.set(tag.id, tag);
   }

@@ -1,4 +1,4 @@
-﻿import type { ChainSummaryDTO, ChainDetailDTO, TagDTO, SearchResultDTO, TimelineDTO } from '@application/dto/index.js';
+﻿import type { ChainSummaryDTO, ChainDetailDTO, TagDTO, SearchResultDTO, TimelineEntryDTO } from '@application/dto/index.js';
 
 /**
  * Estado global da aplicaÃ§Ã£o.
@@ -6,6 +6,13 @@
  */
 
 export type AppView = 'editor' | 'chains' | 'chain-detail' | 'search' | 'timeline' | 'tags' | 'archived' | 'trash';
+
+export interface TimelineFilters {
+  query: string;
+  from: string;
+  to: string;
+  tagIds: string[];
+}
 
 export interface AppState {
   view: AppView;
@@ -16,7 +23,13 @@ export interface AppState {
   chainFilterQuery: string;
   searchQuery: string;
   searchResults: SearchResultDTO[];
-  timeline: TimelineDTO | null;
+  timelineEntries: TimelineEntryDTO[];
+  timelineTotal: number;
+  timelineLoadedOffset: number;
+  timelinePageSize: number;
+  timelinePageIndex: number;
+  timelineFilters: TimelineFilters;
+  timelineIsLoadingMore: boolean;
   timelineSelectedChainIds: string[];
   isLoading: boolean;
   error: string | null;
@@ -39,7 +52,13 @@ class AppStateStore {
     chainFilterQuery: '',
     searchQuery: '',
     searchResults: [],
-    timeline: null,
+    timelineEntries: [],
+    timelineTotal: 0,
+    timelineLoadedOffset: 0,
+    timelinePageSize: 50,
+    timelinePageIndex: 0,
+    timelineFilters: { query: '', from: '', to: '', tagIds: [] },
+    timelineIsLoadingMore: false,
     timelineSelectedChainIds: [],
     isLoading: false,
     error: null,

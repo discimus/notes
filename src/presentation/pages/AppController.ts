@@ -1,5 +1,5 @@
 import { appState } from '../state/AppState.js';
-import type { AppView } from '../state/AppState.js';
+import type { AppView, TimelineFilters } from '../state/AppState.js';
 import { editorStore } from '../state/EditorStore.js';
 import type { EditorTarget } from '../state/EditorStore.js';
 import { snackbar } from '../components/Snackbar.js';
@@ -18,7 +18,7 @@ import {
   RemoveTagFromChain,
   GetChainDetails,
   SearchNotes,
-  GetChronologicalTimeline,
+  GetTimelinePage,
   ArchiveChain,
   RestoreChain,
   DeleteChain,
@@ -43,7 +43,7 @@ const assignTag = new AssignTagToChain(chainRepo, tagRepo);
 const removeTag = new RemoveTagFromChain(chainRepo, tagRepo);
 const getChainDetails = new GetChainDetails(chainRepo, tagRepo);
 const searchNotes = new SearchNotes(chainRepo, tagRepo);
-const getTimeline = new GetChronologicalTimeline(chainRepo);
+const getTimelinePage = new GetTimelinePage(chainRepo, tagRepo);
 const archiveChain = new ArchiveChain(chainRepo);
 const restoreChain = new RestoreChain(chainRepo);
 const deleteChain = new DeleteChain(chainRepo);
@@ -161,6 +161,94 @@ async function refreshEditorChainTab(chainId: string): Promise<void> {
     syncEditorChainTab(chainId, detail);
   } catch {
     editorStore.setChainTabError(tab.id);
+  }
+}
+
+const TIMELINE_WINDOW_MAX = 200;
+let timelineRequestId = 0;
+
+function timelineFromDate(value: string): string | undefined {
+  if (!value) return undefined;
+  const date = new Date(`${value}T00:00:00`);
+  return Number.isNaN(date.getTime()) ? undefined : date.toISOString();
+}
+
+function timelineToDate(value: string): string | undefined {
+  if (!value) return undefined;
+  const date = new Date(`${value}T23:59:59.999`);
+  return Number.isNaN(date.getTime()) ? undefined : date.toISOString();
+}
+
+async function loadTimelinePage(offset: number, mode: 'replace' | 'append'): Promise<void> {
+  const state = appState.get();
+  const requestId = ++timelineRequestId;
+  const chainIds = state.timelineSelectedChainIds;
+  const filters = state.timelineFilters;
+
+  if (chainIds.length === 0) {
+    appState.set({
+      timelineEntries: [],
+      timelineTotal: 0,
+      timelineLoadedOffset: 0,
+      timelinePageIndex: 0,
+      timelineIsLoadingMore: false,
+      isLoading: false,
+    });
+    return;
+  }
+
+  appState.set(
+    mode === 'append'
+      ? { timelineIsLoadingMore: true }
+      : { isLoading: true, error: null, timelineIsLoadingMore: false }
+  );
+
+  try {
+    const page = await getTimelinePage.execute({
+      chainIds,
+      ...(timelineFromDate(filters.from) ? { from: timelineFromDate(filters.from)! } : {}),
+      ...(timelineToDate(filters.to) ? { to: timelineToDate(filters.to)! } : {}),
+      ...(filters.query.trim() ? { text: filters.query.trim() } : {}),
+      ...(filters.tagIds.length > 0 ? { tagIds: filters.tagIds } : {}),
+      offset,
+      limit: state.timelinePageSize,
+    });
+
+    if (requestId !== timelineRequestId) return;
+
+    if (mode === 'append') {
+      let entries = [...appState.get().timelineEntries, ...page.entries];
+      let loadedOffset = appState.get().timelineLoadedOffset;
+
+      if (entries.length > TIMELINE_WINDOW_MAX) {
+        const removeCount = entries.length - TIMELINE_WINDOW_MAX;
+        entries = entries.slice(removeCount);
+        loadedOffset += removeCount;
+      }
+
+      appState.set({
+        timelineEntries: entries,
+        timelineTotal: page.total,
+        timelineLoadedOffset: loadedOffset,
+        timelinePageIndex: Math.floor(loadedOffset / state.timelinePageSize),
+        timelineIsLoadingMore: false,
+        isLoading: false,
+      });
+      return;
+    }
+
+    appState.set({
+      timelineEntries: page.entries,
+      timelineTotal: page.total,
+      timelineLoadedOffset: offset,
+      timelinePageIndex: Math.floor(offset / state.timelinePageSize),
+      timelineIsLoadingMore: false,
+      isLoading: false,
+    });
+  } catch (error: unknown) {
+    if (requestId !== timelineRequestId) return;
+    appState.set({ isLoading: false, timelineIsLoadingMore: false });
+    snackbar.error(error instanceof Error ? error.message : 'Não foi possível carregar a timeline.');
   }
 }
 
@@ -495,19 +583,45 @@ export const AppController = {
     }
   },
 
-  async loadTimeline(chainIds: string[], from?: string, to?: string): Promise<void> {
-    appState.set({ isLoading: true, view: 'timeline' });
-    try {
-      const timeline = await getTimeline.execute({
-        chainIds,
-        ...(from ? { from } : {}),
-        ...(to ? { to } : {}),
-      });
-      appState.set({ timeline, isLoading: false });
-    } catch (e: unknown) {
-      appState.set({ isLoading: false });
-      snackbar.error((e as Error).message);
-    }
+  async reloadTimeline(): Promise<void> {
+    appState.set({ timelinePageIndex: 0 });
+    await loadTimelinePage(0, 'replace');
+  },
+
+  async updateTimelineSelection(chainIds: string[]): Promise<void> {
+    appState.set({ timelineSelectedChainIds: [...new Set(chainIds)], timelinePageIndex: 0 });
+    await loadTimelinePage(0, 'replace');
+  },
+
+  async updateTimelineFilters(patch: Partial<TimelineFilters>): Promise<void> {
+    appState.set({
+      timelineFilters: { ...appState.get().timelineFilters, ...patch },
+      timelinePageIndex: 0,
+    });
+    await loadTimelinePage(0, 'replace');
+  },
+
+  async clearTimelineFilters(): Promise<void> {
+    appState.set({
+      timelineFilters: { query: '', from: '', to: '', tagIds: [] },
+      timelinePageIndex: 0,
+    });
+    await loadTimelinePage(0, 'replace');
+  },
+
+  async loadMoreTimeline(): Promise<void> {
+    const state = appState.get();
+    if (state.timelineIsLoadingMore || state.isLoading) return;
+    const loaded = state.timelineLoadedOffset + state.timelineEntries.length;
+    if (loaded >= state.timelineTotal) return;
+    await loadTimelinePage(loaded, 'append');
+  },
+
+  async seekTimelinePage(pageIndex: number): Promise<void> {
+    const state = appState.get();
+    const totalPages = Math.max(1, Math.ceil(state.timelineTotal / state.timelinePageSize));
+    const page = Math.min(Math.max(0, pageIndex), totalPages - 1);
+    await loadTimelinePage(page * state.timelinePageSize, 'replace');
   },
 
   async renameTag(tagId: string, newName: string): Promise<void> {
@@ -557,6 +671,11 @@ export const AppController = {
       await loadChains();
     } else if (view === 'tags') {
       await loadTags();
+    } else if (view === 'timeline') {
+      await loadTags();
+      if (appState.get().timelineSelectedChainIds.length > 0) {
+        await AppController.reloadTimeline();
+      }
     } else if (view === 'chain-detail' && chainId) {
       await openChain(chainId, false);
     }

@@ -1,12 +1,19 @@
 import { Chain, Note } from '@domain/entities/index.js';
-import type { IChainRepository, ChainSortOrder, ChainFilter } from '@domain/repositories/index.js';
+import type {
+  IChainRepository,
+  ChainSortOrder,
+  ChainFilter,
+  ITimelineQueryRepository,
+  TimelinePageQuery,
+  TimelinePageResult,
+} from '@domain/repositories/index.js';
 import type { UUID } from '@shared/types/index.js';
 import { normalizeText } from '@shared/utilities/index.js';
 
 /**
  * Repositório em memória para testes unitários e de integração.
  */
-export class InMemoryChainRepository implements IChainRepository {
+export class InMemoryChainRepository implements IChainRepository, ITimelineQueryRepository {
   private chains = new Map<string, { chain: Chain; notes: Note[] }>();
 
   async findById(id: UUID): Promise<Chain | null> {
@@ -66,6 +73,52 @@ export class InMemoryChainRepository implements IChainRepository {
 
   async delete(id: UUID): Promise<void> {
     this.chains.delete(id);
+  }
+
+  async findTimelinePage(query: TimelinePageQuery): Promise<TimelinePageResult> {
+    const selectedIds = new Set(query.chainIds);
+    if (selectedIds.size === 0) return { entries: [], total: 0 };
+
+    const chains = await this.findAll({ deleted: false, archived: false });
+    const normalizedText = query.text ? normalizeText(query.text) : '';
+    const fromTs = query.from ? new Date(query.from).getTime() : null;
+    const toTs = query.to ? new Date(query.to).getTime() : null;
+    const offset = Math.max(0, query.offset);
+    const limit = Math.max(1, query.limit);
+
+    const matching = chains
+      .filter((chain) => selectedIds.has(chain.id))
+      .flatMap((chain) =>
+        chain.notes
+          .map((note) => note.toData())
+          .filter((note) => {
+            const noteTs = new Date(note.createdAt).getTime();
+            const inRange =
+              (fromTs === null || noteTs >= fromTs) &&
+              (toTs === null || noteTs <= toTs);
+            const matchesText =
+              !normalizedText ||
+              normalizeText(`${note.content} ${note.title ?? ''} ${chain.displayTitle}`).includes(
+                normalizedText
+              );
+            return inRange && matchesText;
+          })
+          .map((note) => ({
+            note,
+            chainId: chain.id,
+            chainTitle: chain.displayTitle,
+            tiebreaker: `${chain.id}:${note.id}`,
+          }))
+      )
+      .sort((a, b) => {
+        const dateDiff = a.note.createdAt.localeCompare(b.note.createdAt);
+        return dateDiff !== 0 ? dateDiff : a.note.id.localeCompare(b.note.id);
+      });
+
+    return {
+      entries: matching.slice(offset, offset + limit),
+      total: matching.length,
+    };
   }
 
   async countByTagId(_tagId: UUID): Promise<number> {

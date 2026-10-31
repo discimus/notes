@@ -95,6 +95,17 @@ editorStore.flush()
 - `openChainInEditor`, `loadEditorChainTab`, `appendToEditorChainTab`, `saveEditorToChain` e `updateEditorNote` vivem no `AppController`.
 - `Ctrl+S`, `beforeunload`, sidebar mobile e foco das notas ficam na view Editor/sessão, não em `main.ts`.
 
+## Timeline paginada
+
+- A timeline é montada somente após o usuário selecionar ao menos uma cadeia; não há botão “Ver cronologia”.
+- `GetTimelinePage` consulta `ITimelineQueryRepository` com página de 50 notas e filtros de texto, período e tags.
+- Tags usam semântica **OR** entre si e **AND** com as cadeias selecionadas; a resolução fica no use case, não na view.
+- O scroll carrega páginas incrementalmente, mas a janela renderizada é limitada a 200 entradas.
+- O slider navega por offsets de página; ao carregar mais, a página inicial da janela avança quando entradas antigas são descartadas.
+- A view não persiste o listener após ser removida; o debounce da busca valida a presença de `#timeline-query` antes de disparar.
+- Ao entrar na timeline com cadeias selecionadas, o controller recarrega a primeira página para refletir notas novas.
+- Cobertura: `tests/unit/presentation/timelineView.test.ts` e `tests/integration/use-cases/GetTimelinePage.test.ts`.
+
 ## Configurações
 
 - A engrenagem `#settings-toggle` fica no rodapé do rail/drawer, acima do tema.
@@ -201,4 +212,4 @@ Testes de apresentação ficam em `tests/unit/presentation/` e usam jsdom. Não 
 - QA visual ou interação real com a aplicação só quando o usuário solicitar explicitamente.
 - Novas features de UI devem vir com teste de comportamento; não considerar inspeção visual manual como validação suficiente.
 
-Exceção autorizada: `nav.test.ts` valida os 5 destinos com Editor como view inicial. Testes do editor: `editorStore`, `editorTabs`, `editorSidebar`, `editorGrouping`, `chainDocument`, `appendToChainDialog`, `activeLineHighlight`, `inlineTagEditor`, `tagSuggestions`, `pinnedChains` e `editorView`.
+Exceção autorizada: `nav.test.ts` valida os 5 destinos com Editor como view inicial. Testes do editor: `editorStore`, `editorTabs`, `editorSidebar`, `editorGrouping`, `chainDocument`, `appendToChainDialog`, `activeLineHighlight`, `inlineTagEditor`, `tagSuggestions`, `pinnedChains`, `editorView` e `timelineView`.

@@ -7,6 +7,7 @@ export interface ITagRepository {
   findByNormalizedName(normalized: string): Promise<Tag | null>;
   findAll(): Promise<Tag[]>;
   findByChainId(chainId: UUID): Promise<Tag[]>;
+  findChainIdsByTag(tagId: UUID): Promise<UUID[]>;
   save(tag: Tag): Promise<void>;
   delete(id: UUID): Promise<void>;
   assignToChain(chainTag: ChainTag): Promise<void>;

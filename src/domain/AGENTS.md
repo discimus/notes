@@ -5,7 +5,7 @@
 ```
 entities/     → Chain (agregado), Note, Tag, ChainTag, TimelineView
 value-objects/ → NotePosition, TagName
-repositories/ → IChainRepository, ITagRepository (interfaces apenas)
+repositories/ → IChainRepository, ITagRepository, ITimelineQueryRepository (interfaces apenas)
 services/     → SearchService, TimelineService (lógica pura sem I/O)
 ```
 

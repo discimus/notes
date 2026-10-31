@@ -35,6 +35,12 @@ export class IdbTagRepository implements ITagRepository {
     return tags.filter((t): t is NonNullable<typeof t> => t !== undefined).map((t) => Tag.reconstitute(t));
   }
 
+  async findChainIdsByTag(tagId: UUID): Promise<UUID[]> {
+    const db = await this.db();
+    const chainTags = await db.getAllFromIndex('chainTags', 'by-tagId', tagId);
+    return [...new Set(chainTags.map((chainTag) => chainTag.chainId))];
+  }
+
   async save(tag: Tag): Promise<void> {
     const db = await this.db();
     await db.put('tags', tag.toData());

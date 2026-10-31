@@ -62,6 +62,14 @@ export interface TimelineDTO {
   createdAt: ISODateString;
 }
 
+export interface TimelinePageDTO {
+  entries: TimelineEntryDTO[];
+  total: number;
+  offset: number;
+  limit: number;
+  hasMore: boolean;
+}
+
 // ── Search DTOs ────────────────────────────────────────────────────────────
 
 export interface SearchResultDTO {
@@ -112,6 +120,16 @@ export interface GetTimelineCommand {
   chainIds: UUID[];
   from?: ISODateString | undefined;
   to?: ISODateString | undefined;
+}
+
+export interface GetTimelinePageCommand {
+  chainIds: UUID[];
+  from?: ISODateString | undefined;
+  to?: ISODateString | undefined;
+  text?: string | undefined;
+  tagIds?: UUID[] | undefined;
+  offset: number;
+  limit: number;
 }
 
 export interface SearchCommand {

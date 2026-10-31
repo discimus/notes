@@ -2,11 +2,19 @@ import type { IDBPDatabase } from 'idb';
 import type { ThreadNotesDB } from '../persistence/schema.js';
 import { getDatabase } from '../persistence/schema.js';
 import { Chain, Note } from '@domain/entities/index.js';
-import type { IChainRepository, ChainSortOrder, ChainFilter } from '@domain/repositories/index.js';
+import type { TimelineEntry } from '@domain/entities/index.js';
+import type {
+  IChainRepository,
+  ChainSortOrder,
+  ChainFilter,
+  ITimelineQueryRepository,
+  TimelinePageQuery,
+  TimelinePageResult,
+} from '@domain/repositories/index.js';
 import type { UUID } from '@shared/types/index.js';
 import { normalizeText } from '@shared/utilities/index.js';
 
-export class IdbChainRepository implements IChainRepository {
+export class IdbChainRepository implements IChainRepository, ITimelineQueryRepository {
   private async db(): Promise<IDBPDatabase<ThreadNotesDB>> {
     return getDatabase();
   }
@@ -135,6 +143,69 @@ export class IdbChainRepository implements IChainRepository {
     }
 
     await tx.done;
+  }
+
+  async findTimelinePage(query: TimelinePageQuery): Promise<TimelinePageResult> {
+    const db = await this.db();
+    const selectedIds = new Set(query.chainIds);
+    if (selectedIds.size === 0) return { entries: [], total: 0 };
+
+    const allChains = await db.getAll('chains');
+    const activeChains = allChains.filter(
+      (chain) => selectedIds.has(chain.id) && !chain.deletedAt && !chain.archivedAt
+    );
+
+    if (activeChains.length === 0) return { entries: [], total: 0 };
+
+    const chainTitles = new Map<string, string>();
+    await Promise.all(
+      activeChains.map(async (chain) => {
+        const header = await db.get('notes', chain.headerNoteId);
+        const title = chain.title ?? header?.title ?? header?.content.split(/\r?\n/)[0] ?? 'Cadeia';
+        chainTitles.set(chain.id, title);
+      })
+    );
+
+    const normalizedText = query.text ? normalizeText(query.text) : '';
+    const fromTs = query.from ? new Date(query.from).getTime() : null;
+    const toTs = query.to ? new Date(query.to).getTime() : null;
+    const offset = Math.max(0, query.offset);
+    const limit = Math.max(1, query.limit);
+    const entries: TimelineEntry[] = [];
+    let total = 0;
+
+    const tx = db.transaction('notes');
+    let cursor = await tx.store.index('by-createdAt').openCursor();
+
+    while (cursor) {
+      const note = cursor.value;
+      const chainTitle = chainTitles.get(note.chainId);
+
+      if (chainTitle) {
+        const noteTs = new Date(note.createdAt).getTime();
+        const inRange = (fromTs === null || noteTs >= fromTs) && (toTs === null || noteTs <= toTs);
+        const matchesText =
+          !normalizedText ||
+          normalizeText(`${note.content} ${note.title ?? ''} ${chainTitle}`).includes(normalizedText);
+
+        if (inRange && matchesText) {
+          if (total >= offset && entries.length < limit) {
+            entries.push({
+              note,
+              chainId: note.chainId,
+              chainTitle,
+              tiebreaker: `${note.chainId}:${note.id}`,
+            });
+          }
+          total += 1;
+        }
+      }
+
+      cursor = await cursor.continue();
+    }
+
+    await tx.done;
+    return { entries, total };
   }
 
   async countByTagId(tagId: UUID): Promise<number> {
