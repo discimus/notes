@@ -3,6 +3,7 @@ import type { AppState, AppView } from '../state/AppState.js';
 import { AppController } from '../pages/AppController.js';
 import { el, qs, qsa } from '../dom.js';
 import { cycleTheme, themeIcon, themeLabel } from '../app/theme.js';
+import { toggleCompactMode } from '../app/compactMode.js';
 import { showSettingsDialog } from '../components/SettingsDialog.js';
 
 const COMPACT_NAV_QUERY = '(max-width: 768px)';
@@ -94,6 +95,10 @@ export function renderNavDrawer(): HTMLElement {
 
   const footer = el('div', 'nav-drawer__footer');
   footer.innerHTML = `
+    <button class="nav-drawer__settings" id="compact-toggle" type="button" aria-label="Ativar modo compacto" title="Modo compacto" aria-pressed="false">
+      <span class="nav-drawer__settings-icon material-symbols-rounded" aria-hidden="true">compress</span>
+      <span class="nav-drawer__settings-label">Compactar</span>
+    </button>
     <button class="nav-drawer__settings" id="settings-toggle" type="button" aria-label="Configurações" title="Configurações" aria-haspopup="dialog">
       <span class="nav-drawer__settings-icon material-symbols-rounded" aria-hidden="true">settings</span>
       <span class="nav-drawer__settings-label">Configurações</span>
@@ -133,6 +138,30 @@ export function updateNavDrawer(state: AppState): void {
   });
 
   drawer.classList.toggle('nav-drawer--open', state.drawerOpen);
+
+  const compactBtn = qs('#compact-toggle', drawer);
+  if (compactBtn) {
+    const icon = compactBtn.querySelector<HTMLElement>('.material-symbols-rounded');
+    const label = compactBtn.querySelector<HTMLElement>('.nav-drawer__settings-label');
+    if (icon) icon.textContent = state.compactMode ? 'expand' : 'compress';
+    if (label) label.textContent = state.compactMode ? 'Restaurar' : 'Compactar';
+    compactBtn.setAttribute('aria-pressed', state.compactMode ? 'true' : 'false');
+    compactBtn.setAttribute(
+      'aria-label',
+      state.compactMode ? 'Sair do modo compacto' : 'Ativar modo compacto'
+    );
+    compactBtn.setAttribute(
+      'title',
+      state.compactMode ? 'Sair do modo compacto' : 'Modo compacto'
+    );
+
+    if (!(compactBtn as HTMLElement).dataset['bound']) {
+      (compactBtn as HTMLElement).dataset['bound'] = '1';
+      compactBtn.addEventListener('click', () => {
+        toggleCompactMode();
+      });
+    }
+  }
 
   const settingsBtn = qs('#settings-toggle', drawer);
   if (settingsBtn && !(settingsBtn as HTMLElement).dataset['bound']) {

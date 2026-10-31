@@ -23,6 +23,7 @@ export interface AppState {
   theme: 'light' | 'dark' | 'system';
   drawerOpen: boolean;
   chainsPanelVisible: boolean;
+  compactMode: boolean;
 }
 
 type Listener = (state: AppState) => void;
@@ -44,6 +45,7 @@ class AppStateStore {
     theme: 'system',
     drawerOpen: false,
     chainsPanelVisible: true,
+    compactMode: false,
   };
 
   private listeners = new Set<Listener>();

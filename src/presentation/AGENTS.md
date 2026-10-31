@@ -6,6 +6,7 @@
 app/shell.ts        → renderApp, subscrição do estado, updateContent e FAB
 app/theme.ts        → preferência de tema e aplicação de data-theme
 app/settings.ts     → preferências persistidas (confirmação da lixeira)
+app/compactMode.ts  → densidade compacta persistida
 app/navigation.ts   → histórico (pushState/popstate)
 app/editorGrouping.ts → agrupamento puro de notas por data
 views/              → nav, topbar, editor, chains, search, timeline, tags, menus
@@ -101,6 +102,15 @@ editorStore.flush()
 - A preferência controla apenas mover cadeias para a lixeira. Exclusão permanente, remoção de tags e arquivamento continuam sempre confirmando.
 - `showSettingsDialog()` usa `mountDialog`; a alteração é aplicada imediatamente.
 
+## Modo compacto
+
+- Preferência separada em `threadnotes.compact-mode`, via `app/compactMode.ts`.
+- `AppState.compactMode` aplica `app-shell--compact`.
+- O modo altera apenas densidade: larguras, alturas, paddings e gaps.
+- **Não** ocultar navegação, topbar, sidebar, abas ou qualquer elemento estrutural.
+- Controle no rodapé da navegação (`#compact-toggle`), com `aria-pressed` e labels dinâmicos.
+- O estado é independente do recolhimento do rodapé de notas da cadeia.
+
 ## Dialog e Snackbar
 
 ```typescript
@@ -135,7 +145,8 @@ Ações destrutivas **sempre** pedem confirmação via `showConfirmDialog` antes
 - Lista de cadeias: item compacto de 2 linhas em 64px, com título + data/notas + favorito. Excerpt e tags ficam no detalhe, não na lista.
 - Tokens MD3: use `var(--md-sys-color-primary)` etc. — nunca valores de cor literais.
 - **Nunca** ler `components.css` inteiro — use grep para a classe específica.
-- Navegação: rail fixo de 80px em `≥769px`; drawer modal de 280px em `≤768px`. O hambúrguer (`#nav-toggle`) só aparece no compacto. Configurações e toggle de tema ficam no rodapé do rail/drawer.
+- Navegação: rail fixo de 80px em `≥769px`; drawer modal de 280px em `≤768px`. O hambúrguer (`#nav-toggle`) só aparece no compacto. Configurações, tema e modo compacto ficam no rodapé do rail/drawer.
+- A navegação não deve ter scroll próprio: conteúdo com `overflow: hidden`, itens de 52px, footer com botões de 48px e dimensões ajustadas para caber sem rolagem.
 - Workspace Editor: lateral de 300px no desktop e off-canvas no compacto. O botão `#editor-explorer-toggle` abre/fecha a lateral no mobile; overlay usa o scrim MD3.
 - Abas usam `role="tablist"`; o documento ativo é `role="tabpanel"`. O compositor da cadeia é o único ponto que cria novas tails na view principal.
 - O rodapé de notas da cadeia é colapsável. `ChainTab.composerCollapsed` é persistido por aba; `aria-expanded`, `aria-controls` e `hidden` controlam a acessibilidade. Quando recolhido, o histórico ocupa o espaço liberado.

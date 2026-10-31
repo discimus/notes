@@ -559,21 +559,21 @@
   }
   .nav-drawer__header {
     justify-content: center;
-    padding: var(--spacing-3) 0;
+    padding: var(--spacing-1) 0;
   }
   .nav-drawer__logo span:last-child {
     display: none;
   }
   .nav-drawer__logo .material-symbols-rounded {
-    width: 48px;
-    height: 48px;
+    width: 40px;
+    height: 40px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     border-radius: var(--md-sys-shape-corner-full);
   }
   .nav-drawer__content {
-    padding: var(--spacing-2) 0;
+    padding: var(--spacing-1) 0;
     display: flex;
     flex-direction: column;
   }
@@ -585,11 +585,13 @@
   .nav-item {
     flex-direction: column;
     justify-content: center;
-    gap: 4px;
+    gap: 2px;
     width: var(--nav-rail-width);
-    height: 64px;
-    margin: 2px auto;
-    padding: 4px 0;
+    height: 52px;
+    min-height: 44px;
+    flex: 0 1 52px;
+    margin: 0 auto;
+    padding: 0;
     border-radius: 0;
     text-align: center;
   }
@@ -600,10 +602,10 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 56px;
-    height: 32px;
+    width: 48px;
+    height: 28px;
     border-radius: var(--md-sys-shape-corner-full);
-    font-size: 24px;
+    font-size: 22px;
     transition: background-color var(--md-sys-motion-duration-short3);
   }
   .nav-item__label {
@@ -634,12 +636,12 @@
     align-items: center;
     justify-content: center;
     gap: var(--spacing-1);
-    padding: var(--spacing-2) 0;
+    padding: var(--spacing-1) 0;
   }
   .nav-drawer__settings,
   .nav-drawer__theme {
-    width: 56px;
-    height: 56px;
+    width: 48px;
+    height: 48px;
     padding: 0;
     justify-content: center;
   }
@@ -841,4 +843,152 @@
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+/* Modo compacto: apenas densidade, sem ocultar elementos */
+.app-shell--compact {
+  --nav-rail-width: 72px;
+  --nav-drawer-width: 248px;
+}
+.app-shell--compact .app-topbar {
+  height: 48px;
+  padding: 0 var(--spacing-3);
+  gap: var(--spacing-2);
+}
+.app-shell--compact .nav-drawer__header {
+  min-height: 56px;
+  padding: var(--spacing-2) var(--spacing-3);
+}
+.app-shell--compact .nav-item {
+  height: 52px;
+}
+.app-shell--compact .nav-item__icon {
+  font-size: 22px;
+}
+.app-shell--compact .nav-drawer__footer {
+  gap: 2px;
+  padding: var(--spacing-2);
+}
+.app-shell--compact .nav-drawer__settings,
+.app-shell--compact .nav-drawer__theme {
+  height: 48px;
+  padding: 0 var(--spacing-3);
+}
+.app-shell--compact .chains-panel {
+  width: 248px;
+}
+.app-shell--compact .chains-panel__header {
+  padding: var(--spacing-2) var(--spacing-2) var(--spacing-1);
+  gap: var(--spacing-1);
+}
+.app-shell--compact .chains-panel__list {
+  padding: var(--spacing-1);
+}
+.app-shell--compact .chain-item {
+  min-height: 56px;
+  padding: 6px var(--spacing-2);
+}
+.app-shell--compact .editor-sidebar {
+  width: 248px;
+}
+.app-shell--compact .editor-sidebar__header {
+  padding: var(--spacing-2);
+  gap: var(--spacing-1);
+}
+.app-shell--compact .editor-sidebar__list {
+  padding: var(--spacing-1) var(--spacing-1) var(--spacing-2);
+}
+.app-shell--compact .editor-tabbar {
+  min-height: 40px;
+  padding: var(--spacing-1) var(--spacing-2) 0;
+}
+.app-shell--compact .editor-tab {
+  height: 40px;
+  flex-basis: 180px;
+  min-width: 104px;
+  max-width: 180px;
+}
+.app-shell--compact .editor-tab__button {
+  gap: 6px;
+  padding: 0 6px 0 var(--spacing-2);
+}
+.app-shell--compact .editor-tab__close {
+  width: 28px;
+  height: 28px;
+}
+.app-shell--compact .editor-document-host {
+  padding: var(--spacing-1) var(--spacing-2) var(--spacing-2);
+}
+.app-shell--compact .editor-surface__toolbar {
+  min-height: 48px;
+  padding: 0 var(--spacing-3);
+  gap: var(--spacing-2);
+}
+.app-shell--compact .editor-textarea {
+  padding: var(--spacing-3);
+}
+.app-shell--compact .editor-statusbar {
+  min-height: 32px;
+  padding: 0 var(--spacing-3);
+}
+.app-shell--compact .editor-empty-document {
+  padding: var(--spacing-6);
+}
+.app-shell--compact .chain-document__header {
+  padding: var(--spacing-3) var(--spacing-4) var(--spacing-2);
+}
+.app-shell--compact .chain-document__meta {
+  margin-top: var(--spacing-1);
+}
+.app-shell--compact .chain-document__scroll {
+  padding: var(--spacing-2) var(--spacing-4) var(--spacing-1);
+}
+.app-shell--compact .chain-date-group {
+  margin-bottom: var(--spacing-3);
+}
+.app-shell--compact .chain-date-group__label {
+  padding: var(--spacing-1) 0;
+}
+.app-shell--compact .chain-note {
+  padding: var(--spacing-2) 0 var(--spacing-3);
+}
+.app-shell--compact .chain-note__meta {
+  min-height: 20px;
+  margin-bottom: var(--spacing-1);
+}
+.app-shell--compact .chain-composer__header {
+  height: 40px;
+}
+.app-shell--compact .chain-composer__toggle {
+  padding: 0 var(--spacing-3);
+}
+.app-shell--compact .chain-document--notes-collapsed .chain-composer {
+  flex-basis: 40px;
+}
+.app-shell--compact .chain-note-tabbar {
+  min-height: 36px;
+  padding: 0 var(--spacing-1);
+}
+.app-shell--compact .editor-tabs--nested {
+  min-height: 36px;
+}
+.app-shell--compact .editor-tabs--nested .editor-tab {
+  height: 36px;
+  flex-basis: 140px;
+  min-width: 96px;
+  max-width: 170px;
+}
+.app-shell--compact .editor-tabs--nested .editor-tab__close {
+  width: 24px;
+  height: 24px;
+}
+.app-shell--compact .chain-composer__input {
+  padding: var(--spacing-2) var(--spacing-4);
+}
+.app-shell--compact .chain-composer__footer {
+  min-height: 48px;
+  padding: 0 var(--spacing-4);
+}
+.app-shell--compact .chain-note-empty {
+  padding: var(--spacing-4);
 }

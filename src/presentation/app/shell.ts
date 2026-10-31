@@ -2,6 +2,7 @@ import { appState } from '../state/AppState.js';
 import type { AppState } from '../state/AppState.js';
 import { el } from '../dom.js';
 import { initTheme } from './theme.js';
+import { initCompactMode } from './compactMode.js';
 import { initNavigationHistory } from './navigation.js';
 import { AppController } from '../pages/AppController.js';
 import { initNavResponsive, renderNavDrawer, updateNavDrawer } from '../views/nav.js';
@@ -15,6 +16,7 @@ import { initEditorSession, mountEditorView } from '../views/editor.js';
 
 export function renderApp(root: HTMLElement): void {
   initTheme();
+  initCompactMode();
   initEditorSession();
   root.innerHTML = '';
 
@@ -50,6 +52,7 @@ export function renderApp(root: HTMLElement): void {
   let contentCleanup: (() => void) | null = null;
 
   const applyState = (state: AppState) => {
+    shell.classList.toggle('app-shell--compact', state.compactMode);
     updateNavDrawer(state);
     updateTopbar(topbar, state);
     contentCleanup = updateContent(content, state, contentCleanup);
