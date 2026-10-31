@@ -1,4 +1,4 @@
-export { CreateChainWithHeader } from './CreateChainWithHeader.js';
+﻿export { CreateChainWithHeader } from './CreateChainWithHeader.js';
 export { AppendNoteToChain } from './AppendNoteToChain.js';
 export { UpdateNoteContent } from './UpdateNoteContent.js';
 export { UpdateChainTitle } from './UpdateChainTitle.js';
@@ -11,7 +11,6 @@ export { ArchiveChain } from './ArchiveChain.js';
 export { RestoreChain } from './RestoreChain.js';
 export { DeleteChain } from './DeleteChain.js';
 export { RestoreFromTrash } from './RestoreFromTrash.js';
-export { ToggleFavorite } from './ToggleFavorite.js';
 export { GetAllTags } from './GetAllTags.js';
 export { RenameTag } from './RenameTag.js';
 export { DeleteTag } from './DeleteTag.js';

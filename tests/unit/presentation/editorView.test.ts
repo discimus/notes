@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+﻿import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ChainSummaryDTO, NoteDTO } from '@application/dto/index.js';
 import { EditorStore } from '@presentation/state/EditorStore.js';
 import { mountEditorView } from '@presentation/views/editor.js';
@@ -14,7 +14,6 @@ function makeChain(overrides: Partial<ChainSummaryDTO> = {}): ChainSummaryDTO {
     noteCount: 2,
     createdAt: '2026-01-01T10:00:00.000Z',
     updatedAt: '2026-01-02T10:00:00.000Z',
-    isFavorite: false,
     tagIds: [],
     tags: [],
     headerExcerpt: 'Primeira nota',
@@ -76,7 +75,7 @@ describe('EditorView', () => {
     expect(host.querySelector('.active-line-highlight')).not.toBeNull();
   });
 
-  it('cria novo documento com duplo clique na área vazia das abas', () => {
+  it('cria novo documento com duplo clique na Ã¡rea vazia das abas', () => {
     const store = new EditorStore();
     const host = mount(store);
 
@@ -88,11 +87,11 @@ describe('EditorView', () => {
     expect(store.getActiveTab()?.kind).toBe('draft');
   });
 
-  it('atualiza título derivado, dirty state e estatísticas ao digitar', () => {
+  it('atualiza tÃ­tulo derivado, dirty state e estatÃ­sticas ao digitar', () => {
     const store = new EditorStore();
     const host = mount(store);
     const textarea = host.querySelector<HTMLTextAreaElement>('#draft-textarea');
-    if (!textarea) throw new Error('Textarea não encontrada');
+    if (!textarea) throw new Error('Textarea nÃ£o encontrada');
 
     textarea.value = 'Primeira linha\nSegunda linha';
     textarea.dispatchEvent(new Event('input', { bubbles: true }));
@@ -110,11 +109,11 @@ describe('EditorView', () => {
     expect(host.querySelector('#draft-stats')?.textContent).toContain('caracteres');
   });
 
-  it('cria novas abas e restaura o conteúdo ao trocar de aba', () => {
+  it('cria novas abas e restaura o conteÃºdo ao trocar de aba', () => {
     const store = new EditorStore();
     const host = mount(store);
     const textarea = host.querySelector<HTMLTextAreaElement>('#draft-textarea');
-    if (!textarea) throw new Error('Textarea não encontrada');
+    if (!textarea) throw new Error('Textarea nÃ£o encontrada');
 
     textarea.value = 'Documento um';
     textarea.dispatchEvent(new Event('input', { bubbles: true }));
@@ -124,7 +123,7 @@ describe('EditorView', () => {
     expect(host.querySelector<HTMLTextAreaElement>('#draft-textarea')?.value).toBe('');
 
     const secondTextarea = host.querySelector<HTMLTextAreaElement>('#draft-textarea');
-    if (!secondTextarea) throw new Error('Segunda textarea não encontrada');
+    if (!secondTextarea) throw new Error('Segunda textarea nÃ£o encontrada');
     secondTextarea.value = 'Documento dois';
     secondTextarea.dispatchEvent(new Event('input', { bubbles: true }));
 
@@ -136,7 +135,7 @@ describe('EditorView', () => {
     );
   });
 
-  it('recolhe o rodapé de notas e amplia a leitura da cadeia', () => {
+  it('recolhe o rodapÃ© de notas e amplia a leitura da cadeia', () => {
     const store = new EditorStore();
     const host = mount(store);
     const chain = store.openChainTab('chain-1', 'Projeto principal');
@@ -167,7 +166,7 @@ describe('EditorView', () => {
     const store = new EditorStore();
     const host = mount(store);
     const textarea = host.querySelector<HTMLTextAreaElement>('#draft-textarea');
-    if (!textarea) throw new Error('Textarea não encontrada');
+    if (!textarea) throw new Error('Textarea nÃ£o encontrada');
 
     textarea.value = 'Minha nota';
     textarea.dispatchEvent(new Event('input', { bubbles: true }));
@@ -219,7 +218,7 @@ describe('EditorView', () => {
     });
 
     const composer = host.querySelector<HTMLTextAreaElement>('#chain-composer-input');
-    if (!composer) throw new Error('Compositor não encontrado');
+    if (!composer) throw new Error('Compositor nÃ£o encontrado');
     composer.value = 'Nova nota';
     composer.dispatchEvent(new Event('input', { bubbles: true }));
 
@@ -234,7 +233,7 @@ describe('EditorView', () => {
 
     expect(append).toHaveBeenCalledWith('chain-1', 'Nova nota');
     const active = store.getTab(chain.id);
-    if (!active || active.kind !== 'chain') throw new Error('Cadeia não encontrada');
+    if (!active || active.kind !== 'chain') throw new Error('Cadeia nÃ£o encontrada');
     expect(active.noteTabs).toHaveLength(1);
     expect(active.noteTabs[0]?.content).toBe('');
     expect(host.querySelector<HTMLTextAreaElement>('#chain-composer-input')?.value).toBe('');
@@ -248,7 +247,7 @@ describe('EditorView', () => {
     const firstComposer = host.querySelector<HTMLTextAreaElement>(
       '#chain-composer-input'
     );
-    if (!firstComposer) throw new Error('Compositor não encontrado');
+    if (!firstComposer) throw new Error('Compositor nÃ£o encontrado');
     firstComposer.value = 'Nota A';
     firstComposer.dispatchEvent(new Event('input', { bubbles: true }));
 
@@ -256,7 +255,7 @@ describe('EditorView', () => {
     const secondComposer = host.querySelector<HTMLTextAreaElement>(
       '#chain-composer-input'
     );
-    if (!secondComposer) throw new Error('Compositor não encontrado');
+    if (!secondComposer) throw new Error('Compositor nÃ£o encontrado');
     secondComposer.value = 'Nota B';
     secondComposer.dispatchEvent(new Event('input', { bubbles: true }));
 
@@ -291,11 +290,11 @@ describe('EditorView', () => {
     ]);
   });
 
-  it('protege o fechamento de uma aba com alterações não salvas', async () => {
+  it('protege o fechamento de uma aba com alteraÃ§Ãµes nÃ£o salvas', async () => {
     const store = new EditorStore();
     const host = mount(store);
     const textarea = host.querySelector<HTMLTextAreaElement>('#draft-textarea');
-    if (!textarea) throw new Error('Textarea não encontrada');
+    if (!textarea) throw new Error('Textarea nÃ£o encontrada');
 
     textarea.value = 'Rascunho';
     textarea.dispatchEvent(new Event('input', { bubbles: true }));

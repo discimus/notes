@@ -2,11 +2,11 @@
 
 ## Schema — `src/infrastructure/persistence/schema.ts`
 
-DB: `thread-notes-db` versão `1`. Quatro object stores:
+DB: `thread-notes-db` versão `2`. Quatro object stores:
 
 | Store | Key | Índices relevantes |
 |---|---|---|
-| `chains` | `id` | `by-createdAt`, `by-updatedAt`, `by-archivedAt`, `by-deletedAt`, `by-isFavorite` |
+| `chains` | `id` | `by-createdAt`, `by-updatedAt`, `by-archivedAt`, `by-deletedAt` |
 | `notes` | `id` | `by-chainId`, `by-chainId-position` (composto), `by-createdAt` |
 | `tags` | `id` | `by-normalizedName` (unique) |
 | `chainTags` | `[chainId, tagId]` (compound) | `by-chainId`, `by-tagId` |
@@ -35,7 +35,7 @@ await chainRepo.save(chain, [header]);
 await chainRepo.save(chain, []);
 ```
 
-**`saveChainOnly(chain)`** — persiste apenas os metadados do Chain (sem tocar nas notas). Use após operações que só mudam o agregado: `archive`, `toggleFavorite`, `updateTitle`.
+**`saveChainOnly(chain)`** — persiste apenas os metadados do Chain (sem tocar nas notas). Use após operações que só mudam o agregado: `archive`, `updateTitle`.
 
 **`saveNote(note)`** — persiste ou atualiza uma nota individual. Use após `chain.appendNote()` ou `note.updateContent()`.
 

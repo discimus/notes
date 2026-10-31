@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+﻿import { beforeEach, describe, expect, it } from 'vitest';
 import type { ChainSummaryDTO } from '@application/dto/index.js';
 import { showAppendToChainDialog } from '@presentation/components/AppendToChainDialog.js';
 
@@ -8,7 +8,6 @@ const chain: ChainSummaryDTO = {
   noteCount: 3,
   createdAt: '2026-01-01T00:00:00.000Z',
   updatedAt: '2026-01-02T00:00:00.000Z',
-  isFavorite: false,
   tagIds: [],
   tags: [],
   headerExcerpt: 'Primeira nota',
@@ -19,7 +18,7 @@ describe('AppendToChainDialog', () => {
     document.body.innerHTML = '';
   });
 
-  it('pede a seleção de uma cadeia e retorna o destino', async () => {
+  it('pede a seleÃ§Ã£o de uma cadeia e retorna o destino', async () => {
     const result = showAppendToChainDialog({ chains: [chain] });
 
     expect(document.querySelector('.append-chain-dialog')).not.toBeNull();
@@ -39,13 +38,13 @@ describe('AppendToChainDialog', () => {
     });
   });
 
-  it('filtra a lista pelo título da cadeia', () => {
+  it('filtra a lista pelo tÃ­tulo da cadeia', () => {
     showAppendToChainDialog({ chains: [chain] });
 
     const search = document.querySelector<HTMLInputElement>(
       '[id^="append-chain-search-"]'
     );
-    if (!search) throw new Error('Busca não encontrada');
+    if (!search) throw new Error('Busca nÃ£o encontrada');
 
     search.value = 'inexistente';
     search.dispatchEvent(new Event('input', { bubbles: true }));
@@ -55,7 +54,7 @@ describe('AppendToChainDialog', () => {
     );
   });
 
-  it('mantém o salvamento indisponível sem cadeias', () => {
+  it('mantÃ©m o salvamento indisponÃ­vel sem cadeias', () => {
     showAppendToChainDialog({ chains: [] });
 
     expect(

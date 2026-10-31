@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest';
-import { filterChains } from '@presentation/filters.js';
+﻿import { describe, expect, it } from 'vitest';
+import { filterChains, sortChainsByPinned } from '@presentation/filters.js';
 import type { ChainSummaryDTO } from '@application/dto/index.js';
 
 function makeChain(overrides: Partial<ChainSummaryDTO> = {}): ChainSummaryDTO {
@@ -9,7 +9,6 @@ function makeChain(overrides: Partial<ChainSummaryDTO> = {}): ChainSummaryDTO {
     noteCount: 2,
     createdAt: '2026-01-01T00:00:00.000Z',
     updatedAt: '2026-01-01T00:00:00.000Z',
-    isFavorite: false,
     tagIds: [],
     tags: [],
     headerExcerpt: 'Primeira ideia',
@@ -18,13 +17,13 @@ function makeChain(overrides: Partial<ChainSummaryDTO> = {}): ChainSummaryDTO {
 }
 
 describe('filterChains', () => {
-  it('retorna todas as cadeias quando a consulta está vazia', () => {
+  it('retorna todas as cadeias quando a consulta estÃ¡ vazia', () => {
     const chains = [makeChain(), makeChain({ id: 'chain-2', displayTitle: 'Outra' })];
 
     expect(filterChains(chains, '')).toHaveLength(2);
   });
 
-  it('filtra por título ignorando caixa e acentos', () => {
+  it('filtra por tÃ­tulo ignorando caixa e acentos', () => {
     const chains = [makeChain(), makeChain({ id: 'chain-2', displayTitle: 'Rotina' })];
 
     expect(filterChains(chains, 'projeto')).toHaveLength(1);
@@ -53,5 +52,24 @@ describe('filterChains', () => {
     ];
 
     expect(filterChains(chains, 'trabalho')).toHaveLength(1);
+  });
+});
+
+describe('sortChainsByPinned', () => {
+  it('ordena cadeias fixadas primeiro preservando a ordem relativa', () => {
+    const chains = [
+      makeChain({ id: 'chain-1' }),
+      makeChain({ id: 'chain-2' }),
+      makeChain({ id: 'chain-3' }),
+    ];
+
+    expect(
+      sortChainsByPinned(chains, ['chain-3', 'chain-1']).map((chain) => chain.id)
+    ).toEqual(['chain-1', 'chain-3', 'chain-2']);
+    expect(sortChainsByPinned(chains, ['missing']).map((chain) => chain.id)).toEqual([
+      'chain-1',
+      'chain-2',
+      'chain-3',
+    ]);
   });
 });

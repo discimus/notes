@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+﻿import { beforeEach, describe, expect, it } from 'vitest';
 import { appState } from '@presentation/state/AppState.js';
 import { renderChainsLayout } from '@presentation/views/chains.js';
 import type { ChainSummaryDTO, TagDTO } from '@application/dto/index.js';
@@ -21,7 +21,6 @@ function makeChain(overrides: Partial<ChainSummaryDTO> = {}): ChainSummaryDTO {
     noteCount: 2,
     createdAt: '2026-01-01T00:00:00.000Z',
     updatedAt: '2026-01-01T00:00:00.000Z',
-    isFavorite: false,
     tagIds: [],
     tags: [],
     headerExcerpt: 'Primeira ideia',
@@ -46,10 +45,10 @@ describe('lista compacta de cadeias', () => {
     document.body.innerHTML = '';
   });
 
-  it('exibe título, data/notas e favorito sem excerpt ou tags', () => {
+  it('exibe tÃ­tulo e data/notas sem excerpt ou tags', () => {
     const layout = renderList([
       makeChain({ tags: [makeTag('Trabalho')] }),
-      makeChain({ id: 'chain-2', displayTitle: 'Rotina', isFavorite: true }),
+      makeChain({ id: 'chain-2', displayTitle: 'Rotina' }),
     ]);
 
     const items = [...layout.querySelectorAll<HTMLElement>('.chain-item')];
@@ -60,17 +59,11 @@ describe('lista compacta de cadeias', () => {
     expect(first.querySelector('.chain-item__meta')?.textContent).toContain('2 notas');
     expect(first.textContent).not.toContain('Primeira ideia');
     expect(first.querySelector('.chain-item__tag')).toBeNull();
-    expect(first.querySelector('.chain-item__favorite')).toBeNull();
     expect(first.title).toBe('Projeto Alpha');
-
-    const second = items[1]!;
-    const favorite = second.querySelector('.chain-item__favorite');
-    expect(favorite).not.toBeNull();
-    expect(favorite?.getAttribute('aria-hidden')).toBe('true');
-    expect(second.getAttribute('aria-label')).toBe('Cadeia: Rotina (favorita)');
+    expect(items[1]?.getAttribute('aria-label')).toBe('Cadeia: Rotina');
   });
 
-  it('marca o item selecionado e expõe o estado acessível', () => {
+  it('marca o item selecionado e expÃµe o estado acessÃ­vel', () => {
     const layout = renderList(
       [makeChain(), makeChain({ id: 'chain-2', displayTitle: 'Rotina' })],
       'chain-2'

@@ -40,7 +40,6 @@ export function mapChainToSummary(
     createdAt: chain.createdAt,
     updatedAt: chain.updatedAt,
     ...(chain.archivedAt ? { archivedAt: chain.archivedAt } : {}),
-    isFavorite: chain.isFavorite,
     tagIds,
     tags: tags as TagDTO[],
     headerExcerpt: headerNote ? excerpt(headerNote.content, 100) : '',

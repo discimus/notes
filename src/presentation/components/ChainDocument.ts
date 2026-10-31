@@ -123,7 +123,6 @@ export function mountChainDocument(
       <div class="chain-document__title-row">
         <h2 class="chain-document__title" contenteditable="true" role="textbox" aria-label="Título da cadeia" spellcheck="true"></h2>
         <div class="chain-document__actions">
-          <button class="btn-icon" id="chain-favorite" type="button" aria-label="Alternar favorito" title="Alternar favorito"></button>
           <button class="btn-icon" id="chain-more" type="button" aria-label="Mais opções" title="Mais opções">
             <span class="material-symbols-rounded" aria-hidden="true">more_vert</span>
           </button>
@@ -189,7 +188,6 @@ export function mountChainDocument(
   `;
 
   const title = root.querySelector<HTMLElement>('.chain-document__title')!;
-  const favorite = root.querySelector<HTMLButtonElement>('#chain-favorite')!;
   const more = root.querySelector<HTMLButtonElement>('#chain-more')!;
   const tags = root.querySelector<HTMLElement>('#chain-tags')!;
   const count = root.querySelector<HTMLElement>('#chain-note-count')!;
@@ -254,9 +252,6 @@ export function mountChainDocument(
     }
   });
 
-  favorite.addEventListener('click', () => {
-    void AppController.toggleFavorite(currentTab.chainId);
-  });
   more.addEventListener('click', (event) => {
     showChainMenu(event, currentTab.chainId);
   });
@@ -286,14 +281,6 @@ export function mountChainDocument(
     );
 
     tagEditor.update(summary?.tags ?? [], appState.get().allTags);
-
-    const isFavorite = summary?.isFavorite ?? false;
-    favorite.innerHTML = `<span class="material-symbols-rounded" aria-hidden="true">${
-      isFavorite ? 'star' : 'star_border'
-    }</span>`;
-    favorite.setAttribute('aria-pressed', isFavorite ? 'true' : 'false');
-    favorite.title = isFavorite ? 'Remover dos favoritos' : 'Adicionar aos favoritos';
-    favorite.classList.toggle('btn-icon--active', isFavorite);
   };
 
   const renderNotes = (): void => {

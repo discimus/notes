@@ -44,7 +44,7 @@ appState.set({ isLoading: true }) // merge parcial + notifica listeners
 appState.subscribe(fn)            // retorna unsubscribe — limpar em teardown
 ```
 
-**Views disponíveis** (`AppView`): `'editor' | 'chains' | 'chain-detail' | 'search' | 'timeline' | 'tags' | 'favorites' | 'archived' | 'trash'`
+**Views disponíveis** (`AppView`): `'editor' | 'chains' | 'chain-detail' | 'search' | 'timeline' | 'tags' | 'archived' | 'trash'`
 
 A view inicial é `'editor'`. O conteúdo das abas **não** fica no `AppState`; use `EditorStore` para evitar re-render global a cada tecla.
 
@@ -160,7 +160,8 @@ Ações destrutivas **sempre** pedem confirmação via `showConfirmDialog` antes
 
 - Dark mode: `@media (prefers-color-scheme: dark)` + atributo `[data-theme="dark"]` no `<html>`.
 - Nomenclatura BEM: `.chain-item__title`, `.tag-chip--selected`, `.btn--destructive`.
-- Lista de cadeias: item compacto de 2 linhas em 64px, com título + data/notas + favorito. Excerpt e tags ficam no detalhe, não na lista.
+- Lista de cadeias: item compacto de 2 linhas, com título + data/notas + botão de pin. Excerpt e tags ficam no detalhe, não na lista.
+- Cadeias fixadas são preferência de UI (`threadnotes.pinned-chains`) e aparecem primeiro na sidebar; não há mais view nem campo de favoritos.
 - Tokens MD3: use `var(--md-sys-color-primary)` etc. — nunca valores de cor literais.
 - **Nunca** ler `components.css` inteiro — use grep para a classe específica.
 - Navegação: rail fixo de 80px em `≥769px`; drawer modal de 280px em `≤768px`. O hambúrguer (`#nav-toggle`) só aparece no compacto. Configurações, tema e modo compacto ficam no rodapé do rail/drawer.
@@ -200,4 +201,4 @@ Testes de apresentação ficam em `tests/unit/presentation/` e usam jsdom. Não 
 - QA visual ou interação real com a aplicação só quando o usuário solicitar explicitamente.
 - Novas features de UI devem vir com teste de comportamento; não considerar inspeção visual manual como validação suficiente.
 
-Exceção autorizada: `nav.test.ts` valida os 6 destinos com Editor como view inicial. Testes do editor: `editorStore`, `editorTabs`, `editorSidebar`, `editorGrouping`, `chainDocument`, `appendToChainDialog`, `activeLineHighlight`, `inlineTagEditor`, `tagSuggestions` e `editorView`.
+Exceção autorizada: `nav.test.ts` valida os 5 destinos com Editor como view inicial. Testes do editor: `editorStore`, `editorTabs`, `editorSidebar`, `editorGrouping`, `chainDocument`, `appendToChainDialog`, `activeLineHighlight`, `inlineTagEditor`, `tagSuggestions`, `pinnedChains` e `editorView`.

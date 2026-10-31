@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+﻿import { describe, it, expect } from 'vitest';
 import { TimelineService } from '../../../src/domain/services/TimelineService.js';
 import { Chain } from '../../../src/domain/entities/Chain.js';
 import { Note } from '../../../src/domain/entities/Note.js';
@@ -10,7 +10,7 @@ function sleep(ms: number) {
 describe('TimelineService', () => {
   const service = new TimelineService();
 
-  it('deve combinar notas de duas cadeias em ordem cronológica', async () => {
+  it('deve combinar notas de duas cadeias em ordem cronolÃ³gica', async () => {
     const { chain: chainA } = Chain.createWithHeader({ content: 'A1' });
     await sleep(5);
     const { chain: chainB } = Chain.createWithHeader({ content: 'B1' });
@@ -49,8 +49,8 @@ describe('TimelineService', () => {
     expect(entriesB[0]!.chainTitle).toBe('Cadeia B');
   });
 
-  it('deve ter desempate determinístico para timestamps iguais', () => {
-    // Duas cadeias reconstituídas com mesmo timestamp
+  it('deve ter desempate determinÃ­stico para timestamps iguais', () => {
+    // Duas cadeias reconstituÃ­das com mesmo timestamp
     const ts = new Date().toISOString();
 
     // Adiciona notas manualmente com mesmo timestamp via reconstitute
@@ -73,13 +73,13 @@ describe('TimelineService', () => {
       updatedAt: ts,
     };
 
-    const chainAFull = Chain.reconstitute({ id: 'aaa', headerNoteId: 'note-a', createdAt: ts, updatedAt: ts, isFavorite: false }, [Note.reconstitute(noteA)]);
-    const chainBFull = Chain.reconstitute({ id: 'bbb', headerNoteId: 'note-b', createdAt: ts, updatedAt: ts, isFavorite: false }, [Note.reconstitute(noteB)]);
+    const chainAFull = Chain.reconstitute({ id: 'aaa', headerNoteId: 'note-a', createdAt: ts, updatedAt: ts }, [Note.reconstitute(noteA)]);
+    const chainBFull = Chain.reconstitute({ id: 'bbb', headerNoteId: 'note-b', createdAt: ts, updatedAt: ts }, [Note.reconstitute(noteB)]);
 
     const t1 = service.createCombinedView([chainAFull, chainBFull], { chainIds: ['aaa', 'bbb'] });
     const t2 = service.createCombinedView([chainBFull, chainAFull], { chainIds: ['aaa', 'bbb'] });
 
-    // Deve ser determinístico independente da ordem de entrada
+    // Deve ser determinÃ­stico independente da ordem de entrada
     expect(t1.entries[0]!.chainId).toBe(t2.entries[0]!.chainId);
     expect(t1.entries[1]!.chainId).toBe(t2.entries[1]!.chainId);
   });
@@ -88,7 +88,7 @@ describe('TimelineService', () => {
     const { chain } = Chain.createWithHeader({ content: 'H' });
     const from = new Date().toISOString();
     await sleep(5);
-    chain.appendNote('Tail após from');
+    chain.appendNote('Tail apÃ³s from');
 
     const timeline = service.createCombinedView([chain], { chainIds: [chain.id] });
     const filtered = timeline.filterByRange(from);

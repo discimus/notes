@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+﻿import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { NoteDTO } from '@application/dto/index.js';
 import type { ChainTab } from '@presentation/state/EditorStore.js';
 import { appState } from '@presentation/state/AppState.js';
@@ -7,7 +7,7 @@ import { mountChainDocument } from '@presentation/components/ChainDocument.js';
 function makeNote(overrides: Partial<NoteDTO> = {}): NoteDTO {
   return {
     id: 'note-1',
-    content: 'Conteúdo da nota',
+    content: 'ConteÃºdo da nota',
     chainId: 'chain-1',
     position: 0,
     role: 'header',
@@ -54,7 +54,6 @@ describe('ChainDocument', () => {
           noteCount: 1,
           createdAt: '2026-01-01T00:00:00.000Z',
           updatedAt: '2026-01-02T00:00:00.000Z',
-          isFavorite: false,
           tagIds: [],
           tags: [],
           headerExcerpt: '',
@@ -63,7 +62,7 @@ describe('ChainDocument', () => {
     });
   });
 
-  it('renderiza histórico agrupado por data e aba inicial de novo documento', () => {
+  it('renderiza histÃ³rico agrupado por data e aba inicial de novo documento', () => {
     const view = mountChainDocument(makeTab(), makeHandlers());
 
     expect(view.element.querySelector('.chain-document__title')?.textContent).toBe(
@@ -71,7 +70,7 @@ describe('ChainDocument', () => {
     );
     expect(view.element.querySelectorAll('.chain-date-group')).toHaveLength(1);
     expect(view.element.querySelector('.chain-note__text')?.textContent).toBe(
-      'Conteúdo da nota'
+      'ConteÃºdo da nota'
     );
     expect(view.element.querySelector('#chain-note-count')?.textContent).toBe('1 nota');
     expect(view.element.querySelector('#chain-composer-input')).not.toBeNull();
@@ -90,7 +89,7 @@ describe('ChainDocument', () => {
     );
   });
 
-  it('recolhe e expande a área de notas com estado acessível', () => {
+  it('recolhe e expande a Ã¡rea de notas com estado acessÃ­vel', () => {
     const handlers = makeHandlers();
     const view = mountChainDocument(
       makeTab({
@@ -122,14 +121,14 @@ describe('ChainDocument', () => {
     expect(handlers.onToggleComposer).toHaveBeenCalled();
   });
 
-  it('encaminha digitação, adição e criação de nova aba', () => {
+  it('encaminha digitaÃ§Ã£o, adiÃ§Ã£o e criaÃ§Ã£o de nova aba', () => {
     const handlers = makeHandlers();
     const view = mountChainDocument(makeTab(), handlers);
 
     const composer = view.element.querySelector<HTMLTextAreaElement>(
       '#chain-composer-input'
     );
-    if (!composer) throw new Error('Compositor não encontrado');
+    if (!composer) throw new Error('Compositor nÃ£o encontrado');
 
     composer.value = 'Nova nota';
     composer.dispatchEvent(new Event('input', { bubbles: true }));
@@ -142,7 +141,7 @@ describe('ChainDocument', () => {
     expect(handlers.onCreateNote).toHaveBeenCalled();
   });
 
-  it('cria nova nota com duplo clique no espaço vazio das abas', () => {
+  it('cria nova nota com duplo clique no espaÃ§o vazio das abas', () => {
     const handlers = makeHandlers();
     const view = mountChainDocument(makeTab(), handlers);
     const tabs = view.element.querySelector('#chain-note-tabs');
@@ -156,7 +155,7 @@ describe('ChainDocument', () => {
     expect(handlers.onCreateNote).toHaveBeenCalledTimes(1);
   });
 
-  it('exibe múltiplas abas e o conteúdo da aba ativa', () => {
+  it('exibe mÃºltiplas abas e o conteÃºdo da aba ativa', () => {
     const view = mountChainDocument(
       makeTab({
         noteTabs: [
@@ -177,7 +176,7 @@ describe('ChainDocument', () => {
     expect(view.element.querySelectorAll('.editor-tab--dirty')).toHaveLength(2);
   });
 
-  it('desabilita a edição durante o salvamento', () => {
+  it('desabilita a ediÃ§Ã£o durante o salvamento', () => {
     const view = mountChainDocument(makeTab(), makeHandlers());
 
     view.setSaving(true);

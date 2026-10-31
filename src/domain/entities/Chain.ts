@@ -1,4 +1,4 @@
-import type { UUID, ISODateString } from '@shared/types/index.js';
+﻿import type { UUID, ISODateString } from '@shared/types/index.js';
 import { InvariantViolationError, ValidationError } from '@shared/types/index.js';
 import { Note } from './Note.js';
 import { generateId, now } from '@shared/utilities/index.js';
@@ -10,20 +10,19 @@ export interface ChainData {
   createdAt: ISODateString;
   updatedAt: ISODateString;
   archivedAt?: ISODateString | undefined;
-  isFavorite: boolean;
   deletedAt?: ISODateString | undefined;
 }
 
 /**
  * Agregado: Chain.
- * Responsável por manter a integridade de suas notas.
+ * ResponsÃ¡vel por manter a integridade de suas notas.
  *
  * Invariantes:
  * 1. Toda cadeia possui exatamente um header.
- * 2. Uma cadeia não pode possuir mais de um header.
- * 3. A criação de uma cadeia exige um header válido.
- * 4. Notas têm ordem determinística por posição.
- * 5. Tails são sempre adicionadas ao final.
+ * 2. Uma cadeia nÃ£o pode possuir mais de um header.
+ * 3. A criaÃ§Ã£o de uma cadeia exige um header vÃ¡lido.
+ * 4. Notas tÃªm ordem determinÃ­stica por posiÃ§Ã£o.
+ * 5. Tails sÃ£o sempre adicionadas ao final.
  */
 export class Chain {
   private readonly _id: UUID;
@@ -32,10 +31,9 @@ export class Chain {
   private readonly _createdAt: ISODateString;
   private _updatedAt: ISODateString;
   private _archivedAt: ISODateString | undefined;
-  private _isFavorite: boolean;
   private _deletedAt: ISODateString | undefined;
 
-  // Notas em memória (carregadas pelo repositório)
+  // Notas em memÃ³ria (carregadas pelo repositÃ³rio)
   private _notes: Note[] = [];
 
   private constructor(data: ChainData) {
@@ -45,20 +43,19 @@ export class Chain {
     this._createdAt = data.createdAt;
     this._updatedAt = data.updatedAt;
     this._archivedAt = data.archivedAt;
-    this._isFavorite = data.isFavorite;
     this._deletedAt = data.deletedAt;
   }
 
   /**
    * Cria uma nova cadeia com seu header.
-   * Retorna o Chain e a Note (header) para persistência.
+   * Retorna o Chain e a Note (header) para persistÃªncia.
    */
   static createWithHeader(params: {
     content: string;
     title?: string;
   }): { chain: Chain; header: Note } {
     if (!params.content.trim()) {
-      throw new ValidationError('O conteúdo do header não pode ser vazio.');
+      throw new ValidationError('O conteÃºdo do header nÃ£o pode ser vazio.');
     }
 
     const chainId = generateId();
@@ -76,7 +73,6 @@ export class Chain {
       ...(params.title ? { title: params.title.trim() } : {}),
       createdAt: ts,
       updatedAt: ts,
-      isFavorite: false,
     });
 
     chain._notes = [header];
@@ -102,14 +98,13 @@ export class Chain {
   get createdAt(): ISODateString { return this._createdAt; }
   get updatedAt(): ISODateString { return this._updatedAt; }
   get archivedAt(): ISODateString | undefined { return this._archivedAt; }
-  get isFavorite(): boolean { return this._isFavorite; }
   get deletedAt(): ISODateString | undefined { return this._deletedAt; }
   get notes(): readonly Note[] { return this._notes; }
 
   get header(): Note {
     const h = this._notes.find((n) => n.isHeader());
     if (!h) {
-      throw new InvariantViolationError(`Cadeia ${this._id} não possui header carregado.`);
+      throw new InvariantViolationError(`Cadeia ${this._id} nÃ£o possui header carregado.`);
     }
     return h;
   }
@@ -120,15 +115,15 @@ export class Chain {
   isDeleted(): boolean { return this._deletedAt !== undefined; }
 
   /**
-   * Operação central: anexa uma nota ao final da cadeia.
-   * Garante posição correta e atualiza o timestamp da cadeia.
+   * OperaÃ§Ã£o central: anexa uma nota ao final da cadeia.
+   * Garante posiÃ§Ã£o correta e atualiza o timestamp da cadeia.
    */
   appendNote(content: string): Note {
     if (this.isArchived()) {
-      throw new InvariantViolationError('Não é possível adicionar notas a uma cadeia arquivada.');
+      throw new InvariantViolationError('NÃ£o Ã© possÃ­vel adicionar notas a uma cadeia arquivada.');
     }
     if (this.isDeleted()) {
-      throw new InvariantViolationError('Não é possível adicionar notas a uma cadeia excluída.');
+      throw new InvariantViolationError('NÃ£o Ã© possÃ­vel adicionar notas a uma cadeia excluÃ­da.');
     }
 
     const nextPosition = this._notes.length; // header = 0, first tail = 1, etc.
@@ -146,21 +141,16 @@ export class Chain {
   updateTitle(title: string | undefined): void {
     this._title = title?.trim() || undefined;
     this._updatedAt = now();
-    // Se o header estiver carregado, sincroniza o título
+    // Se o header estiver carregado, sincroniza o tÃ­tulo
     const h = this._notes.find((n) => n.isHeader());
     if (h) {
       h.updateTitle(title);
     }
   }
 
-  toggleFavorite(): void {
-    this._isFavorite = !this._isFavorite;
-    this._updatedAt = now();
-  }
-
   archive(): void {
     if (this.isDeleted()) {
-      throw new InvariantViolationError('Não é possível arquivar uma cadeia excluída.');
+      throw new InvariantViolationError('NÃ£o Ã© possÃ­vel arquivar uma cadeia excluÃ­da.');
     }
     this._archivedAt = now();
     this._updatedAt = now();
@@ -174,7 +164,7 @@ export class Chain {
   softDelete(): void {
     if (this.isArchived()) {
       throw new InvariantViolationError(
-        'Não é possível mover uma cadeia arquivada para a lixeira. Restaure-a antes.'
+        'NÃ£o Ã© possÃ­vel mover uma cadeia arquivada para a lixeira. Restaure-a antes.'
       );
     }
     this._deletedAt = now();
@@ -186,16 +176,16 @@ export class Chain {
     this._updatedAt = now();
   }
 
-  /** Rótulo de exibição: título explícito ou prévia do header */
+  /** RÃ³tulo de exibiÃ§Ã£o: tÃ­tulo explÃ­cito ou prÃ©via do header */
   get displayTitle(): string {
     if (this._title) return this._title;
     const h = this._notes.find((n) => n.isHeader());
     if (h?.title) return h.title;
     if (h) {
       const preview = h.content.slice(0, 60).trim();
-      return preview.length < h.content.trim().length ? preview + '…' : preview;
+      return preview.length < h.content.trim().length ? preview + 'â€¦' : preview;
     }
-    return 'Sem título';
+    return 'Sem tÃ­tulo';
   }
 
   toData(): ChainData {
@@ -206,7 +196,6 @@ export class Chain {
       createdAt: this._createdAt,
       updatedAt: this._updatedAt,
       ...(this._archivedAt ? { archivedAt: this._archivedAt } : {}),
-      isFavorite: this._isFavorite,
       ...(this._deletedAt ? { deletedAt: this._deletedAt } : {}),
     };
   }

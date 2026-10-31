@@ -1,4 +1,4 @@
-import { appState } from '../state/AppState.js';
+﻿import { appState } from '../state/AppState.js';
 import type { AppState } from '../state/AppState.js';
 import { AppController } from '../pages/AppController.js';
 import { DraftStore } from '../state/DraftStore.js';
@@ -24,7 +24,7 @@ export function renderChainsLayout(state: AppState): HTMLElement {
   searchBar.innerHTML = `
     <span class="search-bar__icon material-symbols-rounded" aria-hidden="true">search</span>
     <input type="search" class="search-bar__input" id="chains-search-input"
-      placeholder="Filtrar cadeias…" aria-label="Filtrar cadeias" autocomplete="off"
+      placeholder="Filtrar cadeiasâ€¦" aria-label="Filtrar cadeias" autocomplete="off"
       value="${escapeHtml(state.chainFilterQuery)}" />
     <button class="btn-icon search-bar__clear" id="chains-filter-clear"
       aria-label="Limpar filtro" ${state.chainFilterQuery ? '' : 'hidden'}>
@@ -99,7 +99,6 @@ function getViewLabel(view: string): string {
   const map: Record<string, string> = {
     chains: 'Cadeias',
     'chain-detail': 'Cadeias',
-    favorites: 'Favoritos',
     archived: 'Arquivo',
     trash: 'Lixeira',
   };
@@ -161,7 +160,7 @@ function renderDetailPanel(container: HTMLElement, state: AppState): void {
 
     const titleEl = el('h2', 'detail-panel__title');
     titleEl.setAttribute('contenteditable', 'true');
-    titleEl.setAttribute('aria-label', 'Título da cadeia');
+    titleEl.setAttribute('aria-label', 'TÃ­tulo da cadeia');
     titleEl.setAttribute('spellcheck', 'true');
     titleEl.setAttribute('role', 'textbox');
     titleEl.setAttribute('aria-multiline', 'false');
@@ -220,12 +219,12 @@ function renderDetailPanel(container: HTMLElement, state: AppState): void {
 
     container.appendChild(renderComposer(chain.id));
 
-  } else if (state.view === 'chains' || state.view === 'favorites') {
+  } else if (state.view === 'chains') {
     container.appendChild(renderEmptyDetail());
   } else if (state.view === 'archived') {
-    container.appendChild(renderEmptyDetail('archive', 'Arquivo', 'Selecione uma cadeia arquivada para visualizá-la.'));
+    container.appendChild(renderEmptyDetail('archive', 'Arquivo', 'Selecione uma cadeia arquivada para visualizÃ¡-la.'));
   } else if (state.view === 'trash') {
-    container.appendChild(renderEmptyDetail('delete', 'Lixeira', 'Selecione uma cadeia na lixeira para gerenciá-la.'));
+    container.appendChild(renderEmptyDetail('delete', 'Lixeira', 'Selecione uma cadeia na lixeira para gerenciÃ¡-la.'));
   }
 }
 
@@ -259,8 +258,8 @@ function renderNoteThread(note: NoteDTO, idx: number, total: number, chainId: st
   const meta = el('div', 'note-thread__meta');
   meta.innerHTML = `
     <time datetime="${note.createdAt}" title="${formatDateFull(note.createdAt)}">${formatDate(note.createdAt)}</time>
-    ${note.updatedAt !== note.createdAt ? `<span aria-label="Editado">· editado ${formatDate(note.updatedAt)}</span>` : ''}
-    <div class="note-thread__actions" role="group" aria-label="Ações da nota">
+    ${note.updatedAt !== note.createdAt ? `<span aria-label="Editado">Â· editado ${formatDate(note.updatedAt)}</span>` : ''}
+    <div class="note-thread__actions" role="group" aria-label="AÃ§Ãµes da nota">
       <button class="btn-icon" title="Editar nota" aria-label="Editar nota" data-action="edit">
         <span class="material-symbols-rounded" aria-hidden="true">edit</span>
       </button>
@@ -337,7 +336,7 @@ function renderComposer(chainId: string): HTMLElement {
 
   const modeSelector = el('div', 'composer__mode-selector');
   modeSelector.setAttribute('role', 'group');
-  modeSelector.setAttribute('aria-label', 'Modo de criação');
+  modeSelector.setAttribute('aria-label', 'Modo de criaÃ§Ã£o');
 
   const tailBtn = el('button', 'chip chip--selected');
   tailBtn.dataset['mode'] = 'tail';
@@ -360,8 +359,8 @@ function renderComposer(chainId: string): HTMLElement {
     headerBtn.classList.toggle('chip--selected', mode === 'header');
     headerBtn.setAttribute('aria-pressed', mode === 'header' ? 'true' : 'false');
     placeholder.setAttribute('placeholder', mode === 'tail'
-      ? 'Continuar esta cadeia…'
-      : 'Iniciar uma nova cadeia…');
+      ? 'Continuar esta cadeiaâ€¦'
+      : 'Iniciar uma nova cadeiaâ€¦');
   };
 
   tailBtn.addEventListener('click', () => updateMode('tail'));
@@ -372,9 +371,9 @@ function renderComposer(chainId: string): HTMLElement {
   composer.appendChild(modeSelector);
 
   placeholder.setAttribute('id', 'composer-input');
-  placeholder.setAttribute('aria-label', 'Conteúdo da nota');
+  placeholder.setAttribute('aria-label', 'ConteÃºdo da nota');
   placeholder.setAttribute('aria-multiline', 'true');
-  placeholder.setAttribute('placeholder', 'Continuar esta cadeia…');
+  placeholder.setAttribute('placeholder', 'Continuar esta cadeiaâ€¦');
   placeholder.setAttribute('rows', '3');
   placeholder.setAttribute('autocomplete', 'off');
   placeholder.setAttribute('spellcheck', 'true');
@@ -414,7 +413,7 @@ function renderComposer(chainId: string): HTMLElement {
       return;
     }
     saveBtn.disabled = true;
-    saveBtn.textContent = 'Salvando…';
+    saveBtn.textContent = 'Salvandoâ€¦';
     try {
       if (composerMode === 'tail') {
         await AppController.appendNote(chainId, content);
@@ -457,7 +456,7 @@ function renderComposer(chainId: string): HTMLElement {
   composer.appendChild(footer);
 
   const hint = el('p', 'composer__hint');
-  hint.textContent = 'Ctrl+Enter para salvar · N para nova cadeia';
+  hint.textContent = 'Ctrl+Enter para salvar Â· N para nova cadeia';
   composer.appendChild(hint);
 
   return composer;
@@ -465,10 +464,9 @@ function renderComposer(chainId: string): HTMLElement {
 
 function renderEmptyChains(view: string): HTMLElement {
   const labels: Record<string, { icon: string; title: string; body: string }> = {
-    chains: { icon: 'account_tree', title: 'Nenhuma cadeia ainda', body: 'Crie sua primeira cadeia clicando no botão + acima.' },
-    favorites: { icon: 'star', title: 'Sem favoritos', body: 'Marque cadeias como favoritas para encontrá-las aqui.' },
-    archived: { icon: 'archive', title: 'Arquivo vazio', body: 'Cadeias arquivadas aparecerão aqui.' },
-    trash: { icon: 'delete', title: 'Lixeira vazia', body: 'Cadeias excluídas aparecerão aqui.' },
+    chains: { icon: 'account_tree', title: 'Nenhuma cadeia ainda', body: 'Crie sua primeira cadeia clicando no botÃ£o + acima.' },
+    archived: { icon: 'archive', title: 'Arquivo vazio', body: 'Cadeias arquivadas aparecerÃ£o aqui.' },
+    trash: { icon: 'delete', title: 'Lixeira vazia', body: 'Cadeias excluÃ­das aparecerÃ£o aqui.' },
   };
   const info = labels[view] ?? labels['chains']!;
   const empty = el('div', 'empty-state');

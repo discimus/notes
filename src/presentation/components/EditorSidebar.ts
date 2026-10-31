@@ -1,5 +1,5 @@
 import type { AppState } from '../state/AppState.js';
-import { filterChains } from '../filters.js';
+import { filterChains, sortChainsByPinned } from '../filters.js';
 import { el } from '../dom.js';
 import { renderChainListItem } from './ChainListItem.js';
 import { renderEmptyDetail, renderLoadingState } from './states.js';
@@ -8,6 +8,7 @@ export interface EditorSidebarHandlers {
   onOpenChain: (chainId: string) => void;
   onNewChain: () => void;
   onFilter: (query: string) => void;
+  onTogglePin: (chainId: string) => void;
 }
 
 export interface EditorSidebarView {
@@ -82,7 +83,10 @@ export function mountEditorSidebar(handlers: EditorSidebarHandlers): EditorSideb
       return;
     }
 
-    const chains = filterChains(state.chainSummaries, state.chainFilterQuery);
+    const chains = sortChainsByPinned(
+      filterChains(state.chainSummaries, state.chainFilterQuery),
+      state.pinnedChainIds
+    );
 
     if (chains.length === 0) {
       list.appendChild(
@@ -97,8 +101,14 @@ export function mountEditorSidebar(handlers: EditorSidebarHandlers): EditorSideb
 
     chains.forEach((chain) => {
       list.appendChild(
-        renderChainListItem(chain, chain.id === activeChainId, () =>
-          handlers.onOpenChain(chain.id)
+        renderChainListItem(
+          chain,
+          chain.id === activeChainId,
+          () => handlers.onOpenChain(chain.id),
+          {
+            isPinned: state.pinnedChainIds.includes(chain.id),
+            onTogglePin: () => handlers.onTogglePin(chain.id),
+          }
         )
       );
     });

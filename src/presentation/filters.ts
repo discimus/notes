@@ -14,3 +14,16 @@ export function filterChains(chains: ChainSummaryDTO[], query: string): ChainSum
     return normalizeText(searchable).includes(normalizedQuery);
   });
 }
+
+export function sortChainsByPinned(
+  chains: ChainSummaryDTO[],
+  pinnedChainIds: string[]
+): ChainSummaryDTO[] {
+  const pinned = new Set(pinnedChainIds);
+  return [...chains].sort((a, b) => {
+    const pinnedA = pinned.has(a.id);
+    const pinnedB = pinned.has(b.id);
+    if (pinnedA === pinnedB) return 0;
+    return pinnedA ? -1 : 1;
+  });
+}

@@ -1,4 +1,4 @@
-import type { UUID } from '@shared/types/index.js';
+﻿import type { UUID } from '@shared/types/index.js';
 import type { Chain } from '../entities/index.js';
 import type { Note } from '../entities/index.js';
 
@@ -6,7 +6,6 @@ export type ChainSortOrder = 'createdAt' | 'updatedAt' | 'title';
 export type ChainFilter = {
   archived?: boolean;
   deleted?: boolean;
-  favorite?: boolean;
   tagIds?: UUID[];
   search?: string;
 };
@@ -28,6 +27,5 @@ export interface IChainReadModel {
   createdAt: string;
   updatedAt: string;
   archivedAt?: string;
-  isFavorite: boolean;
   tagIds: UUID[];
 }

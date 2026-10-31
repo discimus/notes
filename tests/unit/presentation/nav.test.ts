@@ -10,13 +10,12 @@ describe('navegação lateral', () => {
     updateNavDrawer(appState.get());
   });
 
-  it('renderiza seis destinos com labels curtos e nomes acessíveis completos', () => {
+  it('renderiza cinco destinos com labels curtos e nomes acessíveis completos', () => {
     const items = [...document.querySelectorAll<HTMLElement>('.nav-item')];
 
-    expect(items).toHaveLength(6);
+    expect(items).toHaveLength(5);
     expect(items.map((item) => item.dataset['view'])).toEqual([
       'editor',
-      'favorites',
       'tags',
       'timeline',
       'archived',
@@ -24,18 +23,18 @@ describe('navegação lateral', () => {
     ]);
     expect(items[0]?.querySelector('.nav-item__label')?.textContent).toBe('Editor');
     expect(items[0]?.getAttribute('aria-label')).toBe('Editor de texto');
-    expect(items[1]?.querySelector('.nav-item__label')?.textContent).toBe('Favoritos');
-    expect(items[1]?.getAttribute('aria-label')).toBe('Favoritos');
-    expect(items[3]?.querySelector('.nav-item__label')?.textContent).toBe('Timeline');
-    expect(items[3]?.getAttribute('aria-label')).toBe('Visualizações');
+    expect(items[1]?.querySelector('.nav-item__label')?.textContent).toBe('Tags');
+    expect(items[1]?.getAttribute('aria-label')).toBe('Tags');
+    expect(items[2]?.querySelector('.nav-item__label')?.textContent).toBe('Timeline');
+    expect(items[2]?.getAttribute('aria-label')).toBe('Visualizações');
   });
 
   it('marca apenas o destino atual', () => {
-    updateNavDrawer({ ...appState.get(), view: 'favorites' });
+    updateNavDrawer({ ...appState.get(), view: 'tags' });
 
-    expect(document.querySelector('[data-view="favorites"]')?.classList.contains('nav-item--active')).toBe(true);
+    expect(document.querySelector('[data-view="tags"]')?.classList.contains('nav-item--active')).toBe(true);
     expect(document.querySelector('[data-view="editor"]')?.classList.contains('nav-item--active')).toBe(false);
-    expect(document.querySelector('[data-view="favorites"]')?.getAttribute('aria-current')).toBe('page');
+    expect(document.querySelector('[data-view="tags"]')?.getAttribute('aria-current')).toBe('page');
 
     updateNavDrawer({ ...appState.get(), view: 'editor' });
 

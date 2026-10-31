@@ -24,7 +24,7 @@ export class GetChainDetails {
     return mapChainToDetail(chain, [...chain.notes], tagIds, tagDTOs);
   }
 
-  async getSummaries(filter?: { archived?: boolean; deleted?: boolean; favorite?: boolean; tagIds?: UUID[]; search?: string }): Promise<ChainSummaryDTO[]> {
+  async getSummaries(filter?: { archived?: boolean; deleted?: boolean; tagIds?: UUID[]; search?: string }): Promise<ChainSummaryDTO[]> {
     const baseFilter: ChainFilter = {
       deleted: filter?.deleted ?? false,
       ...(filter?.deleted ? {} : { archived: filter?.archived ?? false }),

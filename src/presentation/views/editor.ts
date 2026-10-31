@@ -20,6 +20,7 @@ import type { ChainDocumentView } from '../components/ChainDocument.js';
 import { showAppendToChainDialog } from '../components/AppendToChainDialog.js';
 import { showCloseTabDialog } from '../components/CloseTabDialog.js';
 import { snackbar } from '../components/Snackbar.js';
+import { togglePinnedChain } from '../app/pinnedChains.js';
 import { el } from '../dom.js';
 import { showComposerModal } from './menus.js';
 
@@ -75,6 +76,14 @@ export function mountEditorView(
     },
     onFilter: (query) => {
       appState.set({ chainFilterQuery: query });
+    },
+    onTogglePin: (chainId) => {
+      togglePinnedChain(chainId);
+      requestAnimationFrame(() => {
+        const item = [...document.querySelectorAll<HTMLElement>('.editor-sidebar .chain-item')]
+          .find((element) => element.dataset['chainId'] === chainId);
+        item?.querySelector<HTMLButtonElement>('.chain-item__pin')?.focus();
+      });
     },
   });
 

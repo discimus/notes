@@ -105,17 +105,6 @@ describe('Chain', () => {
     });
   });
 
-  describe('favorite', () => {
-    it('deve alternar favorito', () => {
-      const { chain } = Chain.createWithHeader({ content: 'Header' });
-      expect(chain.isFavorite).toBe(false);
-      chain.toggleFavorite();
-      expect(chain.isFavorite).toBe(true);
-      chain.toggleFavorite();
-      expect(chain.isFavorite).toBe(false);
-    });
-  });
-
   describe('serialização', () => {
     it('deve serializar e reconstituir corretamente', () => {
       const { chain, header } = Chain.createWithHeader({ content: 'Teste', title: 'Título' });

@@ -25,7 +25,6 @@ export class InMemoryChainRepository implements IChainRepository {
     if (filter.deleted === true) result = result.filter((c) => c.isDeleted());
     if (filter.archived === false) result = result.filter((c) => !c.isArchived());
     if (filter.archived === true) result = result.filter((c) => c.isArchived());
-    if (filter.favorite === true) result = result.filter((c) => c.isFavorite);
 
     if (filter.search) {
       const q = normalizeText(filter.search);

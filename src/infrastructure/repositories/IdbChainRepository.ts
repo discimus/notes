@@ -43,10 +43,6 @@ export class IdbChainRepository implements IChainRepository {
       filtered = filtered.filter((c) => !!c.archivedAt && !c.deletedAt);
     }
 
-    if (filter.favorite === true) {
-      filtered = filtered.filter((c) => c.isFavorite && !c.deletedAt);
-    }
-
     // Filtro por tags
     if (filter.tagIds && filter.tagIds.length > 0) {
       const tagIds = filter.tagIds;

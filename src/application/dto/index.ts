@@ -24,7 +24,6 @@ export interface ChainSummaryDTO {
   createdAt: ISODateString;
   updatedAt: ISODateString;
   archivedAt?: ISODateString | undefined;
-  isFavorite: boolean;
   tagIds: UUID[];
   tags: TagDTO[];
   headerExcerpt: string;

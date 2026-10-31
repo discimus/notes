@@ -23,7 +23,6 @@ import {
   RestoreChain,
   DeleteChain,
   RestoreFromTrash,
-  ToggleFavorite,
   GetAllTags,
   RenameTag,
   DeleteTag,
@@ -49,7 +48,6 @@ const archiveChain = new ArchiveChain(chainRepo);
 const restoreChain = new RestoreChain(chainRepo);
 const deleteChain = new DeleteChain(chainRepo);
 const restoreFromTrash = new RestoreFromTrash(chainRepo);
-const toggleFav = new ToggleFavorite(chainRepo);
 const getAllTags = new GetAllTags(tagRepo);
 const renameTag = new RenameTag(tagRepo);
 const deleteTag = new DeleteTag(tagRepo);
@@ -95,9 +93,7 @@ async function loadChains(): Promise<void> {
   appState.set({ isLoading: true, error: null });
   try {
     let summaries;
-    if (state.view === 'favorites') {
-      summaries = await getChainDetails.getSummaries({ favorite: true });
-    } else if (state.view === 'archived') {
+    if (state.view === 'archived') {
       summaries = await getChainDetails.getSummaries({ archived: true });
     } else if (state.view === 'trash') {
       summaries = await getChainDetails.getSummaries({ deleted: true });
@@ -387,22 +383,6 @@ export const AppController = {
     }
   },
 
-  async toggleFavorite(chainId: string): Promise<void> {
-    try {
-      const isFav = await toggleFav.execute(chainId);
-      snackbar.success(isFav ? 'Adicionado aos favoritos.' : 'Removido dos favoritos.');
-      await loadChains();
-      if (
-        appState.get().view !== 'editor' &&
-        appState.get().selectedChainId === chainId
-      ) {
-        await openChain(chainId, false);
-      }
-    } catch (e: unknown) {
-      snackbar.error((e as Error).message);
-    }
-  },
-
   async archiveChain(chainId: string): Promise<void> {
     const confirmed = await showConfirmDialog({
       title: 'Arquivar cadeia?',
@@ -573,7 +553,7 @@ export const AppController = {
     });
     pushNavigation(view, chainId);
 
-    if (view === 'editor' || view === 'chains' || view === 'favorites' || view === 'archived' || view === 'trash') {
+    if (view === 'editor' || view === 'chains' || view === 'archived' || view === 'trash') {
       await loadChains();
     } else if (view === 'tags') {
       await loadTags();

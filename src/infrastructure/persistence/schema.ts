@@ -1,4 +1,4 @@
-import { openDB } from 'idb';
+﻿import { openDB } from 'idb';
 import type { IDBPDatabase } from 'idb';
 import type { NoteData } from '@domain/entities/index.js';
 import type { ChainData } from '@domain/entities/index.js';
@@ -6,7 +6,7 @@ import type { TagData } from '@domain/entities/index.js';
 import type { ChainTagData } from '@domain/entities/index.js';
 
 export const DB_NAME = 'thread-notes-db';
-export const DB_VERSION = 1;
+export const DB_VERSION = 2;
 
 export interface ThreadNotesDB {
   chains: {
@@ -17,7 +17,6 @@ export interface ThreadNotesDB {
       'by-updatedAt': string;
       'by-archivedAt': string;
       'by-deletedAt': string;
-      'by-isFavorite': number;
     };
   };
   notes: {
@@ -53,7 +52,7 @@ export async function getDatabase(): Promise<IDBPDatabase<ThreadNotesDB>> {
 
   _db = await openDB<ThreadNotesDB>(DB_NAME, DB_VERSION, {
     upgrade(db, oldVersion, _newVersion, transaction) {
-      // Versão 1 — schema inicial
+      // VersÃ£o 1 â€” schema inicial
       if (oldVersion < 1) {
         // chains
         const chainsStore = db.createObjectStore('chains', { keyPath: 'id' });
@@ -61,7 +60,6 @@ export async function getDatabase(): Promise<IDBPDatabase<ThreadNotesDB>> {
         chainsStore.createIndex('by-updatedAt', 'updatedAt');
         chainsStore.createIndex('by-archivedAt', 'archivedAt');
         chainsStore.createIndex('by-deletedAt', 'deletedAt');
-        chainsStore.createIndex('by-isFavorite', 'isFavorite');
 
         // notes
         const notesStore = db.createObjectStore('notes', { keyPath: 'id' });
@@ -81,10 +79,15 @@ export async function getDatabase(): Promise<IDBPDatabase<ThreadNotesDB>> {
         chainTagsStore.createIndex('by-tagId', 'tagId');
       }
 
-      void transaction; // future migration use
+      if (oldVersion < 2) {
+        const chainsStore = transaction.objectStore('chains');
+        if (chainsStore.indexNames.contains('by-isFavorite')) {
+          chainsStore.deleteIndex('by-isFavorite');
+        }
+      }
     },
     blocked() {
-      console.warn('[ThreadNotes] Database blocked — fechando abas antigas pode ajudar.');
+      console.warn('[ThreadNotes] Database blocked â€” fechando abas antigas pode ajudar.');
     },
     blocking() {
       _db?.close();
@@ -98,7 +101,7 @@ export async function getDatabase(): Promise<IDBPDatabase<ThreadNotesDB>> {
   return _db;
 }
 
-/** Limpa o banco — apenas para testes */
+/** Limpa o banco â€” apenas para testes */
 export async function clearDatabase(): Promise<void> {
   const db = await getDatabase();
   const tx = db.transaction(['chains', 'notes', 'tags', 'chainTags'], 'readwrite');

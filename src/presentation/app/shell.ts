@@ -3,6 +3,7 @@ import type { AppState } from '../state/AppState.js';
 import { el } from '../dom.js';
 import { initTheme } from './theme.js';
 import { initCompactMode } from './compactMode.js';
+import { initPinnedChains } from './pinnedChains.js';
 import { initNavigationHistory } from './navigation.js';
 import { AppController } from '../pages/AppController.js';
 import { initNavResponsive, renderNavDrawer, updateNavDrawer } from '../views/nav.js';
@@ -17,6 +18,7 @@ import { initEditorSession, mountEditorView } from '../views/editor.js';
 export function renderApp(root: HTMLElement): void {
   initTheme();
   initCompactMode();
+  initPinnedChains();
   initEditorSession();
   root.innerHTML = '';
 
@@ -89,7 +91,7 @@ export function renderApp(root: HTMLElement): void {
 }
 
 function updateFab(fab: HTMLElement, state: AppState): void {
-  fab.hidden = !(state.view === 'chains' || state.view === 'favorites');
+  fab.hidden = state.view !== 'chains';
 }
 
 function updateContent(
@@ -110,7 +112,7 @@ function updateContent(
 
     if (newView === 'editor') {
       cleanup = mountEditorView(content);
-    } else if (newView === 'chains' || newView === 'favorites' || newView === 'archived' || newView === 'trash') {
+    } else if (newView === 'chains' || newView === 'archived' || newView === 'trash') {
       content.appendChild(renderChainsLayout(state));
     } else if (newView === 'chain-detail') {
       content.appendChild(renderChainsLayout(state));
@@ -122,7 +124,7 @@ function updateContent(
       content.appendChild(renderTagsLayout(state));
     }
   } else {
-    if (newView === 'chains' || newView === 'chain-detail' || newView === 'favorites' || newView === 'archived' || newView === 'trash') {
+    if (newView === 'chains' || newView === 'chain-detail' || newView === 'archived' || newView === 'trash') {
       updateChainsLayout(content, state);
     } else if (newView === 'search') {
       updateSearchLayout(content, state);

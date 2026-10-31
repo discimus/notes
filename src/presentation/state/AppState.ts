@@ -1,11 +1,11 @@
-import type { ChainSummaryDTO, ChainDetailDTO, TagDTO, SearchResultDTO, TimelineDTO } from '@application/dto/index.js';
+﻿import type { ChainSummaryDTO, ChainDetailDTO, TagDTO, SearchResultDTO, TimelineDTO } from '@application/dto/index.js';
 
 /**
- * Estado global da aplicação.
- * Leve store reativo baseado em eventos — sem dependências externas.
+ * Estado global da aplicaÃ§Ã£o.
+ * Leve store reativo baseado em eventos â€” sem dependÃªncias externas.
  */
 
-export type AppView = 'editor' | 'chains' | 'chain-detail' | 'search' | 'timeline' | 'tags' | 'favorites' | 'archived' | 'trash';
+export type AppView = 'editor' | 'chains' | 'chain-detail' | 'search' | 'timeline' | 'tags' | 'archived' | 'trash';
 
 export interface AppState {
   view: AppView;
@@ -24,6 +24,7 @@ export interface AppState {
   drawerOpen: boolean;
   chainsPanelVisible: boolean;
   compactMode: boolean;
+  pinnedChainIds: string[];
 }
 
 type Listener = (state: AppState) => void;
@@ -46,6 +47,7 @@ class AppStateStore {
     drawerOpen: false,
     chainsPanelVisible: true,
     compactMode: false,
+    pinnedChainIds: [],
   };
 
   private listeners = new Set<Listener>();

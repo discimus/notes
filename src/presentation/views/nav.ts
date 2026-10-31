@@ -66,10 +66,6 @@ export function renderNavDrawer(): HTMLElement {
         <span class="nav-item__icon material-symbols-rounded" aria-hidden="true">edit_note</span>
         <span class="nav-item__label">Editor</span>
       </button>
-      <button class="nav-item" data-view="favorites" aria-label="Favoritos" title="Favoritos">
-        <span class="nav-item__icon material-symbols-rounded" aria-hidden="true">star</span>
-        <span class="nav-item__label">Favoritos</span>
-      </button>
       <button class="nav-item" data-view="tags" aria-label="Tags" title="Tags">
         <span class="nav-item__icon material-symbols-rounded" aria-hidden="true">label</span>
         <span class="nav-item__label">Tags</span>
