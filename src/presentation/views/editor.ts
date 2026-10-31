@@ -125,7 +125,7 @@ export function mountEditorView(
   };
 
   const destroyDocument = (): void => {
-    if (activeDocument?.kind === 'chain') activeDocument.view.destroy();
+    activeDocument?.view.destroy();
     activeDocument = null;
   };
 

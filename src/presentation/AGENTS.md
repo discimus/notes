@@ -10,7 +10,7 @@ app/compactMode.ts  → densidade compacta persistida
 app/navigation.ts   → histórico (pushState/popstate)
 app/editorGrouping.ts → agrupamento puro de notas por data
 views/              → nav, topbar, editor, chains, search, timeline, tags, menus
-components/         → Dialog, EditorTabs, EditorSidebar, DraftDocument, ChainDocument, ChainListItem, AppendToChainDialog, CloseTabDialog, SettingsDialog, Snackbar, states
+components/         → Dialog, EditorTabs, EditorSidebar, DraftDocument, ChainDocument, ActiveLineHighlight, ChainListItem, AppendToChainDialog, CloseTabDialog, SettingsDialog, Snackbar, states
 dom.ts              → el(), qs(), qsa()
 filters.ts          → filtros puros de apresentação
 pages/AppController.ts
@@ -102,6 +102,14 @@ editorStore.flush()
 - A preferência controla apenas mover cadeias para a lixeira. Exclusão permanente, remoção de tags e arquivamento continuam sempre confirmando.
 - `showSettingsDialog()` usa `mountDialog`; a alteração é aplicada imediatamente.
 
+## Realce da linha ativa
+
+- `ActiveLineHighlight` é usado nos textareas de documento e de nota da cadeia.
+- O foco do textarea **não** usa `outline`; o indicador visual é a linha ativa + caret.
+- A posição é calculada com espelho oculto do textarea, considerando quebra automática, scroll, fonte e padding.
+- O componente deve ser destruído no teardown da view para remover listeners, `ResizeObserver` e elementos auxiliares.
+- A camada é `aria-hidden`, `pointer-events: none` e não interfere em seleção, IME ou undo nativo.
+
 ## Modo compacto
 
 - Preferência separada em `threadnotes.compact-mode`, via `app/compactMode.ts`.
@@ -181,4 +189,4 @@ Testes de apresentação ficam em `tests/unit/presentation/` e usam jsdom. Não 
 - QA visual ou interação real com a aplicação só quando o usuário solicitar explicitamente.
 - Novas features de UI devem vir com teste de comportamento; não considerar inspeção visual manual como validação suficiente.
 
-Exceção autorizada: `nav.test.ts` valida os 6 destinos com Editor como view inicial. Testes do editor: `editorStore`, `editorTabs`, `editorSidebar`, `editorGrouping`, `chainDocument`, `appendToChainDialog` e `editorView`.
+Exceção autorizada: `nav.test.ts` valida os 6 destinos com Editor como view inicial. Testes do editor: `editorStore`, `editorTabs`, `editorSidebar`, `editorGrouping`, `chainDocument`, `appendToChainDialog`, `activeLineHighlight` e `editorView`.

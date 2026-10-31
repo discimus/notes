@@ -73,6 +73,7 @@ describe('EditorView', () => {
     expect(host.querySelector('.editor-tab__label')?.textContent).toBe('Novo documento');
     expect(host.querySelector<HTMLElement>('#draft-target')?.hidden).toBe(true);
     expect(host.querySelector('#draft-save')).toBeNull();
+    expect(host.querySelector('.active-line-highlight')).not.toBeNull();
   });
 
   it('atualiza título derivado, dirty state e estatísticas ao digitar', () => {

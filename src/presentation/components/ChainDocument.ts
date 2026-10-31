@@ -8,6 +8,7 @@ import { showInputDialog } from './Dialog.js';
 import { renderEmptyDetail, renderLoadingState } from './states.js';
 import { showChainMenu } from '../views/menus.js';
 import { renderTabList } from './EditorTabs.js';
+import { mountActiveLineHighlight } from './ActiveLineHighlight.js';
 import { el } from '../dom.js';
 import { formatDateFull, formatTime } from '@shared/utilities/index.js';
 
@@ -223,6 +224,7 @@ export function mountChainDocument(
   const composerStatus = root.querySelector<HTMLElement>('#chain-composer-status')!;
   const save = root.querySelector<HTMLButtonElement>('#chain-composer-save')!;
   const saveLabel = root.querySelector<HTMLElement>('#chain-composer-save-label')!;
+  const activeLine = mountActiveLineHighlight(composer, panel);
   const composerToggle = root.querySelector<HTMLButtonElement>('#chain-composer-toggle')!;
   const composerBody = root.querySelector<HTMLElement>('#chain-composer-body')!;
   const composerCount = root.querySelector<HTMLElement>('#chain-composer-count')!;
@@ -418,6 +420,7 @@ export function mountChainDocument(
       save.disabled = true;
       composer.disabled = savingState;
       composerStatus.textContent = '';
+      activeLine.refresh();
       return;
     }
 
@@ -437,6 +440,7 @@ export function mountChainDocument(
     composerStatus.textContent = isChainNoteTabDirty(noteTab)
       ? 'Pronto para adicionar'
       : '';
+    activeLine.refresh();
   };
 
   const renderNoteTabs = (): void => {
@@ -528,6 +532,7 @@ export function mountChainDocument(
 
   const destroy = (): void => {
     if (titleTimer) clearTimeout(titleTimer);
+    activeLine.destroy();
   };
 
   update(tab);

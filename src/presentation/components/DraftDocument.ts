@@ -1,6 +1,7 @@
 import type { DraftTab } from '../state/EditorStore.js';
 import { isEditorTabDirty } from '../state/EditorStore.js';
 import { el } from '../dom.js';
+import { mountActiveLineHighlight } from './ActiveLineHighlight.js';
 
 export interface DraftDocumentHandlers {
   onInput: (value: string) => void;
@@ -11,6 +12,7 @@ export interface DraftDocumentView {
   update: (tab: DraftTab) => void;
   setSaving: (saving: boolean) => void;
   focus: () => void;
+  destroy: () => void;
 }
 
 function countWords(content: string): number {
@@ -54,6 +56,8 @@ export function mountDraftDocument(
   const saveState = root.querySelector<HTMLElement>('#draft-save-state')!;
   const textarea = root.querySelector<HTMLTextAreaElement>('#draft-textarea')!;
   const stats = root.querySelector<HTMLElement>('#draft-stats')!;
+  const body = root.querySelector<HTMLElement>('.editor-body')!;
+  const activeLine = mountActiveLineHighlight(textarea, body);
 
   let currentTab = tab;
 
@@ -94,6 +98,7 @@ export function mountDraftDocument(
       textarea.value = tabValue.content;
     }
     syncSurface();
+    activeLine.refresh();
   };
 
   const setSaving = (saving: boolean): void => {
@@ -110,5 +115,6 @@ export function mountDraftDocument(
     update,
     setSaving,
     focus: () => textarea.focus(),
+    destroy: () => activeLine.destroy(),
   };
 }
