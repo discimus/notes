@@ -4,7 +4,6 @@ import { el } from '../dom.js';
 
 export interface DraftDocumentHandlers {
   onInput: (value: string) => void;
-  onSave: () => void;
 }
 
 export interface DraftDocumentView {
@@ -28,20 +27,6 @@ export function mountDraftDocument(
   root.setAttribute('role', 'tabpanel');
 
   root.innerHTML = `
-    <div class="editor-surface__toolbar">
-      <div class="editor-surface__meta">
-        <span class="editor-target" id="draft-target">
-          <span class="editor-target__icon material-symbols-rounded" aria-hidden="true">description</span>
-          <span id="draft-target-text">Novo documento</span>
-        </span>
-        <span class="editor-save-state" id="draft-save-state" role="status" aria-live="polite"></span>
-      </div>
-      <button class="btn btn-filled editor-save" id="draft-save" type="button">
-        <span class="material-symbols-rounded" aria-hidden="true">save</span>
-        <span id="draft-save-label">Salvar</span>
-      </button>
-    </div>
-
     <div class="editor-body">
       <textarea class="editor-textarea" id="draft-textarea"
         placeholder="Comece a escrever..."
@@ -51,7 +36,14 @@ export function mountDraftDocument(
 
     <div class="editor-statusbar">
       <span id="draft-stats"></span>
-      <span class="editor-statusbar__shortcut">Ctrl+S para salvar</span>
+      <div class="editor-statusbar__meta">
+        <span class="editor-target" id="draft-target" hidden>
+          <span class="editor-target__icon material-symbols-rounded" aria-hidden="true">description</span>
+          <span id="draft-target-text"></span>
+        </span>
+        <span class="editor-save-state" id="draft-save-state" role="status" aria-live="polite"></span>
+        <span class="editor-statusbar__shortcut">Ctrl+S para salvar</span>
+      </div>
     </div>
   `;
 
@@ -60,8 +52,6 @@ export function mountDraftDocument(
   const targetText = root.querySelector<HTMLElement>('#draft-target-text')!;
   const targetIcon = root.querySelector<HTMLElement>('.editor-target__icon')!;
   const saveState = root.querySelector<HTMLElement>('#draft-save-state')!;
-  const save = root.querySelector<HTMLButtonElement>('#draft-save')!;
-  const saveLabel = root.querySelector<HTMLElement>('#draft-save-label')!;
   const textarea = root.querySelector<HTMLTextAreaElement>('#draft-textarea')!;
   const stats = root.querySelector<HTMLElement>('#draft-stats')!;
 
@@ -70,9 +60,10 @@ export function mountDraftDocument(
   const syncSurface = (): void => {
     panel.setAttribute('aria-labelledby', `editor-tab-${currentTab.id}`);
 
+    target.hidden = !currentTab.target;
     targetText.textContent = currentTab.target
       ? `Em “${currentTab.target.chainTitle ?? 'Cadeia'}”`
-      : 'Novo documento';
+      : '';
     targetIcon.textContent = currentTab.target ? 'link' : 'description';
     target.classList.toggle('editor-target--linked', Boolean(currentTab.target));
 
@@ -97,8 +88,6 @@ export function mountDraftDocument(
     handlers.onInput(textarea.value);
     syncSurface();
   });
-  save.addEventListener('click', handlers.onSave);
-
   const update = (tabValue: DraftTab): void => {
     currentTab = tabValue;
     if (textarea !== document.activeElement && textarea.value !== tabValue.content) {
@@ -108,10 +97,12 @@ export function mountDraftDocument(
   };
 
   const setSaving = (saving: boolean): void => {
-    save.disabled = saving;
-    saveLabel.textContent = saving ? 'Salvando...' : 'Salvar';
-    const icon = save.querySelector<HTMLElement>('.material-symbols-rounded');
-    if (icon) icon.textContent = saving ? 'hourglass_top' : 'save';
+    if (saving) {
+      saveState.textContent = 'Salvando...';
+      saveState.classList.remove('editor-save-state--dirty');
+      return;
+    }
+    syncSurface();
   };
 
   return {

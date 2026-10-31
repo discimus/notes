@@ -20,7 +20,11 @@ export interface TabListOptions {
 }
 
 function tabLabel(tab: EditorTab): string {
-  return tab.title.trim() || 'Sem título';
+  const title = tab.title.trim();
+  if (tab.kind === 'draft' && (!title || title === 'Sem título')) {
+    return 'Novo documento';
+  }
+  return title || 'Novo documento';
 }
 
 export function focusEditorTab(id: string): void {
@@ -126,7 +130,7 @@ export function updateTabDirtyState(container: HTMLElement, tab: EditorTab): voi
     container,
     tab.id,
     isEditorTabDirty(tab),
-    tab.title.trim() || 'Sem título'
+    tabLabel(tab)
   );
 }
 

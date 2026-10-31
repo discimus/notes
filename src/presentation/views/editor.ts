@@ -163,9 +163,6 @@ export function mountEditorView(
           const updated = store.getTab(tab.id);
           if (updated) updateTabDirtyState(tabsElement, updated);
         },
-        onSave: () => {
-          void saveTab(tab.id);
-        },
       });
       activeDocument = { id: tab.id, kind: 'draft', view };
       documentHost.replaceChildren(view.element);

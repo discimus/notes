@@ -70,7 +70,9 @@ describe('EditorView', () => {
     expect(host.querySelectorAll('[role="tab"]')).toHaveLength(1);
     expect(host.querySelector('#editor-panel')?.getAttribute('role')).toBe('tabpanel');
     expect(host.querySelector<HTMLTextAreaElement>('#draft-textarea')?.value).toBe('');
-    expect(host.querySelector('#draft-target-text')?.textContent).toBe('Novo documento');
+    expect(host.querySelector('.editor-tab__label')?.textContent).toBe('Novo documento');
+    expect(host.querySelector<HTMLElement>('#draft-target')?.hidden).toBe(true);
+    expect(host.querySelector('#draft-save')).toBeNull();
   });
 
   it('atualiza título derivado, dirty state e estatísticas ao digitar', () => {

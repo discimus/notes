@@ -712,10 +712,6 @@
     border: 0;
     border-radius: 0;
   }
-  .editor-surface__toolbar {
-    min-height: 56px;
-    padding: 0 var(--spacing-4);
-  }
   .editor-textarea {
     padding: var(--spacing-4);
   }
@@ -907,11 +903,6 @@
 }
 .app-shell--compact .editor-document-host {
   padding: var(--spacing-1) var(--spacing-2) var(--spacing-2);
-}
-.app-shell--compact .editor-surface__toolbar {
-  min-height: 48px;
-  padding: 0 var(--spacing-3);
-  gap: var(--spacing-2);
 }
 .app-shell--compact .editor-textarea {
   padding: var(--spacing-3);
