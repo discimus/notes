@@ -98,87 +98,66 @@
 .chains-panel__list {
   flex: 1;
   overflow-y: auto;
-  padding: var(--spacing-2) var(--spacing-2);
+  padding: var(--spacing-1) var(--spacing-2);
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-1);
+  gap: 2px;
 }
 
-/* ── Chain Card ─────────────────────────────────────────── */
-.chain-card {
+/* ── Chain List Item ────────────────────────────────────── */
+.chain-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  min-height: 64px;
+  padding: var(--spacing-2) var(--spacing-3);
   border-radius: var(--md-sys-shape-corner-medium);
-  padding: var(--spacing-3) var(--spacing-4);
   cursor: pointer;
-  transition:
-    background-color var(--md-sys-motion-duration-short3),
-    box-shadow var(--md-sys-motion-duration-short3);
+  transition: background-color var(--md-sys-motion-duration-short3);
   position: relative;
   overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-1);
   background-color: transparent;
 }
-.chain-card:hover {
+.chain-item:hover {
   background-color: var(--md-sys-color-surface-container);
 }
-.chain-card.chain-card--active {
+.chain-item.chain-item--active {
   background-color: var(--md-sys-color-secondary-container);
 }
-.chain-card.chain-card--active .chain-card__title {
+.chain-item.chain-item--active .chain-item__title,
+.chain-item.chain-item--active .chain-item__meta,
+.chain-item.chain-item--active .chain-item__favorite {
   color: var(--md-sys-color-on-secondary-container);
 }
-.chain-card__header {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--spacing-2);
-}
-.chain-card__title {
+.chain-item__text {
   flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.chain-item__title {
   font-size: var(--md-sys-typescale-title-small-size);
   font-weight: var(--md-sys-typescale-title-small-weight);
+  line-height: var(--md-sys-typescale-title-small-line-height);
   color: var(--md-sys-color-on-surface);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.chain-card__favorite {
+.chain-item__meta {
+  font-size: var(--md-sys-typescale-body-small-size);
+  line-height: var(--md-sys-typescale-body-small-line-height);
+  color: var(--md-sys-color-on-surface-variant);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.chain-item__favorite {
   flex-shrink: 0;
   font-size: 16px;
   color: var(--md-sys-color-tertiary);
-}
-.chain-card__excerpt {
-  font-size: var(--md-sys-typescale-body-small-size);
-  color: var(--md-sys-color-on-surface-variant);
-  overflow: hidden;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  line-height: 1.4;
-}
-.chain-card__footer {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-2);
-  flex-wrap: wrap;
-  margin-top: var(--spacing-1);
-}
-.chain-card__meta {
-  font-size: var(--md-sys-typescale-label-small-size);
-  color: var(--md-sys-color-on-surface-variant);
-  flex: 1;
-}
-.chain-card__tags {
-  display: flex;
-  gap: var(--spacing-1);
-  flex-wrap: wrap;
-}
-.chain-card__tag {
-  font-size: 10px;
-  padding: 2px 8px;
-  border-radius: var(--md-sys-shape-corner-full);
-  background-color: var(--md-sys-color-surface-container-highest);
-  color: var(--md-sys-color-on-surface-variant);
+  font-variation-settings: 'FILL' 1;
 }
 
 /* ── Detail Panel (chain notes view) ───────────────────── */

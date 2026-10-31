@@ -84,7 +84,8 @@ Ações destrutivas **sempre** pedem confirmação via `showConfirmDialog` antes
 | `components.css` | Botões, cards, chips, dialogs, snackbar, text-field |
 
 - Dark mode: `@media (prefers-color-scheme: dark)` + atributo `[data-theme="dark"]` no `<html>`.
-- Nomenclatura BEM: `.chain-card__title`, `.tag-chip--selected`, `.btn--destructive`.
+- Nomenclatura BEM: `.chain-item__title`, `.tag-chip--selected`, `.btn--destructive`.
+- Lista de cadeias: item compacto de 2 linhas em 64px, com título + data/notas + favorito. Excerpt e tags ficam no detalhe, não na lista.
 - Tokens MD3: use `var(--md-sys-color-primary)` etc. — nunca valores de cor literais.
 - **Nunca** ler `components.css` inteiro — use grep para a classe específica.
 - Navegação: rail fixo de 80px em `≥769px`; drawer modal de 280px em `≤768px`. O hambúrguer (`#nav-toggle`) só aparece no compacto. O toggle de tema fica no rodapé do rail/drawer.
@@ -96,8 +97,8 @@ O projeto usa DOM vanilla. Os helpers ficam em `src/presentation/dom.ts`:
 ```typescript
 import { el, qs, qsa } from '../dom.js';
 
-const card = el('div', 'chain-card');
-card.innerHTML = `<span>${escapeHtml(userContent)}</span>`;
+const item = el('div', 'chain-item');
+item.innerHTML = `<span>${escapeHtml(userContent)}</span>`;
 ```
 
 Use `escapeHtml()` sempre que inserir conteúdo de usuário via `innerHTML`. Para texto puro, prefira `textContent`. Novas views devem ficar em `views/` e novos componentes reutilizáveis em `components/`.

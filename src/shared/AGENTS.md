@@ -42,6 +42,7 @@ Prefira `Result` em queries (pode não encontrar). Use `throw` em comandos (falh
 |---|---|---|
 | `generateId()` | `id.ts` | Gera UUID v4 — use em todas as factories de entidade |
 | `now()` | `date.ts` | Retorna `ISODateString` atual — use em todos os timestamps |
+| `formatDateCompact(iso)` | `date.ts` | Data curta para metadados densos: `Hoje`, `Ontem`, `31 dez 2025` |
 | `normalizeText(text)` | `text.ts` | Lowercase + sem acentos + trim — use antes de comparar/salvar nomes de tag |
 | `excerpt(content, max?)` | `text.ts` | Prévia truncada com `…` (default 120 chars) |
 | `escapeHtml(text)` | `text.ts` | Escape para renderização segura no DOM |

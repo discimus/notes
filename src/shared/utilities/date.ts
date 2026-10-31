@@ -32,6 +32,29 @@ export function formatDate(iso: ISODateString): string {
   });
 }
 
+/** Formata uma data ISO para metadados compactos: Hoje, Ontem ou 31 dez 2025. */
+export function formatDateCompact(iso: ISODateString): string {
+  const date = new Date(iso);
+  const today = new Date();
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+
+  const isSameDay = (a: Date, b: Date) =>
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate();
+
+  if (isSameDay(date, today)) return 'Hoje';
+  if (isSameDay(date, yesterday)) return 'Ontem';
+
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = date
+    .toLocaleDateString('pt-BR', { month: 'short' })
+    .replace('.', '');
+  const year = date.getFullYear() !== today.getFullYear() ? ` ${date.getFullYear()}` : '';
+  return `${day} ${month}${year}`;
+}
+
 /** Formata apenas a hora */
 export function formatTime(iso: ISODateString): string {
   return new Date(iso).toLocaleTimeString('pt-BR', {

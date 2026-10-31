@@ -3,7 +3,7 @@ import type { AppState } from '../state/AppState.js';
 import { AppController } from '../pages/AppController.js';
 import { DraftStore } from '../state/DraftStore.js';
 import { showInputDialog } from '../components/Dialog.js';
-import { formatDate, formatDateFull, escapeHtml, debounce, now } from '@shared/utilities/index.js';
+import { formatDate, formatDateCompact, formatDateFull, escapeHtml, debounce, now } from '@shared/utilities/index.js';
 import type { ChainSummaryDTO, NoteDTO, TagDTO } from '@application/dto/index.js';
 import { el } from '../dom.js';
 import { renderEmptyDetail, renderLoadingState } from '../components/states.js';
@@ -131,36 +131,37 @@ function renderChainsList(container: HTMLElement, state: AppState): void {
   }
 
   filtered.forEach((chain) => {
-    const card = renderChainCard(chain, state.selectedChainId === chain.id);
-    container.appendChild(card);
+    const item = renderChainItem(chain, state.selectedChainId === chain.id);
+    container.appendChild(item);
   });
 }
 
-function renderChainCard(chain: ChainSummaryDTO, isActive: boolean): HTMLElement {
-  const card = el('div', `chain-card${isActive ? ' chain-card--active' : ''}`);
-  card.setAttribute('role', 'listitem');
-  card.setAttribute('tabindex', '0');
-  card.setAttribute('aria-label', `Cadeia: ${chain.displayTitle}`);
-  card.setAttribute('aria-selected', isActive ? 'true' : 'false');
+function renderChainItem(chain: ChainSummaryDTO, isActive: boolean): HTMLElement {
+  const item = el('div', `chain-item${isActive ? ' chain-item--active' : ''}`);
+  const favoriteLabel = chain.isFavorite ? ' (favorita)' : '';
+  const noteLabel = `${chain.noteCount} nota${chain.noteCount !== 1 ? 's' : ''}`;
 
-  card.innerHTML = `
-    <div class="chain-card__header">
-      <span class="chain-card__title truncate">${escapeHtml(chain.displayTitle)}</span>
-      ${chain.isFavorite ? '<span class="chain-card__favorite material-symbols-rounded filled" aria-label="Favorito">star</span>' : ''}
+  item.dataset['chainId'] = chain.id;
+  item.setAttribute('role', 'listitem');
+  item.setAttribute('tabindex', '0');
+  item.setAttribute('aria-label', `Cadeia: ${chain.displayTitle}${favoriteLabel}`);
+  item.setAttribute('aria-current', isActive ? 'true' : 'false');
+  item.title = chain.displayTitle;
+
+  item.innerHTML = `
+    <div class="chain-item__text">
+      <span class="chain-item__title truncate">${escapeHtml(chain.displayTitle)}</span>
+      <span class="chain-item__meta">${formatDateCompact(chain.updatedAt)} · ${noteLabel}</span>
     </div>
-    ${chain.headerExcerpt ? `<p class="chain-card__excerpt">${escapeHtml(chain.headerExcerpt)}</p>` : ''}
-    <div class="chain-card__footer">
-      <span class="chain-card__meta">${formatDate(chain.updatedAt)} · ${chain.noteCount} nota${chain.noteCount !== 1 ? 's' : ''}</span>
-      ${chain.tags.length > 0 ? `<div class="chain-card__tags" aria-label="Tags">${chain.tags.slice(0, 3).map(t => `<span class="chain-card__tag">${escapeHtml(t.name)}</span>`).join('')}</div>` : ''}
-    </div>
+    ${chain.isFavorite ? '<span class="chain-item__favorite material-symbols-rounded" aria-hidden="true">star</span>' : ''}
   `;
 
-  card.addEventListener('click', () => AppController.openChain(chain.id));
-  card.addEventListener('keydown', (e) => {
+  item.addEventListener('click', () => AppController.openChain(chain.id));
+  item.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); AppController.openChain(chain.id); }
   });
 
-  return card;
+  return item;
 }
 
 function renderDetailPanel(container: HTMLElement, state: AppState): void {
