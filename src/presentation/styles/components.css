@@ -1019,8 +1019,6 @@
   display: flex;
   flex-direction: column;
   background-color: var(--md-sys-color-surface-container-lowest);
-  border: 1px solid var(--md-sys-color-outline-variant);
-  border-radius: var(--md-sys-shape-corner-large);
   overflow: hidden;
 }
 .editor-surface__toolbar {
@@ -1427,14 +1425,13 @@
   flex: 1;
   min-height: 0;
   display: flex;
-  padding: var(--spacing-2) var(--spacing-4) var(--spacing-4);
+  padding: 0;
 }
 .editor-document-host > .editor-surface,
 .editor-document-host > .chain-document {
   width: 100%;
-  max-width: 960px;
   height: 100%;
-  margin: 0 auto;
+  margin: 0;
 }
 .editor-document-host > .editor-surface {
   flex: 1 1 auto;
@@ -1480,8 +1477,6 @@
   display: flex;
   flex-direction: column;
   background-color: var(--md-sys-color-surface-container-lowest);
-  border: 1px solid var(--md-sys-color-outline-variant);
-  border-radius: var(--md-sys-shape-corner-large);
   overflow: hidden;
 }
 .chain-document__header {
@@ -1545,8 +1540,6 @@
 }
 .chain-document__history {
   width: 100%;
-  max-width: 760px;
-  margin: 0 auto;
 }
 .chain-date-group {
   margin-bottom: var(--spacing-5);

@@ -755,17 +755,6 @@
   .editor-tabbar__explorer {
     display: inline-flex;
   }
-  .editor-document-host {
-    padding: 0;
-  }
-  .editor-document-host > .editor-surface,
-  .editor-document-host > .chain-document {
-    max-width: none;
-  }
-  .chain-document {
-    border: 0;
-    border-radius: 0;
-  }
   .chain-document__header {
     padding: var(--spacing-4);
   }

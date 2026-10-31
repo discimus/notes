@@ -148,6 +148,7 @@ Ações destrutivas **sempre** pedem confirmação via `showConfirmDialog` antes
 - Navegação: rail fixo de 80px em `≥769px`; drawer modal de 280px em `≤768px`. O hambúrguer (`#nav-toggle`) só aparece no compacto. Configurações, tema e modo compacto ficam no rodapé do rail/drawer.
 - A navegação não deve ter scroll próprio: conteúdo com `overflow: hidden`, itens de 52px, footer com botões de 48px e dimensões ajustadas para caber sem rolagem.
 - Workspace Editor: lateral de 300px no desktop e off-canvas no compacto. O botão `#editor-explorer-toggle` abre/fecha a lateral no mobile; overlay usa o scrim MD3.
+- Documento e histórico da cadeia são full-bleed: sem `max-width` centralizado, margem automática, borda ou raio de card. A sidebar de cadeias permanece fixa como Explorer.
 - Abas usam `role="tablist"`; o documento ativo é `role="tabpanel"`. O compositor da cadeia é o único ponto que cria novas tails na view principal.
 - O rodapé de notas da cadeia é colapsável. `ChainTab.composerCollapsed` é persistido por aba; `aria-expanded`, `aria-controls` e `hidden` controlam a acessibilidade. Quando recolhido, o histórico ocupa o espaço liberado.
 
