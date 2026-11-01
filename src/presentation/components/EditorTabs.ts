@@ -15,6 +15,7 @@ export interface TabListItem {
   icon: string;
   dirty: boolean;
   renamable?: boolean;
+  preview?: boolean;
 }
 
 const renameStarters = new WeakMap<HTMLElement, Map<string, () => void>>();
@@ -84,6 +85,7 @@ export function renderTabList(
     wrapper.setAttribute('data-tab-id', item.id);
     wrapper.classList.toggle('editor-tab--active', item.id === activeId);
     wrapper.classList.toggle('editor-tab--dirty', item.dirty);
+    wrapper.classList.toggle('editor-tab--preview', item.preview === true);
 
     const button = el('button', 'editor-tab__button');
     button.id = `editor-tab-${item.id}`;
@@ -92,7 +94,15 @@ export function renderTabList(
     button.setAttribute('aria-selected', item.id === activeId ? 'true' : 'false');
     button.setAttribute('aria-controls', panelId);
     button.tabIndex = item.id === activeId ? 0 : -1;
-    button.title = `${item.label}${item.dirty ? ' — alterações não salvas' : ''}`;
+    button.title = `${item.label}${item.preview ? ' · prévia substituível' : ''}${
+      item.dirty ? ' · alterações não salvas' : ''
+    }`;
+    if (item.preview) {
+      button.setAttribute(
+        'aria-description',
+        'Aba de prévia substituível. Clique duas vezes na cadeia para manter aberta.'
+      );
+    }
 
     const icon = el('span', 'editor-tab__icon material-symbols-rounded');
     icon.setAttribute('aria-hidden', 'true');
@@ -222,6 +232,7 @@ export function renderEditorTabs(
     icon: tab.kind === 'chain' ? 'account_tree' : 'edit_note',
     dirty: isEditorTabDirty(tab),
     renamable: tab.kind === 'chain',
+    preview: tab.kind === 'chain' && tab.preview === true,
   }));
 
   renderTabList(container, items, snapshot.activeTabId, handlers, {
@@ -235,7 +246,8 @@ export function updateTabDirtyState(container: HTMLElement, tab: EditorTab): voi
     container,
     tab.id,
     isEditorTabDirty(tab),
-    tabLabel(tab)
+    tabLabel(tab),
+    tab.kind === 'chain' && tab.preview === true
   );
 }
 
@@ -243,7 +255,8 @@ export function updateTabDirtyStateById(
   container: HTMLElement,
   id: string,
   dirty: boolean,
-  label: string
+  label: string,
+  preview = false
 ): void {
   const wrapper = container.querySelector<HTMLElement>(
     `[data-tab-id="${id}"]`
@@ -251,9 +264,20 @@ export function updateTabDirtyStateById(
   if (!wrapper) return;
 
   wrapper.classList.toggle('editor-tab--dirty', dirty);
+  wrapper.classList.toggle('editor-tab--preview', preview);
 
   const button = wrapper.querySelector<HTMLButtonElement>('[role="tab"]');
   if (button) {
-    button.title = `${label}${dirty ? ' — alterações não salvas' : ''}`;
+    button.title = `${label}${preview ? ' · prévia substituível' : ''}${
+      dirty ? ' · alterações não salvas' : ''
+    }`;
+    if (preview) {
+      button.setAttribute(
+        'aria-description',
+        'Aba de prévia substituível. Clique duas vezes na cadeia para manter aberta.'
+      );
+    } else {
+      button.removeAttribute('aria-description');
+    }
   }
 }

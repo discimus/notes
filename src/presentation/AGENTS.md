@@ -69,7 +69,7 @@ DraftStore.clear() // sempre chamar após criar/anexar nota com sucesso
 ```typescript
 editorStore.ensureTab()
 editorStore.createDraftTab()
-editorStore.openChainTab(chainId, title)
+editorStore.openChainTab(chainId, title, { preview?, composerCollapsed? })
 editorStore.selectTab(id)
 editorStore.updateDraftContent(id, content)
 editorStore.createChainNoteTab(chainTabId)
@@ -89,6 +89,10 @@ editorStore.flush()
 - Existem dois níveis de aba: `DraftTab`/`ChainTab` no topo e `ChainNoteTab` no rodapé da cadeia.
 - `DraftTab`: texto independente; primeiro salvamento abre `AppendToChainDialog`; próximos `Ctrl+S` atualizam a nota anexada.
 - `ChainTab`: histórico da cadeia agrupado por data + abas de notas pendentes.
+- `ChainTab.preview`: prévia substituível aberta por clique simples na sidebar. Existe no máximo uma; ao abrir outra, a prévia limpa é substituída na mesma posição. Duplo clique, `Ctrl/Cmd+Enter` ou conteúdo dirty promovem a aba a persistente.
+- Aberturas programáticas — criar, importar, salvar e abrir pela view de cadeias — usam `preview: false`; somente a sidebar do editor solicita `preview: true`.
+- A prévia é persistida no `sessionStorage`; `normalizeChainTab` restaura dados antigos como persistentes e nunca mantém prévia com nota pendente.
+- Cobertura: `editorStorePreviewTabs`, `editorSidebarPreview` e `editorTabsPreview`.
 - `ChainNoteTab`: nota ainda não persistida. Ao salvar, vira uma nova tail da cadeia pai e a aba é fechada; uma nova aba vazia é criada. Notas já salvas são editadas pelo histórico.
 - O dirty state da `ChainTab` é agregado de todas as `ChainNoteTab`.
 - Persiste abas, aba ativa e notas pendentes em `sessionStorage` (`threadnotes.editor.tabs`) com debounce. Notas já persistidas são recarregadas do IndexedDB.
@@ -255,6 +259,7 @@ Ações destrutivas **sempre** pedem confirmação via `showConfirmDialog` antes
 - Abas usam `role="tablist"`; o documento ativo é `role="tabpanel"`. O compositor da cadeia é o único ponto que cria novas tails na view principal.
 - `renderTabList`: duplo clique no espaço vazio cria nova aba (`onCreate`); clique com botão do scroll fecha a aba (`auxclick`, botão 1). Esses atalhos complementam, não substituem, os botões e o teclado.
 - Abas de cadeia são renomeáveis: duplo clique no label ou item “Renomear” do menu. O título vira input inline; Enter salva, Escape/blur cancelam.
+- Abas de prévia usam `.editor-tab--preview` com label em itálico, `aria-description` e tooltip; não adicionam ícones extras. Ao serem promovidas ou ficarem dirty, a classe é removida na atualização.
 - O header do `ChainDocument` não repete o título; exibe tags, contador, Importar e Mais.
 - Cobertura: `editorTabRename`, `chainMenuRename` e `editorChainRename`.
 - O compositor de notas da cadeia é colapsável pelo FAB “Documento”. `ChainTab.composerCollapsed` é persistido por aba; `aria-expanded`, `aria-controls` e `hidden` controlam a acessibilidade. Quando recolhido, o histórico ocupa o espaço liberado.

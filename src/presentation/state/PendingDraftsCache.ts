@@ -49,6 +49,7 @@ function pendingChainTab(tab: ChainTab): ChainTab | null {
     noteTabs: noteTabs.map((note): ChainNoteTab => ({ ...note })),
     activeNoteTabId,
     composerCollapsed: tab.composerCollapsed,
+    preview: false,
     status: 'idle',
   };
 }

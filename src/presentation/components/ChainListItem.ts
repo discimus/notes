@@ -5,6 +5,7 @@ import { el } from '../dom.js';
 export interface ChainListItemOptions {
   isPinned?: boolean;
   onTogglePin?: () => void;
+  onOpenPinned?: () => void;
 }
 
 export function renderChainListItem(
@@ -23,7 +24,16 @@ export function renderChainListItem(
   item.setAttribute('tabindex', '0');
   item.setAttribute('aria-label', `Cadeia: ${chain.displayTitle}${pinnedLabel}`);
   item.setAttribute('aria-current', isActive ? 'true' : 'false');
-  item.title = chain.displayTitle;
+  item.title = options.onOpenPinned
+    ? `${chain.displayTitle} — clique duas vezes para manter a aba aberta`
+    : chain.displayTitle;
+  if (options.onOpenPinned) {
+    item.setAttribute(
+      'aria-description',
+      'Clique duas vezes ou pressione Ctrl+Enter para manter a aba aberta.'
+    );
+    item.setAttribute('aria-keyshortcuts', 'Control+Enter Meta+Enter');
+  }
 
   item.innerHTML = `
     <div class="chain-item__text">
@@ -52,10 +62,20 @@ export function renderChainListItem(
     item.appendChild(pin);
   }
 
-  item.addEventListener('click', onOpen);
+  item.addEventListener('click', (event) => {
+    if (event.detail >= 2 && options.onOpenPinned) {
+      options.onOpenPinned();
+      return;
+    }
+    onOpen();
+  });
   item.addEventListener('keydown', (event) => {
     if (event.key !== 'Enter' && event.key !== ' ') return;
     event.preventDefault();
+    if ((event.ctrlKey || event.metaKey) && options.onOpenPinned) {
+      options.onOpenPinned();
+      return;
+    }
     onOpen();
   });
 

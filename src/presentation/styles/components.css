@@ -1015,6 +1015,9 @@
 .editor-tab--dirty .editor-tab__dirty {
   display: block;
 }
+.editor-tab--preview .editor-tab__label {
+  font-style: italic;
+}
 .editor-tab__close {
   width: 32px;
   height: 32px;

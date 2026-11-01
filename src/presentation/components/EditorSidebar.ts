@@ -6,6 +6,7 @@ import { renderEmptyDetail, renderLoadingState } from './states.js';
 
 export interface EditorSidebarHandlers {
   onOpenChain: (chainId: string) => void;
+  onOpenChainPinned?: (chainId: string) => void;
   onNewChain: () => void;
   onFilter: (query: string) => void;
   onTogglePin: (chainId: string) => void;
@@ -163,6 +164,9 @@ export function mountEditorSidebar(handlers: EditorSidebarHandlers): EditorSideb
           {
             isPinned: state.pinnedChainIds.includes(chain.id),
             onTogglePin: () => handlers.onTogglePin(chain.id),
+            ...(handlers.onOpenChainPinned
+              ? { onOpenPinned: () => handlers.onOpenChainPinned?.(chain.id) }
+              : {}),
           }
         )
       );

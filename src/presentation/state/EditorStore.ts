@@ -35,6 +35,7 @@ export interface ChainTab {
   noteTabs: ChainNoteTab[];
   activeNoteTabId: string | null;
   composerCollapsed: boolean;
+  preview?: boolean;
   status: 'idle' | 'loading' | 'loaded' | 'error';
 }
 
@@ -251,19 +252,49 @@ export class EditorStore {
   openChainTab(
     chainId: string,
     title: string,
-    options: { composerCollapsed?: boolean } = {}
+    options: { composerCollapsed?: boolean; preview?: boolean } = {}
   ): ChainTab {
     const existing = this.tabs.find(
       (item) => item.kind === 'chain' && item.chainId === chainId
     );
 
     if (existing && existing.kind === 'chain') {
+      let changed = false;
+      const shouldPromote =
+        existing.preview === true &&
+        (options.preview === false || isEditorTabDirty(existing));
+      if (shouldPromote) {
+        existing.preview = false;
+        changed = true;
+      }
       if (this.activeTabId !== existing.id) {
         this.activeTabId = existing.id;
+        changed = true;
+      }
+      if (changed) {
         this.persist();
         this.notify();
       }
       return cloneTab(existing) as ChainTab;
+    }
+
+    let insertIndex = -1;
+    if (options.preview === true) {
+      const previewIndex = this.tabs.findIndex(
+        (item) => item.kind === 'chain' && item.preview === true
+      );
+      if (previewIndex >= 0) {
+        const previewTab = this.tabs[previewIndex];
+        if (previewTab?.kind === 'chain' && isEditorTabDirty(previewTab)) {
+          previewTab.preview = false;
+        } else {
+          const removed = this.tabs.splice(previewIndex, 1)[0];
+          insertIndex = previewIndex;
+          if (removed && this.activeTabId === removed.id) {
+            this.activeTabId = null;
+          }
+        }
+      }
     }
 
     const noteTab = createBlankNoteTab();
@@ -276,10 +307,12 @@ export class EditorStore {
       noteTabs: [noteTab],
       activeNoteTabId: noteTab.id,
       composerCollapsed: options.composerCollapsed ?? false,
+      preview: options.preview === true,
       status: 'idle',
     };
 
-    this.tabs.push(tab);
+    if (insertIndex >= 0) this.tabs.splice(insertIndex, 0, tab);
+    else this.tabs.push(tab);
     this.activeTabId = tab.id;
     this.persist();
     this.notify();
@@ -343,11 +376,17 @@ export class EditorStore {
 
     const wasDirty = isChainNoteTabDirty(noteTab);
     const previousTitle = deriveEditorTitle(noteTab.content);
+    const wasPreview = tab.preview === true;
     noteTab.content = content;
+
+    if (wasPreview && isChainNoteTabDirty(noteTab)) {
+      tab.preview = false;
+    }
 
     if (
       wasDirty !== isChainNoteTabDirty(noteTab) ||
-      previousTitle !== deriveEditorTitle(noteTab.content)
+      previousTitle !== deriveEditorTitle(noteTab.content) ||
+      (wasPreview && tab.preview === false)
     ) {
       this.notify();
     }
@@ -633,6 +672,9 @@ export class EditorStore {
       noteTabs,
       activeNoteTabId,
       composerCollapsed: raw['composerCollapsed'] === true,
+      preview:
+        raw['preview'] === true &&
+        !noteTabs.some((tab) => tab.content.trim().length > 0),
       status: 'idle',
     };
   }
@@ -671,6 +713,7 @@ export class EditorStore {
               noteTabs: tab.noteTabs,
               activeNoteTabId: tab.activeNoteTabId,
               composerCollapsed: tab.composerCollapsed,
+              preview: tab.preview === true,
             }
       );
 

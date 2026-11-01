@@ -587,7 +587,8 @@ export const AppController = {
 
   async openChainInEditor(
     chainId: string,
-    detail?: ChainDetailDTO
+    detail?: ChainDetailDTO,
+    options: { preview?: boolean } = {}
   ): Promise<string | null> {
     const wasEditor = appState.get().view === 'editor';
     const existing = editorStore.findChainTab(chainId);
@@ -596,7 +597,10 @@ export const AppController = {
       appState.get().chainSummaries.find((chain) => chain.id === chainId)?.displayTitle ??
       'Cadeia';
 
-    const tab = editorStore.openChainTab(chainId, title, { composerCollapsed: true });
+    const tab = editorStore.openChainTab(chainId, title, {
+      composerCollapsed: true,
+      preview: options.preview === true,
+    });
     appState.set({ view: 'editor', selectedChainId: null, currentChain: null });
     pushNavigation('editor', chainId);
 

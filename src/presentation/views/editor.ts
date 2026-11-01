@@ -143,7 +143,12 @@ export function mountEditorView(
     onOpenChain: (chainId) => {
       focusNoteEditorOnNextChain = true;
       setSidebarOpen(false);
-      void AppController.openChainInEditor(chainId);
+      void AppController.openChainInEditor(chainId, undefined, { preview: true });
+    },
+    onOpenChainPinned: (chainId) => {
+      focusNoteEditorOnNextChain = true;
+      setSidebarOpen(false);
+      void AppController.openChainInEditor(chainId, undefined, { preview: false });
     },
     onNewChain: () => {
       setSidebarOpen(false);
