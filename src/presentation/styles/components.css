@@ -1514,6 +1514,16 @@
   color: var(--md-sys-color-on-surface-variant);
   margin-bottom: var(--spacing-2);
 }
+.editor-empty-document__actions {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  max-width: 440px;
+  margin-top: var(--spacing-2);
+}
+.editor-empty-document__actions .chain-quick-actions {
+  justify-content: center;
+}
 
 /* Chain document */
 .chain-document {

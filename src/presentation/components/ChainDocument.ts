@@ -14,6 +14,7 @@ import { renderTabList } from './EditorTabs.js';
 import { mountActiveLineHighlight } from './ActiveLineHighlight.js';
 import { mountInlineTagEditor } from './InlineTagEditor.js';
 import { mountContentTypeMenu } from './ContentTypeMenu.js';
+import { renderQuickActions } from './QuickActions.js';
 import { el } from '../dom.js';
 import { formatDateFull, formatTime } from '@shared/utilities/index.js';
 
@@ -257,34 +258,13 @@ export function mountChainDocument(
     </div>
 
     <footer class="chain-document__footer">
-      <div class="chain-quick-actions" id="chain-quick-actions" role="group" aria-label="Adicionar conteúdo">
-        <button class="chain-quick-action chain-quick-action--primary" id="chain-action-document" type="button"
-          aria-label="Documento" aria-controls="chain-composer-body" aria-expanded="false">
-          <span class="chain-quick-action__icon-wrap">
-            <span class="material-symbols-rounded chain-quick-action__icon" aria-hidden="true">edit_note</span>
-            <span class="chain-quick-action__badge" id="chain-unsaved-badge" hidden aria-hidden="true"></span>
-          </span>
-          <span class="chain-quick-action__label">Documento</span>
-        </button>
-        <button class="chain-quick-action" type="button" disabled title="Em breve" aria-label="Imagem, em breve">
-          <span class="chain-quick-action__icon-wrap">
-            <span class="material-symbols-rounded chain-quick-action__icon" aria-hidden="true">image</span>
-          </span>
-          <span class="chain-quick-action__label">Imagem</span>
-        </button>
-        <button class="chain-quick-action" type="button" disabled title="Em breve" aria-label="Áudio, em breve">
-          <span class="chain-quick-action__icon-wrap">
-            <span class="material-symbols-rounded chain-quick-action__icon" aria-hidden="true">audio_file</span>
-          </span>
-          <span class="chain-quick-action__label">Áudio</span>
-        </button>
-        <button class="chain-quick-action" type="button" disabled title="Em breve" aria-label="Link, em breve">
-          <span class="chain-quick-action__icon-wrap">
-            <span class="material-symbols-rounded chain-quick-action__icon" aria-hidden="true">link</span>
-          </span>
-          <span class="chain-quick-action__label">Link</span>
-        </button>
-      </div>
+      ${renderQuickActions({
+        documentId: 'chain-action-document',
+        groupId: 'chain-quick-actions',
+        badgeId: 'chain-unsaved-badge',
+        controls: 'chain-composer-body',
+        expanded: false,
+      })}
     </footer>
 
     <div class="chain-document__drop-overlay" id="chain-drop-overlay" hidden aria-hidden="true">

@@ -153,7 +153,8 @@ editorStore.flush()
 - Ao rolar para baixo (`scrollTop > 24` e delta > 4), o footer recebe `chain-document--actions-compact`: os FABs diminuem, as descrições são ocultadas e `--chain-fab-clearance` encolhe para 64px.
 - Ao rolar para cima pelo menos 8 px, a expansão ocorre depois de 120 ms; no topo (`scrollTop <= 8`) a expansão é imediata.
 - Rolagem programática inicial até a última nota é ignorada pela lógica de compactação.
-- Cobertura: `chainQuickActions`, `editorQuickActions` e `editorStoreComposerOption`.
+- O estado vazio do Editor ("Nenhum documento aberto") reutiliza o mesmo grupo de ações via `QuickActions`, sem badge, `aria-controls` ou `aria-expanded`; `Documento` cria um rascunho.
+- Cobertura: `chainQuickActions`, `editorQuickActions`, `editorEmptyQuickActions` e `editorStoreComposerOption`.
 
 ## Configurações
 
@@ -258,6 +259,7 @@ Ações destrutivas **sempre** pedem confirmação via `showConfirmDialog` antes
 - Documento e histórico da cadeia são full-bleed: sem `max-width` centralizado, margem automática, borda ou raio de card. A sidebar de cadeias permanece fixa como Explorer.
 - Abas usam `role="tablist"`; o documento ativo é `role="tabpanel"`. O compositor da cadeia é o único ponto que cria novas tails na view principal.
 - `renderTabList`: duplo clique no espaço vazio cria nova aba (`onCreate`); clique com botão do scroll fecha a aba (`auxclick`, botão 1). Esses atalhos complementam, não substituem, os botões e o teclado.
+- O mesmo atalho de nova aba vale para o fundo da row `.editor-tabbar`; duplo clique em abas ou botões da row é ignorado.
 - Abas de cadeia são renomeáveis: duplo clique no label ou item “Renomear” do menu. O título vira input inline; Enter salva, Escape/blur cancelam.
 - Abas de prévia usam `.editor-tab--preview` com label em itálico, `aria-description` e tooltip; não adicionam ícones extras. Ao serem promovidas ou ficarem dirty, a classe é removida na atualização.
 - O header do `ChainDocument` não repete o título; exibe tags, contador, Importar e Mais.

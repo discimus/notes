@@ -19,6 +19,7 @@ import { mountDraftDocument } from '../components/DraftDocument.js';
 import type { DraftDocumentView } from '../components/DraftDocument.js';
 import { mountChainDocument } from '../components/ChainDocument.js';
 import type { ChainDocumentView } from '../components/ChainDocument.js';
+import { renderQuickActions } from '../components/QuickActions.js';
 import { showAppendToChainDialog } from '../components/AppendToChainDialog.js';
 import { showCloseTabDialog } from '../components/CloseTabDialog.js';
 import { showImportTextDialog } from '../components/ImportTextDialog.js';
@@ -237,12 +238,13 @@ export function mountEditorView(
       <span class="material-symbols-rounded editor-empty-document__icon" aria-hidden="true">edit_note</span>
       <p class="editor-empty-document__title">Nenhum documento aberto</p>
       <p class="editor-empty-document__body">Crie um rascunho ou abra uma cadeia pela lateral.</p>
-      <button class="btn btn-tonal" id="editor-empty-new" type="button">
-        <span class="material-symbols-rounded" aria-hidden="true">add</span>
-        Novo documento
-      </button>
+      <div class="editor-empty-document__actions">
+        ${renderQuickActions({ documentId: 'editor-empty-action-document' })}
+      </div>
     `;
-    empty.querySelector<HTMLButtonElement>('#editor-empty-new')?.addEventListener('click', createDraftTab);
+    empty
+      .querySelector<HTMLButtonElement>('#editor-empty-action-document')
+      ?.addEventListener('click', createDraftTab);
     documentHost.replaceChildren(empty);
   };
 
@@ -628,6 +630,11 @@ export function mountEditorView(
   };
 
   newButton.addEventListener('click', createDraftTab);
+  const tabbar = main.querySelector<HTMLElement>('.editor-tabbar')!;
+  tabbar.addEventListener('dblclick', (event) => {
+    if (event.target !== tabbar) return;
+    createDraftTab();
+  });
   explorerButton.addEventListener('click', () => {
     setSidebarOpen(!root.classList.contains('editor-view--sidebar-open'));
   });
