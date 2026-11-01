@@ -248,16 +248,40 @@ export function mountChainDocument(
   const activeLine = mountActiveLineHighlight(composer, panel);
   const composerShell = root.querySelector<HTMLElement>('#chain-composer')!;
   const composerBody = root.querySelector<HTMLElement>('#chain-composer-body')!;
+  const actionFooter = root.querySelector<HTMLElement>('.chain-document__footer')!;
 
   let currentTab = tab;
   let autoEditAttempted = false;
   let autoEditFrame: number | null = null;
   let lastPreviewClick: { noteId: string; at: number } | null = null;
+  let actionSpaceObserver: ResizeObserver | null = null;
 
   const cancelAutoEdit = (): void => {
     if (autoEditFrame !== null) cancelAnimationFrame(autoEditFrame);
     autoEditFrame = null;
   };
+
+  const syncActionOverlaySpace = (): void => {
+    if (!currentTab.composerCollapsed) return;
+
+    const footerRect = actionFooter.getBoundingClientRect();
+    if (footerRect.height <= 0) return;
+
+    const rootRect = root.getBoundingClientRect();
+    const space = Math.max(0, Math.ceil(rootRect.bottom - footerRect.top));
+    if (space <= 0) return;
+
+    root.style.setProperty('--chain-actions-overlay-space', `${space}px`);
+  };
+
+  const onActionSpaceResize = (): void => syncActionOverlaySpace();
+  window.addEventListener('resize', onActionSpaceResize);
+
+  if (typeof ResizeObserver !== 'undefined') {
+    actionSpaceObserver = new ResizeObserver(() => syncActionOverlaySpace());
+    actionSpaceObserver.observe(actionFooter);
+    actionSpaceObserver.observe(root);
+  }
 
   const requestEdit = (
     noteId: string,
@@ -322,6 +346,7 @@ export function mountChainDocument(
     documentAction.title =
       dirtyCount > 0 ? 'Documento · há notas não salvas' : 'Documento';
     syncActionFooter();
+    syncActionOverlaySpace();
   };
 
   const renderTags = (): void => {
@@ -680,6 +705,7 @@ export function mountChainDocument(
   const setActionsCompact = (value: boolean): void => {
     actionsCompact = value;
     syncActionFooter();
+    syncActionOverlaySpace();
     const headerFocused = header.contains(document.activeElement);
     root.classList.toggle('chain-document--header-hidden', value && !headerFocused);
   };
@@ -830,6 +856,9 @@ export function mountChainDocument(
     scroll.removeEventListener('scroll', onScroll);
     scroll.removeEventListener('click', onHistoryClick);
     root.removeEventListener('keydown', onEditorKeyDown);
+    window.removeEventListener('resize', onActionSpaceResize);
+    actionSpaceObserver?.disconnect();
+    actionSpaceObserver = null;
     cancelExpand();
     if (compactFrame !== null) cancelAnimationFrame(compactFrame);
     compactFrame = null;
@@ -845,6 +874,7 @@ export function mountChainDocument(
 
   requestAnimationFrame(() => {
     if (tab.status === 'loaded') scrollToBottom();
+    syncActionOverlaySpace();
   });
 
   return {

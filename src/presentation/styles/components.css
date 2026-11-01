@@ -1606,6 +1606,7 @@
   flex-shrink: 0;
 }
 .chain-document__body {
+  position: relative;
   flex: 1 1 auto;
   min-height: 0;
   display: flex;
@@ -1613,9 +1614,9 @@
   border-bottom: 1px solid var(--md-sys-color-outline-variant);
 }
 .chain-document__scroll {
-  flex: 0 1 38%;
+  flex: 1 1 auto;
   min-height: 0;
-  max-height: 38%;
+  max-height: none;
   overflow-y: auto;
   overscroll-behavior: contain;
   padding: var(--spacing-4) var(--spacing-6) var(--spacing-2);
@@ -1623,6 +1624,7 @@
 .chain-document__history {
   width: 100%;
   max-width: var(--chain-note-measure);
+  padding-bottom: var(--chain-actions-overlay-space);
 }
 .chain-date-group {
   margin-bottom: var(--spacing-8);
@@ -1780,18 +1782,15 @@
   outline-offset: 2px;
 }
 @container (min-width: 640px) {
-  .chain-document__body {
-    display: grid;
-    grid-template-columns: minmax(240px, 38%) minmax(0, 1fr);
-  }
-  .chain-document__scroll {
+  .chain-document .chain-composer {
+    top: 0;
+    bottom: 0;
+    left: auto;
+    right: 0;
+    width: 62%;
     height: 100%;
     max-height: none;
-    flex: none;
-  }
-  .chain-composer {
-    height: 100%;
-    max-height: none;
+    padding-bottom: 0;
     border-top: 0;
     border-left: 1px solid var(--md-sys-color-outline-variant);
     border-radius: 0;
@@ -1846,13 +1845,17 @@
   }
 }
 .chain-composer {
-  position: relative;
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
   z-index: 7;
-  flex: 1 1 auto;
+  height: min(70%, 520px);
+  max-height: calc(100% - var(--spacing-4));
   min-height: 0;
   width: 100%;
   margin: 0;
-  padding: 0;
+  padding: 0 0 env(safe-area-inset-bottom, 0px);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -1860,6 +1863,8 @@
     color-mix(in srgb, var(--md-sys-color-outline-variant) 70%, transparent);
   border-radius: var(--md-sys-shape-corner-large) var(--md-sys-shape-corner-large) 0 0;
   background-color: var(--md-sys-color-surface-container-low);
+  box-shadow: var(--md-sys-elevation-3);
+  overscroll-behavior: contain;
 }
 .chain-document:not(.chain-document--notes-collapsed) .chain-document__footer {
   display: none;
@@ -2024,11 +2029,6 @@
   max-height: none;
   display: flex;
   flex-direction: column;
-}
-.chain-document--notes-collapsed .chain-document__scroll {
-  flex: 1 1 auto;
-  max-height: none;
-  padding-bottom: var(--chain-actions-overlay-space);
 }
 .chain-document--notes-collapsed .chain-composer {
   display: none;

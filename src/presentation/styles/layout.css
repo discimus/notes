@@ -805,13 +805,13 @@
     padding: var(--spacing-4);
   }
   .chain-document__scroll {
-    max-height: 34%;
-    flex-basis: 34%;
+    max-height: none;
+    flex-basis: auto;
     padding: var(--spacing-3) var(--spacing-4) var(--spacing-1);
   }
   .chain-composer {
     margin: 0;
-    padding: 0;
+    padding: 0 0 env(safe-area-inset-bottom, 0px);
   }
   .chain-composer__footer {
     padding-left: var(--spacing-4);
