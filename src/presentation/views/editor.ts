@@ -30,11 +30,21 @@ import { showAppendToChainDialog } from '../components/AppendToChainDialog.js';
 import { showCloseTabDialog } from '../components/CloseTabDialog.js';
 import { showImportTextDialog } from '../components/ImportTextDialog.js';
 import { showImportTextFilesDialog } from '../components/ImportTextFilesDialog.js';
+import { showAudioRecorderDialog } from '../components/AudioRecorderDialog.js';
+import { extensionForAudioMime } from '../components/audioRecorder.js';
+import { readImageDimensions } from '../components/imageAttachmentInput.js';
+import { releaseAttachmentUrl } from '../components/attachmentUrls.js';
 import { snackbar } from '../components/Snackbar.js';
+import { showConfirmDialog } from '../components/Dialog.js';
 import { renderNavToggle } from '../components/NavToggle.js';
 import { togglePinnedChain } from '../app/pinnedChains.js';
 import { el } from '../dom.js';
 import { showComposerModal } from './menus.js';
+import type { AttachmentDTO } from '@application/dto/index.js';
+import {
+  IMAGE_ATTACHMENT_MAX_BYTES,
+  IMAGE_ATTACHMENT_MIME_TYPES,
+} from '@shared/types/index.js';
 
 type ActiveDocument =
   | { id: string; kind: 'draft'; view: DraftDocumentView }
@@ -305,15 +315,34 @@ export function mountEditorView(
       onSaveNote: (noteTabId) => {
         void saveChainNoteTab(tab.id, noteTabId);
       },
-      onEditNote: (noteId, options = {}) => {
-        const current = store.getTab(tab.id);
-        if (!current || current.kind !== 'chain') return;
-        const note = current.notes.find((item) => item.id === noteId);
-        if (!note) return;
-        store.openChainNoteEditTab(tab.id, note, options);
-        if (options.focus !== false) focusChainNoteEditor(tab.id);
-      },
-      onCreateNote: () => {
+        onEditNote: (noteId, options = {}) => {
+          const current = store.getTab(tab.id);
+          if (!current || current.kind !== 'chain') return;
+          const note = current.notes.find((item) => item.id === noteId);
+          if (!note) return;
+          store.openChainNoteEditTab(tab.id, note, options);
+          if (options.focus !== false) focusChainNoteEditor(tab.id);
+        },
+        onAddNoteImages: (noteId, files) => {
+          if (files.length > 0) {
+            void addImagesToNote(tab.chainId, noteId, files);
+          }
+        },
+        onAddNoteAudio: (noteId) => {
+          void recordAudioForNote(tab.id, tab.chainId, noteId);
+        },
+        onAddChainImages: (files) => {
+          if (files.length > 0) {
+            void addChainEndImages(tab.chainId, files);
+          }
+        },
+        onAddChainAudio: () => {
+          void recordAudioForChainEnd(tab.chainId);
+        },
+        onDeleteNoteAttachment: (_noteId, attachment) => {
+          void deleteAttachmentFromNote(tab.chainId, attachment);
+        },
+        onCreateNote: () => {
         createChainNoteTab(tab.id);
       },
       onSelectNote: (noteTabId) => {
@@ -371,6 +400,142 @@ export function mountEditorView(
   const createChainNoteTab = (chainTabId: string): void => {
     if (!store.createChainNoteTab(chainTabId)) return;
     focusChainNoteEditor(chainTabId);
+  };
+
+  const noteTitle = (chainTabId: string, noteId: string): string => {
+    const tab = store.getTab(chainTabId);
+    if (!tab || tab.kind !== 'chain') return 'Nota';
+    const note = tab.notes.find((item) => item.id === noteId);
+    return note ? deriveEditorTitle(note.content) : 'Nota';
+  };
+
+  const addImagesToNote = async (
+    chainId: string,
+    noteId: string,
+    files: File[]
+  ): Promise<void> => {
+    let added = 0;
+    for (const file of files) {
+      if (!(IMAGE_ATTACHMENT_MIME_TYPES as readonly string[]).includes(file.type)) {
+        snackbar.error('Formato de imagem não suportado.');
+        continue;
+      }
+      if (file.size > IMAGE_ATTACHMENT_MAX_BYTES) {
+        snackbar.error('A imagem excede o limite de 3 MB.');
+        continue;
+      }
+      const dimensions = await readImageDimensions(file);
+      const result = await AppController.addNoteAttachment({
+        chainId,
+        noteId,
+        kind: 'image',
+        fileName: file.name,
+        mimeType: file.type,
+        blob: file,
+        altText: file.name,
+        ...dimensions,
+      });
+      if (result.ok) {
+        added += 1;
+      }
+    }
+
+    if (added > 0) {
+      snackbar.success(added === 1 ? 'Imagem anexada.' : `${added} imagens anexadas.`);
+    }
+  };
+
+  const addChainEndImages = async (
+    chainId: string,
+    files: File[]
+  ): Promise<void> => {
+    let added = 0;
+    for (const file of files) {
+      if (!(IMAGE_ATTACHMENT_MIME_TYPES as readonly string[]).includes(file.type)) {
+        snackbar.error('Formato de imagem não suportado.');
+        continue;
+      }
+      if (file.size > IMAGE_ATTACHMENT_MAX_BYTES) {
+        snackbar.error('A imagem excede o limite de 3 MB.');
+        continue;
+      }
+      const dimensions = await readImageDimensions(file);
+      const result = await AppController.addChainEndAttachment({
+        chainId,
+        kind: 'image',
+        fileName: file.name,
+        mimeType: file.type,
+        blob: file,
+        altText: file.name,
+        ...dimensions,
+      });
+      if (result.ok) added += 1;
+    }
+
+    if (added > 0) {
+      snackbar.success(
+        added === 1
+          ? 'Imagem anexada ao final da cadeia.'
+          : `${added} imagens anexadas ao final da cadeia.`
+      );
+    }
+  };
+
+  const recordAudioForChainEnd = async (chainId: string): Promise<void> => {
+    await showAudioRecorderDialog({
+      noteTitle: 'Final da cadeia',
+      onSave: async (recorded) => {
+        const result = await AppController.addChainEndAttachment({
+          chainId,
+          kind: 'audio',
+          fileName: `audio-${Date.now()}.${extensionForAudioMime(recorded.mimeType)}`,
+          mimeType: recorded.mimeType,
+          blob: recorded.blob,
+          duration: recorded.duration,
+        });
+        if (result.ok) snackbar.success('Áudio anexado ao final da cadeia.');
+        return result.ok;
+      },
+    });
+  };
+
+  const recordAudioForNote = async (
+    chainTabId: string,
+    chainId: string,
+    noteId: string
+  ): Promise<void> => {
+    await showAudioRecorderDialog({
+      noteTitle: noteTitle(chainTabId, noteId),
+      onSave: async (recorded) => {
+        const result = await AppController.addNoteAttachment({
+          chainId,
+          noteId,
+          kind: 'audio',
+          fileName: `audio-${Date.now()}.${extensionForAudioMime(recorded.mimeType)}`,
+          mimeType: recorded.mimeType,
+          blob: recorded.blob,
+          duration: recorded.duration,
+        });
+        if (result.ok) snackbar.success('Áudio anexado.');
+        return result.ok;
+      },
+    });
+  };
+
+  const deleteAttachmentFromNote = async (
+    chainId: string,
+    attachment: AttachmentDTO
+  ): Promise<void> => {
+    const confirmed = await showConfirmDialog({
+      title: 'Excluir anexo?',
+      body: attachment.fileName,
+      icon: 'delete',
+      confirmLabel: 'Excluir',
+      destructive: true,
+    });
+    if (!confirmed) return;
+    const deleted = await AppController.deleteNoteAttachment(chainId, attachment.id);
+    if (deleted) releaseAttachmentUrl(attachment.id);
   };
 
   const removeChainNoteTabAndEnsure = (chainTabId: string, noteTabId: string): void => {

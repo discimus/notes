@@ -127,7 +127,12 @@ export class IdbChainRepository implements IChainRepository, ITimelineQueryRepos
 
   async delete(id: UUID): Promise<void> {
     const db = await this.db();
-    const tx = db.transaction(['chains', 'notes', 'chainTags'], 'readwrite');
+    const hasAttachments = db.objectStoreNames.contains('attachments');
+    const hasAttachmentBlobs = db.objectStoreNames.contains('attachmentBlobs');
+    const stores = ['chains', 'notes', 'chainTags'];
+    if (hasAttachments) stores.push('attachments');
+    if (hasAttachmentBlobs) stores.push('attachmentBlobs');
+    const tx = db.transaction(stores, 'readwrite');
     await tx.objectStore('chains').delete(id);
 
     // Remove notas
@@ -140,6 +145,18 @@ export class IdbChainRepository implements IChainRepository, ITimelineQueryRepos
     const chainTags = await tx.objectStore('chainTags').index('by-chainId').getAll(id);
     for (const ct of chainTags) {
       await tx.objectStore('chainTags').delete([ct.chainId, ct.tagId]);
+    }
+
+    // Remove attachments e blobs
+    if (hasAttachments && hasAttachmentBlobs) {
+      const attachmentKeys = await tx
+        .objectStore('attachments')
+        .index('by-chainId')
+        .getAllKeys(id);
+      for (const key of attachmentKeys) {
+        await tx.objectStore('attachments').delete(key);
+        await tx.objectStore('attachmentBlobs').delete(key);
+      }
     }
 
     await tx.done;

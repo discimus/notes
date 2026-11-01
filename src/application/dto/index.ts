@@ -1,7 +1,23 @@
 import type { UUID, ISODateString } from '@shared/types/index.js';
-import type { NoteContentType, NoteRole } from '@domain/entities/index.js';
+import type { AttachmentKind, NoteContentType, NoteRole } from '@domain/entities/index.js';
 import type { TagOrigin } from '@domain/entities/index.js';
 export type { NoteContentType } from '@domain/entities/index.js';
+export type { AttachmentKind } from '@domain/entities/index.js';
+
+export interface AttachmentDTO {
+  id: UUID;
+  noteId: UUID;
+  chainId: UUID;
+  kind: AttachmentKind;
+  fileName: string;
+  mimeType: string;
+  byteSize: number;
+  altText?: string | undefined;
+  width?: number | undefined;
+  height?: number | undefined;
+  duration?: number | undefined;
+  createdAt: ISODateString;
+}
 
 // ── Note DTOs ──────────────────────────────────────────────────────────────
 
@@ -13,8 +29,22 @@ export interface NoteDTO {
   role: NoteRole;
   contentType?: NoteContentType | undefined;
   title?: string | undefined;
+  attachments?: AttachmentDTO[] | undefined;
   createdAt: ISODateString;
   updatedAt: ISODateString;
+}
+
+export interface AddNoteAttachmentCommand {
+  chainId: UUID;
+  noteId?: UUID | undefined;
+  kind: AttachmentKind;
+  fileName: string;
+  mimeType: string;
+  blob: Blob;
+  altText?: string | undefined;
+  width?: number | undefined;
+  height?: number | undefined;
+  duration?: number | undefined;
 }
 
 // ── Chain DTOs ─────────────────────────────────────────────────────────────

@@ -8,3 +8,10 @@ export { ChainTag } from './ChainTag.js';
 export type { ChainTagData } from './ChainTag.js';
 export { TimelineView } from './TimelineView.js';
 export type { TimelineEntry, TimelineFilter } from './TimelineView.js';
+export { Attachment } from './Attachment.js';
+export type {
+  AttachmentData,
+  AttachmentKind,
+  CreateImageAttachmentParams,
+  CreateAudioAttachmentParams,
+} from './Attachment.js';

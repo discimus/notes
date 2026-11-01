@@ -5,6 +5,9 @@ export interface QuickActionsOptions {
   badgeId?: string;
   controls?: string;
   expanded?: boolean;
+  imageId?: string;
+  audioId?: string;
+  linkId?: string;
 }
 
 export function renderQuickActions(options: QuickActionsOptions): string {
@@ -15,9 +18,15 @@ export function renderQuickActions(options: QuickActionsOptions): string {
     badgeId,
     controls,
     expanded,
+    imageId,
+    audioId,
+    linkId,
   } = options;
 
   const groupIdAttribute = groupId ? ` id="${groupId}"` : '';
+  const imageIdAttribute = imageId ? ` id="${imageId}"` : '';
+  const audioIdAttribute = audioId ? ` id="${audioId}"` : '';
+  const linkIdAttribute = linkId ? ` id="${linkId}"` : '';
   const badge = badgeId
     ? `<span class="chain-quick-action__badge" id="${badgeId}" hidden aria-hidden="true"></span>`
     : '';
@@ -35,19 +44,19 @@ export function renderQuickActions(options: QuickActionsOptions): string {
         </span>
         <span class="chain-quick-action__label">Documento</span>
       </button>
-      <button class="chain-quick-action" type="button" disabled title="Em breve" aria-label="Imagem, em breve">
+      <button class="chain-quick-action"${imageIdAttribute} type="button" disabled title="Em breve" aria-label="Imagem, em breve">
         <span class="chain-quick-action__icon-wrap">
           <span class="material-symbols-rounded chain-quick-action__icon" aria-hidden="true">image</span>
         </span>
         <span class="chain-quick-action__label">Imagem</span>
       </button>
-      <button class="chain-quick-action" type="button" disabled title="Em breve" aria-label="Áudio, em breve">
+      <button class="chain-quick-action"${audioIdAttribute} type="button" disabled title="Em breve" aria-label="Áudio, em breve">
         <span class="chain-quick-action__icon-wrap">
           <span class="material-symbols-rounded chain-quick-action__icon" aria-hidden="true">audio_file</span>
         </span>
         <span class="chain-quick-action__label">Áudio</span>
       </button>
-      <button class="chain-quick-action" type="button" disabled title="Em breve" aria-label="Link, em breve">
+      <button class="chain-quick-action"${linkIdAttribute} type="button" disabled title="Em breve" aria-label="Link, em breve">
         <span class="chain-quick-action__icon-wrap">
           <span class="material-symbols-rounded chain-quick-action__icon" aria-hidden="true">link</span>
         </span>

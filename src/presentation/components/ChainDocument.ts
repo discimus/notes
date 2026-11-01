@@ -1,4 +1,4 @@
-import type { NoteContentType, NoteDTO } from '@application/dto/index.js';
+import type { AttachmentDTO, NoteContentType, NoteDTO } from '@application/dto/index.js';
 import type { ChainNoteTab, ChainTab } from '../state/EditorStore.js';
 import {
   contentTypeOf,
@@ -16,6 +16,10 @@ import { mountInlineTagEditor } from './InlineTagEditor.js';
 import { mountContentTypeMenu } from './ContentTypeMenu.js';
 import { renderQuickActions } from './QuickActions.js';
 import { renderNoteContent } from './NoteContent.js';
+import { stopAttachmentAudio, renderNoteAttachments } from './NoteAttachments.js';
+import { stopAllAudioCascades } from './audioList.js';
+import { releaseAllAttachmentUrls } from './attachmentUrls.js';
+import { pickImagesWithClipboardFallback } from './imageAttachmentInput.js';
 import { el } from '../dom.js';
 import { formatDateFull, formatTime } from '@shared/utilities/index.js';
 
@@ -34,6 +38,11 @@ export interface ChainDocumentHandlers {
     noteId: string,
     options?: { focus?: boolean; preview?: boolean }
   ) => void;
+  onAddNoteImages?: (noteId: string, files: File[]) => void;
+  onAddNoteAudio?: (noteId: string) => void;
+  onAddChainImages?: (files: File[]) => void;
+  onAddChainAudio?: () => void;
+  onDeleteNoteAttachment?: (noteId: string, attachment: AttachmentDTO) => void;
   onCreateNote: () => void;
   onSelectNote: (noteTabId: string) => void;
   onCloseNote: (noteTabId: string) => void;
@@ -58,13 +67,32 @@ function noteTabLabel(noteTab: ChainNoteTab): string {
   return title === 'Sem título' ? 'Novo documento' : title;
 }
 
+interface NoteRenderHandlers {
+  onEdit?: (noteId: string, options?: { focus?: boolean; preview?: boolean }) => void;
+  onAddImages?: (noteId: string, files: File[]) => void;
+  onAddAudio?: (noteId: string) => void;
+  onDeleteAttachment?: (noteId: string, attachment: AttachmentDTO) => void;
+}
+
+function hasImageFiles(dataTransfer: DataTransfer | null): boolean {
+  if (!dataTransfer) return false;
+  const items = [...dataTransfer.items];
+  if (items.length > 0) {
+    return items.some((item) => item.kind === 'file' && item.type.startsWith('image/'));
+  }
+  return [...dataTransfer.files].some((file) => file.type.startsWith('image/'));
+}
+
+function imageFiles(dataTransfer: DataTransfer | null): File[] {
+  if (!dataTransfer) return [];
+  return [...dataTransfer.files].filter((file) => file.type.startsWith('image/'));
+}
+
 function renderNote(
   note: NoteDTO,
   editing: boolean,
   selected: boolean,
-  onEdit:
-    | ((noteId: string, options?: { focus?: boolean; preview?: boolean }) => void)
-    | undefined
+  handlers: NoteRenderHandlers
 ): HTMLElement {
   const article = el('article', 'chain-note');
   article.setAttribute('data-note-id', note.id);
@@ -109,9 +137,27 @@ function renderNote(
   edit.setAttribute('aria-label', 'Editar nota');
   edit.title = 'Editar nota';
   edit.innerHTML = '<span class="material-symbols-rounded" aria-hidden="true">edit</span>';
-  edit.addEventListener('click', () => onEdit?.(note.id));
-  actions.appendChild(edit);
+  edit.addEventListener('click', () => handlers.onEdit?.(note.id));
 
+  const addImage = el('button', 'btn-icon chain-note__attach chain-note__attach--image');
+  addImage.type = 'button';
+  addImage.setAttribute('aria-label', 'Adicionar imagem a esta nota');
+  addImage.title = 'Adicionar imagem a esta nota';
+  addImage.innerHTML = '<span class="material-symbols-rounded" aria-hidden="true">image</span>';
+  addImage.addEventListener('click', () => {
+    void pickImagesWithClipboardFallback((files) => {
+      handlers.onAddImages?.(note.id, files);
+    });
+  });
+
+  const addAudio = el('button', 'btn-icon chain-note__attach chain-note__attach--audio');
+  addAudio.type = 'button';
+  addAudio.setAttribute('aria-label', 'Gravar áudio nesta nota');
+  addAudio.title = 'Gravar áudio nesta nota';
+  addAudio.innerHTML = '<span class="material-symbols-rounded" aria-hidden="true">mic</span>';
+  addAudio.addEventListener('click', () => handlers.onAddAudio?.(note.id));
+
+  actions.append(edit, addImage, addAudio);
   meta.appendChild(actions);
 
   const text = el(
@@ -129,9 +175,45 @@ function renderNote(
   body.addEventListener('click', (event) => {
     const target = event.target as Element | null;
     if (target?.closest('a, button')) return;
-    onEdit?.(note.id, { preview: event.detail < 2 });
+    handlers.onEdit?.(note.id, { preview: event.detail < 2 });
   });
+
+  const setDropTarget = (active: boolean): void => {
+    article.classList.toggle('chain-note--drop-target', active);
+  };
+  article.addEventListener('dragenter', (event) => {
+    if (!hasImageFiles(event.dataTransfer)) return;
+    event.preventDefault();
+    event.stopPropagation();
+    setDropTarget(true);
+  });
+  article.addEventListener('dragover', (event) => {
+    if (!hasImageFiles(event.dataTransfer)) return;
+    event.preventDefault();
+    event.stopPropagation();
+    if (event.dataTransfer) event.dataTransfer.dropEffect = 'copy';
+    setDropTarget(true);
+  });
+  article.addEventListener('dragleave', (event) => {
+    const related = event.relatedTarget;
+    if (related instanceof Node && article.contains(related)) return;
+    setDropTarget(false);
+  });
+  article.addEventListener('drop', (event) => {
+    const files = imageFiles(event.dataTransfer);
+    if (files.length === 0) return;
+    event.preventDefault();
+    event.stopPropagation();
+    setDropTarget(false);
+    handlers.onAddImages?.(note.id, files);
+  });
+
   body.appendChild(text);
+  if (note.attachments && note.attachments.length > 0) {
+    renderNoteAttachments(body, note.attachments, {
+      onDelete: (attachment) => handlers.onDeleteAttachment?.(note.id, attachment),
+    });
+  }
   article.append(meta, body);
   return article;
 }
@@ -212,10 +294,13 @@ export function mountChainDocument(
       ${renderQuickActions({
         documentId: 'chain-action-document',
         groupId: 'chain-quick-actions',
-        badgeId: 'chain-unsaved-badge',
-        controls: 'chain-composer-body',
-        expanded: false,
-      })}
+          badgeId: 'chain-unsaved-badge',
+          controls: 'chain-composer-body',
+          expanded: false,
+          imageId: 'chain-action-image',
+          audioId: 'chain-action-audio',
+          linkId: 'chain-action-link',
+        })}
     </footer>
 
     <div class="chain-document__drop-overlay" id="chain-drop-overlay" hidden aria-hidden="true">
@@ -230,6 +315,8 @@ export function mountChainDocument(
   const dropOverlay = root.querySelector<HTMLElement>('#chain-drop-overlay')!;
   const header = root.querySelector<HTMLElement>('.chain-document__header')!;
   const documentAction = root.querySelector<HTMLButtonElement>('#chain-action-document')!;
+  const quickImage = root.querySelector<HTMLButtonElement>('#chain-action-image')!;
+  const quickAudio = root.querySelector<HTMLButtonElement>('#chain-action-audio')!;
   const unsavedBadge = root.querySelector<HTMLElement>('#chain-unsaved-badge')!;
   const tags = root.querySelector<HTMLElement>('#chain-tags')!;
   const count = root.querySelector<HTMLElement>('#chain-note-count')!;
@@ -368,7 +455,12 @@ export function mountChainDocument(
         ?.editingNoteId ?? null;
     const noteGroups = groupNotesByDate(currentTab.notes);
     const notesSignature = currentTab.notes
-      .map((note) => `${note.id}:${note.updatedAt}`)
+      .map(
+        (note) =>
+          `${note.id}:${note.updatedAt}:${(note.attachments ?? [])
+            .map((attachment) => attachment.id)
+            .join(',')}`
+      )
       .join('|');
     const signature = `${notesSignature}#${[...editingNoteIds].sort().join(',')}#${
       activeEditNoteId ?? ''
@@ -464,7 +556,18 @@ export function mountChainDocument(
               note,
               editingNoteIds.has(note.id),
               note.id === activeEditNoteId,
-              requestEdit
+              {
+                onEdit: requestEdit,
+                ...(handlers.onAddNoteImages
+                  ? { onAddImages: handlers.onAddNoteImages }
+                  : {}),
+                ...(handlers.onAddNoteAudio
+                  ? { onAddAudio: handlers.onAddNoteAudio }
+                  : {}),
+                ...(handlers.onDeleteNoteAttachment
+                  ? { onDeleteAttachment: handlers.onDeleteNoteAttachment }
+                  : {}),
+              }
             )
           );
         });
@@ -480,6 +583,34 @@ export function mountChainDocument(
   const activeNoteTab = (): ChainNoteTab | null =>
     currentTab.noteTabs.find((item) => item.id === currentTab.activeNoteTabId) ??
     null;
+
+  const syncQuickActions = (): void => {
+    const hasNotes = currentTab.notes.length > 0;
+    quickImage.disabled = !hasNotes;
+    quickAudio.disabled = !hasNotes;
+
+    if (hasNotes) {
+      quickImage.title = 'Adicionar imagem ao final da cadeia';
+      quickImage.setAttribute('aria-label', 'Adicionar imagem ao final da cadeia');
+      quickAudio.title = 'Gravar áudio para o final da cadeia';
+      quickAudio.setAttribute('aria-label', 'Gravar áudio para o final da cadeia');
+    } else {
+      quickImage.title = 'Em breve';
+      quickImage.setAttribute('aria-label', 'Imagem, em breve');
+      quickAudio.title = 'Em breve';
+      quickAudio.setAttribute('aria-label', 'Áudio, em breve');
+    }
+  };
+
+  quickImage.addEventListener('click', () => {
+    void pickImagesWithClipboardFallback((files) => {
+      handlers.onAddChainImages?.(files);
+    });
+  });
+
+  quickAudio.addEventListener('click', () => {
+    handlers.onAddChainAudio?.();
+  });
 
   const onHistoryClick = (event: MouseEvent): void => {
     const target = event.target as Element | null;
@@ -769,11 +900,12 @@ export function mountChainDocument(
     root.setAttribute('aria-label', `Cadeia ${tabValue.title}`);
     root.dataset['chainId'] = tabValue.chainId;
 
-    syncComposerState(tabValue);
-    renderTags();
-    renderNotes();
-    renderNoteTabs();
-    syncNoteEditor();
+      syncComposerState(tabValue);
+      renderTags();
+      renderNotes();
+      syncQuickActions();
+      renderNoteTabs();
+      syncNoteEditor();
 
     if (justLoaded) {
       requestAnimationFrame(scrollToBottom);
@@ -859,6 +991,9 @@ export function mountChainDocument(
     window.removeEventListener('resize', onActionSpaceResize);
     actionSpaceObserver?.disconnect();
     actionSpaceObserver = null;
+    stopAllAudioCascades();
+    stopAttachmentAudio();
+    releaseAllAttachmentUrls();
     cancelExpand();
     if (compactFrame !== null) cancelAnimationFrame(compactFrame);
     compactFrame = null;

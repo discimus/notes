@@ -605,7 +605,13 @@ export class EditorStore {
       if (tab.kind !== 'chain' || tab.chainId !== chainId) return;
       const index = tab.notes.findIndex((item) => item.id === note.id);
       if (index < 0) return;
-      tab.notes[index] = cloneNote(note);
+      const existing = tab.notes[index];
+      tab.notes[index] = cloneNote({
+        ...note,
+        ...(note.attachments === undefined && existing?.attachments
+          ? { attachments: existing.attachments }
+          : {}),
+      });
       changed = true;
     });
 

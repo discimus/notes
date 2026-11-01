@@ -23,6 +23,6 @@ export class ImportTextNotes {
     );
 
     await this.chainRepo.save(chain, notes);
-    return notes.map(mapNoteToDTO);
+    return notes.map((note) => mapNoteToDTO(note));
   }
 }

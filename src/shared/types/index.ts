@@ -1,3 +1,5 @@
+export * from './attachment.js';
+
 /** Identificador único baseado em UUID v4 */
 export type UUID = string;
 

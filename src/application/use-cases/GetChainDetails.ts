@@ -1,5 +1,10 @@
-import type { IChainRepository, ChainFilter } from '@domain/repositories/index.js';
-import type { ITagRepository } from '@domain/repositories/index.js';
+import type {
+  IChainRepository,
+  ChainFilter,
+  IAttachmentRepository,
+  ITagRepository,
+} from '@domain/repositories/index.js';
+import type { Attachment } from '@domain/entities/index.js';
 import type { ChainDetailDTO, ChainSummaryDTO } from '../dto/index.js';
 import { NotFoundError } from '@shared/types/index.js';
 import { mapChainToDetail, mapChainToSummary, mapTagToDTO } from '../mappers/index.js';
@@ -8,7 +13,8 @@ import type { UUID } from '@shared/types/index.js';
 export class GetChainDetails {
   constructor(
     private readonly chainRepo: IChainRepository,
-    private readonly tagRepo: ITagRepository
+    private readonly tagRepo: ITagRepository,
+    private readonly attachmentRepo?: IAttachmentRepository
   ) {}
 
   async execute(chainId: UUID): Promise<ChainDetailDTO> {
@@ -20,8 +26,23 @@ export class GetChainDetails {
       tags.map(async (t) => mapTagToDTO(t, await this.tagRepo.countChainsForTag(t.id)))
     );
     const tagIds = tags.map((t) => t.id);
+    let attachments: Attachment[] = [];
+    if (this.attachmentRepo) {
+      try {
+        attachments = await this.attachmentRepo.findByChainId(chainId);
+      } catch {
+        attachments = [];
+      }
+    }
 
-    return mapChainToDetail(chain, [...chain.notes], tagIds, tagDTOs);
+    return mapChainToDetail(
+      chain,
+      [...chain.notes],
+      tagIds,
+      tagDTOs,
+      undefined,
+      attachments
+    );
   }
 
   async getSummaries(filter?: { archived?: boolean; deleted?: boolean; tagIds?: UUID[]; search?: string }): Promise<ChainSummaryDTO[]> {

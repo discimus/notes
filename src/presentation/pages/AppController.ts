@@ -4,6 +4,11 @@ import { editorStore } from '../state/EditorStore.js';
 import type { EditorTarget } from '../state/EditorStore.js';
 import { snackbar } from '../components/Snackbar.js';
 import { showConfirmDialog } from '../components/Dialog.js';
+import {
+  hasCachedAttachmentPlaybackUrl,
+  registerAttachmentPlaybackUrl,
+  releaseAttachmentPlaybackUrl,
+} from '../components/attachmentPlaybackCache.js';
 import { DraftStore } from '../state/DraftStore.js';
 import { pushNavigation } from '../app/navigation.js';
 import { getSettings } from '../app/settings.js';
@@ -13,7 +18,13 @@ import {
   type PreparedTextImport,
   type PreparedTextImportBatch,
 } from '../app/textFileImport.js';
-import type { ChainDetailDTO, NoteContentType, NoteDTO } from '@application/dto/index.js';
+import type {
+  AddNoteAttachmentCommand,
+  AttachmentDTO,
+  ChainDetailDTO,
+  NoteContentType,
+  NoteDTO,
+} from '@application/dto/index.js';
 import type { ISODateString } from '@shared/types/index.js';
 
 import {
@@ -37,13 +48,18 @@ import {
   GetAllTags,
   RenameTag,
   DeleteTag,
+  AddNoteAttachment,
+  DeleteNoteAttachment,
+  GetAttachmentBlob,
 } from '@application/use-cases/index.js';
 
 import { IdbChainRepository } from '@infrastructure/repositories/IdbChainRepository.js';
 import { IdbTagRepository } from '@infrastructure/repositories/IdbTagRepository.js';
+import { IdbAttachmentRepository } from '@infrastructure/repositories/IdbAttachmentRepository.js';
 
 const chainRepo = new IdbChainRepository();
 const tagRepo = new IdbTagRepository();
+const attachmentRepo = new IdbAttachmentRepository();
 
 // Use cases
 const createEmptyChain = new CreateChain(chainRepo);
@@ -54,7 +70,7 @@ const updateNote = new UpdateNoteContent(chainRepo);
 const updateTitle = new UpdateChainTitle(chainRepo);
 const assignTag = new AssignTagToChain(chainRepo, tagRepo);
 const removeTag = new RemoveTagFromChain(chainRepo, tagRepo);
-const getChainDetails = new GetChainDetails(chainRepo, tagRepo);
+const getChainDetails = new GetChainDetails(chainRepo, tagRepo, attachmentRepo);
 const searchNotes = new SearchNotes(chainRepo, tagRepo);
 const getTimelinePage = new GetTimelinePage(chainRepo, tagRepo);
 const importTextNoteUseCase = new ImportTextNote(chainRepo);
@@ -66,6 +82,29 @@ const restoreFromTrash = new RestoreFromTrash(chainRepo);
 const getAllTags = new GetAllTags(tagRepo);
 const renameTag = new RenameTag(tagRepo);
 const deleteTag = new DeleteTag(tagRepo);
+const addNoteAttachmentUseCase = new AddNoteAttachment(chainRepo, attachmentRepo);
+const deleteNoteAttachmentUseCase = new DeleteNoteAttachment(attachmentRepo);
+const getAttachmentBlobUseCase = new GetAttachmentBlob(attachmentRepo);
+
+async function preloadAudioAttachments(detail: ChainDetailDTO): Promise<void> {
+  const audios = detail.notes.flatMap((note) =>
+    (note.attachments ?? []).filter((attachment) => attachment.kind === 'audio')
+  );
+
+  await Promise.all(
+    audios.map(async (attachment) => {
+      if (hasCachedAttachmentPlaybackUrl(attachment.id)) return;
+      try {
+        const blob = await getAttachmentBlobUseCase.execute(attachment.id);
+        if (blob) {
+          registerAttachmentPlaybackUrl(attachment.id, blob, attachment.mimeType);
+        }
+      } catch {
+        return;
+      }
+    })
+  );
+}
 
 export interface EditorSaveSuccess {
   ok: true;
@@ -104,6 +143,13 @@ export interface EditorBatchAppendSuccess {
 }
 
 export type EditorBatchAppendResult = EditorBatchAppendSuccess | EditorSaveFailure;
+
+export interface AttachmentMutationSuccess {
+  ok: true;
+  attachment: AttachmentDTO;
+}
+
+export type AttachmentMutationResult = AttachmentMutationSuccess | EditorSaveFailure;
 
 function editorErrorMessage(error: unknown): string {
   return error instanceof Error && error.message
@@ -169,6 +215,7 @@ async function loadEditorChainTab(
 
   try {
     const detail = await getChainDetails.execute(chainId);
+    await preloadAudioAttachments(detail);
     editorStore.setChainTabNotes(tabId, detail);
   } catch (error: unknown) {
     editorStore.setChainTabError(tabId);
@@ -189,9 +236,18 @@ async function refreshEditorChainTab(chainId: string): Promise<void> {
 
   try {
     const detail = await getChainDetails.execute(chainId);
+    await preloadAudioAttachments(detail);
     syncEditorChainTab(chainId, detail);
   } catch {
     editorStore.setChainTabError(tab.id);
+  }
+}
+
+async function refreshAfterAttachmentChange(chainId: string): Promise<void> {
+  if (appState.get().view === 'editor') {
+    await refreshEditorChainTab(chainId);
+  } else {
+    await openChain(chainId, false);
   }
 }
 
@@ -342,6 +398,68 @@ export const AppController = {
     } catch (e: unknown) {
       snackbar.error((e as Error).message);
       return false;
+    }
+  },
+
+  async addNoteAttachment(
+    command: AddNoteAttachmentCommand
+  ): Promise<AttachmentMutationResult> {
+    try {
+      const attachment = await addNoteAttachmentUseCase.execute(command);
+      registerAttachmentPlaybackUrl(
+        attachment.id,
+        command.blob,
+        command.mimeType || attachment.mimeType
+      );
+      await refreshAfterAttachmentChange(command.chainId);
+      return { ok: true, attachment };
+    } catch (error: unknown) {
+      const message = editorErrorMessage(error);
+      snackbar.error(message);
+      return { ok: false, error: message };
+    }
+  },
+
+  async addChainEndAttachment(
+    command: Omit<AddNoteAttachmentCommand, 'noteId'>
+  ): Promise<AttachmentMutationResult> {
+    try {
+      const attachment = await addNoteAttachmentUseCase.execute(command);
+      registerAttachmentPlaybackUrl(
+        attachment.id,
+        command.blob,
+        command.mimeType || attachment.mimeType
+      );
+      await refreshAfterAttachmentChange(command.chainId);
+      return { ok: true, attachment };
+    } catch (error: unknown) {
+      const message = editorErrorMessage(error);
+      snackbar.error(message);
+      return { ok: false, error: message };
+    }
+  },
+
+  async deleteNoteAttachment(
+    chainId: string,
+    attachmentId: string
+  ): Promise<boolean> {
+    try {
+      await deleteNoteAttachmentUseCase.execute(attachmentId);
+      releaseAttachmentPlaybackUrl(attachmentId);
+      await refreshAfterAttachmentChange(chainId);
+      snackbar.success('Anexo removido.');
+      return true;
+    } catch (error: unknown) {
+      snackbar.error(editorErrorMessage(error));
+      return false;
+    }
+  },
+
+  async getAttachmentBlob(attachmentId: string): Promise<Blob | null> {
+    try {
+      return await getAttachmentBlobUseCase.execute(attachmentId);
+    } catch {
+      return null;
     }
   },
 
@@ -607,6 +725,7 @@ export const AppController = {
     pushNavigation('editor', chainId);
 
     if (detail) {
+      await preloadAudioAttachments(detail);
       editorStore.setChainTabNotes(tab.id, detail);
     } else if (existing) {
       await loadEditorChainTab(tab.id, chainId, true);
