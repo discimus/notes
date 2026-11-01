@@ -12,6 +12,7 @@ import {
 import type { ChainSummaryDTO, TagDTO, TimelineEntryDTO } from '@application/dto/index.js';
 import { renderLinkedText } from '../components/LinkedText.js';
 import { renderMarkdownContent } from '../components/MarkdownContent.js';
+import { highlightTextInElement } from '../components/SearchHighlight.js';
 import { renderEmptyDetail, renderLoadingState } from '../components/states.js';
 import { renderNavToggle } from '../components/NavToggle.js';
 import { getTimelineChainColors } from '../app/timelineColors.js';
@@ -852,7 +853,12 @@ function updateTimelineEntries(container: HTMLElement, state: AppState): void {
   const colors = getTimelineChainColors(
     state.chainSummaries.map((chain) => chain.id)
   );
-  renderEntries(container, state.timelineEntries, colors);
+  renderEntries(
+    container,
+    state.timelineEntries,
+    colors,
+    state.timelineFilters.query
+  );
 
   if (state.timelineIsLoadingMore) {
     const loading = el('div', 'timeline-loading-more');
@@ -878,7 +884,8 @@ function updateTimelineEntries(container: HTMLElement, state: AppState): void {
 function renderEntries(
   container: HTMLElement,
   entries: TimelineEntryDTO[],
-  colors: Map<string, string>
+  colors: Map<string, string>,
+  query: string
 ): void {
   let lastDate = '';
 
@@ -923,6 +930,7 @@ function renderEntries(
     );
     if (isMarkdown) renderMarkdownContent(textEl, entry.note.content);
     else renderLinkedText(textEl, entry.note.content);
+    highlightTextInElement(textEl, query);
 
     const meta = el('div', 'timeline-entry__meta');
     const chainLink = el('button', 'timeline-entry__chain');
