@@ -456,6 +456,43 @@ export function mountChainDocument(
     currentTab.noteTabs.find((item) => item.id === currentTab.activeNoteTabId) ??
     null;
 
+  const onHistoryClick = (event: MouseEvent): void => {
+    const target = event.target as Element | null;
+    if (!target) return;
+    if (target.closest('.chain-note__body')) return;
+    if (target.closest('button, a, input, textarea, select, [contenteditable="true"]')) {
+      return;
+    }
+    if (currentTab.composerCollapsed) return;
+
+    const active = activeNoteTab();
+    if (!active) return;
+    handlers.onCloseNote(active.id);
+  };
+  scroll.addEventListener('click', onHistoryClick);
+
+  const isEscapeHandledByChild = (event: KeyboardEvent): boolean =>
+    event.composedPath().some(
+      (node) =>
+        node instanceof Element &&
+        node.matches('.tag-add__input, .content-type-menu, .editor-tab__rename-input')
+    );
+
+  const onEditorKeyDown = (event: KeyboardEvent): void => {
+    if (event.key !== 'Escape') return;
+    if (document.querySelector('.dialog-backdrop, .content-type-menu')) return;
+    if (isEscapeHandledByChild(event)) return;
+    if (currentTab.composerCollapsed) return;
+
+    const active = activeNoteTab();
+    if (!active) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+    handlers.onCloseNote(active.id);
+  };
+  root.addEventListener('keydown', onEditorKeyDown);
+
   const contentTypeMenu = mountContentTypeMenu({
     value: contentTypeOf(
       tab.noteTabs.find((item) => item.id === tab.activeNoteTabId) ?? {
@@ -791,6 +828,8 @@ export function mountChainDocument(
     root.removeEventListener('pointermove', onLinkModifierPointerMove);
     window.removeEventListener('blur', clearLinkModifier);
     scroll.removeEventListener('scroll', onScroll);
+    scroll.removeEventListener('click', onHistoryClick);
+    root.removeEventListener('keydown', onEditorKeyDown);
     cancelExpand();
     if (compactFrame !== null) cancelAnimationFrame(compactFrame);
     compactFrame = null;

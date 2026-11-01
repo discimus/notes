@@ -69,6 +69,14 @@ function openChainAction(chainId: string): void {
   void AppController.openChainInEditor(chainId);
 }
 
+function isEscapeHandledByChild(event: KeyboardEvent): boolean {
+  return event.composedPath().some(
+    (node) =>
+      node instanceof Element &&
+      node.matches('.tag-add__input, .content-type-menu, .editor-tab__rename-input')
+  );
+}
+
 export function mountEditorView(
   container: HTMLElement,
   store: EditorStore = editorStore
@@ -700,10 +708,24 @@ export function mountEditorView(
     if (appState.get().view !== 'editor') return;
 
     if (event.key === 'Escape') {
-      if (!document.querySelector('.dialog-backdrop') && root.classList.contains('editor-view--sidebar-open')) {
+      if (document.querySelector('.dialog-backdrop, .content-type-menu')) return;
+      if (appState.get().drawerOpen) return;
+      if (isEscapeHandledByChild(event)) return;
+
+      if (root.classList.contains('editor-view--sidebar-open')) {
         event.preventDefault();
         setSidebarOpen(false);
+        return;
       }
+
+      const active = store.getActiveTab();
+      if (!active || active.kind !== 'chain' || active.composerCollapsed) return;
+
+      const noteTab = store.getActiveChainNoteTab(active.id);
+      if (!noteTab) return;
+
+      event.preventDefault();
+      void requestCloseChainNoteTab(active.id, noteTab.id);
       return;
     }
 
