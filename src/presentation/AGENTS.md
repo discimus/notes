@@ -205,6 +205,19 @@ editorStore.flush()
 
 - Role o scroll sobre o seletor para alternar entre Texto e Código sem abrir o menu; o gesto tem cooldown para não alternar várias vezes.
 
+## Links em notas
+
+- `NoteContent` renderiza o conteúdo do histórico da cadeia com links derivados de `findLinks`; notas de código nunca são linkificadas.
+- A fonte de verdade continua sendo texto puro. Não persistir HTML nem alterar o conteúdo salvo ao linkificar.
+- Apenas `http://`, `https://` e `www.` são detectados; `www.` recebe `https://`. Protocolos inseguros são ignorados.
+- Links usam âncoras reais com `target="_blank"` e `rel="noopener noreferrer"` e cor `primary`. Sem modificador, o texto mantém apenas a cor, com cursor padrão e sem sublinhado; o sublinhado e o cursor `pointer` aparecem somente no hover com Ctrl/Cmd pressionado. O ícone permanece sempre clicável.
+- `chain-document--link-modifier` é sincronizada por `keydown`/`keyup` de Ctrl/Meta, `pointermove` com o modificador e `blur` da janela; os listeners são removidos no `destroy`.
+- Clique simples no texto não navega; `Ctrl/Cmd+clique`, `Enter` e o ícone `open_in_new` abrem nova aba. Em dispositivos touch, o toque simples pode abrir.
+- O ícone é decorativo (`aria-hidden`, `tabindex="-1"`); o link de texto é o controle acessível.
+- Ao entrar em edição, o conteúdo volta a ser texto puro; ao salvar, cancelar ou sair sem mudanças, a linkificação é restaurada.
+- Não usar `innerHTML` para linkificar conteúdo do usuário.
+- Cobertura: `linkify`, `noteLinks` e `linkModifier`.
+
 ## Importação de documentos externos
 
 - DnD é exclusivo para arquivos externos; abas internas não são arrastáveis.
@@ -299,4 +312,4 @@ Testes de apresentação ficam em `tests/unit/presentation/` e usam jsdom. Não 
 - QA visual ou interação real com a aplicação só quando o usuário solicitar explicitamente.
 - Novas features de UI devem vir com teste de comportamento; não considerar inspeção visual manual como validação suficiente.
 
-Exceção autorizada: `nav.test.ts` valida a busca e os 5 destinos com Editor como view inicial. Testes do editor: `navToggle`, `mobileNavEntries`, `editorStore`, `editorTabs`, `editorSidebar`, `editorGrouping`, `chainDocument`, `chainNoteBody`, `chainNoteReadingFlow`, `chainHeaderVisibility`, `appendToChainDialog`, `activeLineHighlight`, `inlineTagEditor`, `tagSuggestions`, `pinnedChains`, `editorView` e `timelineView`.
+Exceção autorizada: `nav.test.ts` valida a busca e os 5 destinos com Editor como view inicial. Testes do editor: `navToggle`, `mobileNavEntries`, `editorStore`, `editorTabs`, `editorSidebar`, `editorGrouping`, `chainDocument`, `chainNoteBody`, `chainNoteReadingFlow`, `chainHeaderVisibility`, `noteLinks`, `linkModifier`, `appendToChainDialog`, `activeLineHighlight`, `inlineTagEditor`, `tagSuggestions`, `pinnedChains`, `editorView` e `timelineView`.

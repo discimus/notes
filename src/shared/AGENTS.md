@@ -47,6 +47,7 @@ Prefira `Result` em queries (pode não encontrar). Use `throw` em comandos (falh
 | `excerpt(content, max?)` | `text.ts` | Prévia truncada com `…` (default 120 chars) |
 | `escapeHtml(text)` | `text.ts` | Escape para renderização segura no DOM |
 | `highlightMatch(text, query)` | `text.ts` | Retorna HTML com `<mark>` — usar apenas na camada de apresentação |
+| `findLinks(text)` | `linkify.ts` | Segmenta texto em links `http(s)`/`www` e texto puro; permite apenas `http:`/`https:` |
 | `debounce(fn, delay)` | `text.ts` | Debounce genérico — usar em inputs de busca |
 
 Importe sempre via barrel: `import { generateId, now } from '@shared/utilities/index.js'`.

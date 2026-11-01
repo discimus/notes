@@ -15,6 +15,7 @@ import { mountActiveLineHighlight } from './ActiveLineHighlight.js';
 import { mountInlineTagEditor } from './InlineTagEditor.js';
 import { mountContentTypeMenu } from './ContentTypeMenu.js';
 import { renderQuickActions } from './QuickActions.js';
+import { renderNoteContent } from './NoteContent.js';
 import { el } from '../dom.js';
 import { formatDateFull, formatTime } from '@shared/utilities/index.js';
 
@@ -52,7 +53,13 @@ function noteTabLabel(noteTab: ChainNoteTab): string {
 
 function startNoteEdit(text: HTMLElement, note: NoteDTO, chainId: string): void {
   const original = note.content;
+  const restore = (content: string): void => {
+    text.contentEditable = 'false';
+    renderNoteContent(text, content);
+  };
+
   text.contentEditable = 'true';
+  text.replaceChildren(document.createTextNode(original));
   text.focus();
 
   const range = document.createRange();
@@ -63,13 +70,13 @@ function startNoteEdit(text: HTMLElement, note: NoteDTO, chainId: string): void 
   selection?.addRange(range);
 
   const save = async (): Promise<void> => {
-    text.contentEditable = 'false';
     const content = text.textContent?.trim() ?? '';
-    if (!content) {
-      text.textContent = original;
+    if (!content || content === original) {
+      restore(original);
       return;
     }
-    if (content === original) return;
+
+    restore(content);
     await AppController.updateNoteContent(chainId, note.id, content);
   };
 
@@ -79,9 +86,8 @@ function startNoteEdit(text: HTMLElement, note: NoteDTO, chainId: string): void 
   text.addEventListener('blur', onBlur, { once: true });
   text.addEventListener('keydown', (event) => {
     if (event.key === 'Escape') {
-      text.textContent = original;
-      text.contentEditable = 'false';
       text.removeEventListener('blur', onBlur);
+      restore(original);
     }
     if (event.key === 'Enter' && !event.shiftKey) {
       event.preventDefault();
@@ -178,7 +184,8 @@ function renderNote(note: NoteDTO, chainId: string): HTMLElement {
     'p',
     `chain-note__text chain-note__text--${note.role}${isCode ? ' chain-note__text--code' : ''}`
   );
-  text.textContent = note.content;
+  if (isCode) text.textContent = note.content;
+  else renderNoteContent(text, note.content);
   edit.addEventListener('click', () => {
     if (isCode) startCodeNoteEdit(text, note, chainId);
     else startNoteEdit(text, note, chainId);
@@ -558,6 +565,28 @@ export function mountChainDocument(
     handlers.onCollapseComposer?.();
   };
   document.addEventListener('pointerdown', onDocumentPointerDown);
+
+  const setLinkModifier = (active: boolean): void => {
+    root.classList.toggle('chain-document--link-modifier', active);
+  };
+  const onLinkModifierKeyDown = (event: KeyboardEvent): void => {
+    if (event.key === 'Control' || event.key === 'Meta') setLinkModifier(true);
+  };
+  const onLinkModifierKeyUp = (event: KeyboardEvent): void => {
+    if (event.key === 'Control' || event.key === 'Meta') {
+      setLinkModifier(event.ctrlKey || event.metaKey);
+    }
+  };
+  const onLinkModifierPointerMove = (event: PointerEvent): void => {
+    setLinkModifier(event.ctrlKey || event.metaKey);
+  };
+  const clearLinkModifier = (): void => setLinkModifier(false);
+
+  document.addEventListener('keydown', onLinkModifierKeyDown);
+  document.addEventListener('keyup', onLinkModifierKeyUp);
+  root.addEventListener('pointermove', onLinkModifierPointerMove);
+  window.addEventListener('blur', clearLinkModifier);
+
   newNote.addEventListener('click', handlers.onCreateNote);
   emptyNewNote.addEventListener('click', handlers.onCreateNote);
   save.addEventListener('click', () => {
@@ -729,6 +758,10 @@ export function mountChainDocument(
 
   const destroy = (): void => {
     document.removeEventListener('pointerdown', onDocumentPointerDown);
+    document.removeEventListener('keydown', onLinkModifierKeyDown);
+    document.removeEventListener('keyup', onLinkModifierKeyUp);
+    root.removeEventListener('pointermove', onLinkModifierPointerMove);
+    window.removeEventListener('blur', clearLinkModifier);
     scroll.removeEventListener('scroll', onScroll);
     cancelExpand();
     if (compactFrame !== null) cancelAnimationFrame(compactFrame);

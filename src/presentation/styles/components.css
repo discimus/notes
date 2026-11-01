@@ -1710,6 +1710,59 @@
   outline: 2px solid var(--md-sys-color-primary);
   outline-offset: 4px;
 }
+.chain-note__link-group {
+  display: inline;
+}
+.chain-note__link-icon {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  margin-right: 2px;
+  border-radius: var(--md-sys-shape-corner-full);
+  color: var(--md-sys-color-primary);
+  cursor: pointer;
+  vertical-align: -3px;
+  transition: background-color var(--md-sys-motion-duration-short3);
+}
+.chain-note__link-icon::before {
+  content: 'open_in_new';
+  font-family: 'Material Symbols Rounded';
+  font-size: 16px;
+  line-height: 1;
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20;
+}
+.chain-note__link-icon::after {
+  content: '';
+  position: absolute;
+  inset: -6px;
+  border-radius: inherit;
+}
+.chain-note__link-icon:hover {
+  background-color: color-mix(in srgb, var(--md-sys-color-primary) 8%, transparent);
+}
+.chain-note__link {
+  border-radius: var(--md-sys-shape-corner-small);
+  color: var(--md-sys-color-primary);
+  text-decoration: none;
+  cursor: default;
+}
+.chain-note__link:hover {
+  text-decoration: none;
+  cursor: default;
+}
+.chain-document--link-modifier .chain-note__link:hover {
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 2px;
+}
+.chain-note__link:focus-visible {
+  outline: 2px solid var(--md-sys-color-primary);
+  outline-offset: 2px;
+}
 @media (hover: none) {
   .chain-note__edit {
     opacity: 1;
