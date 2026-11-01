@@ -1528,6 +1528,7 @@
 /* Chain document */
 .chain-document {
   --chain-fab-clearance: calc(120px + env(safe-area-inset-bottom, 0px));
+  --chain-note-measure: 72ch;
   position: relative;
   min-height: 0;
   display: flex;
@@ -1577,9 +1578,10 @@
 }
 .chain-document__history {
   width: 100%;
+  max-width: var(--chain-note-measure);
 }
 .chain-date-group {
-  margin-bottom: var(--spacing-5);
+  margin-bottom: var(--spacing-8);
 }
 .chain-date-group__label {
   position: sticky;
@@ -1590,53 +1592,53 @@
   background-color: var(--md-sys-color-surface-container-lowest);
   color: var(--md-sys-color-on-surface-variant);
   font-size: var(--md-sys-typescale-label-medium-size);
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font-weight: var(--md-sys-typescale-label-medium-weight);
+  letter-spacing: 0.01em;
 }
 .chain-note {
-  padding: var(--spacing-3) 0 var(--spacing-5);
-  border-bottom: 1px solid var(--md-sys-color-outline-variant);
+  padding: var(--spacing-2) 0 var(--spacing-6);
 }
-.chain-note:last-child {
-  border-bottom: none;
+.chain-note + .chain-note {
+  border-top: 1px solid
+    color-mix(in srgb, var(--md-sys-color-outline-variant) 55%, transparent);
+  padding-top: var(--spacing-4);
 }
 .chain-note__meta {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--spacing-2);
   min-height: 24px;
-  margin-bottom: var(--spacing-2);
+  margin-bottom: var(--spacing-1);
   color: var(--md-sys-color-on-surface-variant);
   font-size: var(--md-sys-typescale-body-small-size);
 }
 .chain-note__role {
-  border-radius: var(--md-sys-shape-corner-full);
-  padding: 2px 8px;
+  color: var(--md-sys-color-primary);
   font-size: var(--md-sys-typescale-label-small-size);
   font-weight: 600;
-}
-.chain-note__role--header {
-  background-color: var(--md-sys-color-primary-container);
-  color: var(--md-sys-color-on-primary-container);
-}
-.chain-note__role--tail {
-  background-color: var(--md-sys-color-surface-container-high);
-  color: var(--md-sys-color-on-surface-variant);
+  letter-spacing: 0.02em;
 }
 .chain-note__time {
   font-variant-numeric: tabular-nums;
 }
 .chain-note__edited {
-  font-style: italic;
-  opacity: 0.8;
+  font-style: normal;
+  opacity: 0.72;
 }
 .chain-note__edit {
-  width: 32px;
-  height: 32px;
-  margin-left: auto;
+  width: 40px;
+  height: 40px;
+  margin: -4px -4px -4px auto;
+  overflow: visible;
   opacity: 0;
   transition: opacity var(--md-sys-motion-duration-short3);
+}
+.chain-note__edit::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: inherit;
 }
 .chain-note:hover .chain-note__edit,
 .chain-note:focus-within .chain-note__edit {
@@ -1646,6 +1648,12 @@
   font-size: 18px;
 }
 .chain-note__body {
+  padding: 0;
+  border-radius: 0;
+  background-color: transparent;
+}
+.chain-note__body--code {
+  margin-top: var(--spacing-2);
   padding: var(--spacing-3) var(--spacing-4);
   border-radius: var(--md-sys-shape-corner-medium);
   background-color: var(--md-sys-color-surface-container-low);
@@ -1653,15 +1661,21 @@
 .chain-note__text {
   color: var(--md-sys-color-on-surface);
   font-size: var(--md-sys-typescale-body-large-size);
-  line-height: 1.7;
+  line-height: 1.65;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
+  text-wrap: pretty;
   border-radius: var(--md-sys-shape-corner-small);
   outline: none;
 }
 .chain-note__text:focus-visible {
   outline: 2px solid var(--md-sys-color-primary);
   outline-offset: 4px;
+}
+@media (hover: none) {
+  .chain-note__edit {
+    opacity: 1;
+  }
 }
 .chain-composer {
   flex: 1 1 auto;
@@ -2036,10 +2050,10 @@
 .chain-note__format {
   padding: 2px var(--spacing-2);
   border-radius: var(--md-sys-shape-corner-full);
-  background-color: var(--md-sys-color-secondary-container);
-  color: var(--md-sys-color-on-secondary-container);
+  background-color: var(--md-sys-color-surface-container-high);
+  color: var(--md-sys-color-on-surface-variant);
   font-size: var(--md-sys-typescale-label-small-size);
-  font-weight: 500;
+  font-weight: var(--md-sys-typescale-label-small-weight);
 }
 .chain-note__code-editor {
   display: block;

@@ -143,13 +143,16 @@ function renderNote(note: NoteDTO, chainId: string): HTMLElement {
   article.setAttribute('data-note-id', note.id);
 
   const meta = el('div', 'chain-note__meta');
-  const role = el('span', `chain-note__role chain-note__role--${note.role}`);
-  role.textContent = note.role === 'header' ? 'Início' : 'Nota';
+  if (note.role === 'header') {
+    const role = el('span', 'chain-note__role chain-note__role--header');
+    role.textContent = 'Início';
+    meta.appendChild(role);
+  }
   const time = el('time', 'chain-note__time');
   time.dateTime = note.createdAt;
   time.title = formatDateFull(note.createdAt);
   time.textContent = formatTime(note.createdAt);
-  meta.append(role, time);
+  meta.append(time);
 
   if (note.updatedAt !== note.createdAt) {
     const edited = el('span', 'chain-note__edited');
@@ -181,7 +184,10 @@ function renderNote(note: NoteDTO, chainId: string): HTMLElement {
     else startNoteEdit(text, note, chainId);
   });
 
-  const body = el('div', 'chain-note__body');
+  const body = el(
+    'div',
+    `chain-note__body${isCode ? ' chain-note__body--code' : ''}`
+  );
   body.appendChild(text);
   article.append(meta, body);
   return article;

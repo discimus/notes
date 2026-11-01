@@ -256,7 +256,7 @@ Ações destrutivas **sempre** pedem confirmação via `showConfirmDialog` antes
 - Navegação: rail fixo de 80px em `≥769px`; drawer modal de 280px em `≤768px`. O hambúrguer (`#nav-toggle`) só aparece no compacto. Configurações, tema e modo compacto ficam no rodapé do rail/drawer.
 - A navegação não deve ter scroll próprio: conteúdo com `overflow: hidden`, itens de 52px, footer com botões de 48px e dimensões ajustadas para caber sem rolagem.
 - Workspace Editor: lateral de 300px no desktop e off-canvas no compacto. O botão `#editor-explorer-toggle` abre/fecha a lateral no mobile; overlay usa o scrim MD3.
-- Documento e histórico da cadeia são full-bleed: sem `max-width` centralizado, margem automática, borda ou raio de card. A sidebar de cadeias permanece fixa como Explorer.
+- O documento e o histórico da cadeia permanecem full-bleed, sem centralização, borda ou raio de card. O histórico usa medida de leitura de ~72ch alinhada à esquerda para linhas confortáveis. A sidebar de cadeias permanece fixa como Explorer.
 - Abas usam `role="tablist"`; o documento ativo é `role="tabpanel"`. O compositor da cadeia é o único ponto que cria novas tails na view principal.
 - `renderTabList`: duplo clique no espaço vazio cria nova aba (`onCreate`); clique com botão do scroll fecha a aba (`auxclick`, botão 1). Esses atalhos complementam, não substituem, os botões e o teclado.
 - O mesmo atalho de nova aba vale para o fundo da row `.editor-tabbar`; duplo clique em abas ou botões da row é ignorado.
@@ -265,7 +265,7 @@ Ações destrutivas **sempre** pedem confirmação via `showConfirmDialog` antes
 - O header do `ChainDocument` não repete o título; exibe tags, contador, Importar e Mais.
 - Cobertura: `editorTabRename`, `chainMenuRename` e `editorChainRename`.
 - O compositor de notas da cadeia é colapsável pelo FAB “Documento”. `ChainTab.composerCollapsed` é persistido por aba; `aria-expanded`, `aria-controls` e `hidden` controlam a acessibilidade. Quando recolhido, o histórico ocupa o espaço liberado.
-- O corpo de cada nota usa `.chain-note__body` com `surface-container-low`, padding e canto MD3; metadados permanecem fora dessa superfície. Código mantém apenas tipografia mono/badge, sem fundo duplicado.
+- O histórico de notas é um fluxo de leitura: `.chain-note__body` de texto é transparente e sem padding; apenas `.chain-note__body--code` usa `surface-container-low`, padding e canto MD3. Metadados ficam fora do body, em baixa ênfase, e o selo "Início" aparece apenas na nota header. A separação entre notas usa uma hairline sutil; não há cards por nota.
 
 ## Renderização DOM — sem framework
 
@@ -296,4 +296,4 @@ Testes de apresentação ficam em `tests/unit/presentation/` e usam jsdom. Não 
 - QA visual ou interação real com a aplicação só quando o usuário solicitar explicitamente.
 - Novas features de UI devem vir com teste de comportamento; não considerar inspeção visual manual como validação suficiente.
 
-Exceção autorizada: `nav.test.ts` valida os 5 destinos com Editor como view inicial. Testes do editor: `editorStore`, `editorTabs`, `editorSidebar`, `editorGrouping`, `chainDocument`, `appendToChainDialog`, `activeLineHighlight`, `inlineTagEditor`, `tagSuggestions`, `pinnedChains`, `editorView` e `timelineView`.
+Exceção autorizada: `nav.test.ts` valida os 5 destinos com Editor como view inicial. Testes do editor: `editorStore`, `editorTabs`, `editorSidebar`, `editorGrouping`, `chainDocument`, `chainNoteBody`, `chainNoteReadingFlow`, `appendToChainDialog`, `activeLineHighlight`, `inlineTagEditor`, `tagSuggestions`, `pinnedChains`, `editorView` e `timelineView`.

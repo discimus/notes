@@ -980,7 +980,7 @@
   min-height: 20px;
   margin-bottom: var(--spacing-1);
 }
-.app-shell--compact .chain-note__body {
+.app-shell--compact .chain-note__body--code {
   padding: var(--spacing-2) var(--spacing-3);
 }
 .app-shell--compact .chain-note-tabbar {
