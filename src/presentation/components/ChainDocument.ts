@@ -582,7 +582,6 @@ export function mountChainDocument(
     actionsCompact = value;
     if (changed) {
       root.classList.toggle('chain-document--actions-compact', value);
-      root.classList.toggle('chain-document--date-hidden', value);
     }
     const headerFocused = header.contains(document.activeElement);
     root.classList.toggle('chain-document--header-hidden', value && !headerFocused);

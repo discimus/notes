@@ -155,9 +155,9 @@ editorStore.flush()
 - Ao rolar para baixo (`scrollTop > 24` e delta > 4), o footer recebe `chain-document--actions-compact`: os FABs diminuem, as descrições são ocultadas e `--chain-fab-clearance` encolhe para 64px quando o compositor está aberto. No modo leitura, a reserva do scroll permanece fixa em `--chain-actions-overlay-space`.
 - Ao rolar para cima pelo menos 8 px, a expansão ocorre depois de 120 ms; no topo (`scrollTop <= 8`) a expansão é imediata.
 - Rolagem programática inicial até a última nota é ignorada pela lógica de compactação.
-- O mesmo estado de direção do scroll controla os rótulos de data: `chain-document--date-hidden` oculta os rótulos ao descer, com transição de opacidade/translate e `pointer-events: none`, e os reexibe ao subir ou no topo.
+- O rótulo de data é um badge sticky com fundo `secondary-container` e texto `on-secondary-container`; ele permanece visível durante o scroll para manter o contexto temporal.
 - O estado vazio do Editor ("Nenhum documento aberto") reutiliza o mesmo grupo de ações via `QuickActions`, sem badge, `aria-controls` ou `aria-expanded`; `Documento` cria um rascunho.
-- Cobertura: `chainQuickActions`, `chainDateVisibility`, `chainHeaderVisibility`, `editorQuickActions`, `editorEmptyQuickActions` e `editorStoreComposerOption`.
+- Cobertura: `chainQuickActions`, `chainHeaderVisibility`, `editorQuickActions`, `editorEmptyQuickActions` e `editorStoreComposerOption`.
 
 ## Configurações
 
@@ -299,4 +299,4 @@ Testes de apresentação ficam em `tests/unit/presentation/` e usam jsdom. Não 
 - QA visual ou interação real com a aplicação só quando o usuário solicitar explicitamente.
 - Novas features de UI devem vir com teste de comportamento; não considerar inspeção visual manual como validação suficiente.
 
-Exceção autorizada: `nav.test.ts` valida a busca e os 5 destinos com Editor como view inicial. Testes do editor: `navToggle`, `mobileNavEntries`, `editorStore`, `editorTabs`, `editorSidebar`, `editorGrouping`, `chainDocument`, `chainNoteBody`, `chainNoteReadingFlow`, `chainDateVisibility`, `chainHeaderVisibility`, `appendToChainDialog`, `activeLineHighlight`, `inlineTagEditor`, `tagSuggestions`, `pinnedChains`, `editorView` e `timelineView`.
+Exceção autorizada: `nav.test.ts` valida a busca e os 5 destinos com Editor como view inicial. Testes do editor: `navToggle`, `mobileNavEntries`, `editorStore`, `editorTabs`, `editorSidebar`, `editorGrouping`, `chainDocument`, `chainNoteBody`, `chainNoteReadingFlow`, `chainHeaderVisibility`, `appendToChainDialog`, `activeLineHighlight`, `inlineTagEditor`, `tagSuggestions`, `pinnedChains`, `editorView` e `timelineView`.

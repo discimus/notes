@@ -986,7 +986,7 @@
   margin-bottom: var(--spacing-3);
 }
 .app-shell--compact .chain-date-group__label {
-  padding: var(--spacing-1) 0;
+  padding-block: var(--spacing-1);
 }
 .app-shell--compact .chain-note {
   padding: var(--spacing-2) 0 var(--spacing-3);
