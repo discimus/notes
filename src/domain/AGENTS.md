@@ -53,6 +53,14 @@ lixeira → [excluído permanentemente via chainRepo.delete()]
 
 Não existe transição direta `arquivado → lixeira`. O código lança `InvariantViolationError` se tentar.
 
+## Importação de texto
+
+- `Chain.appendImportedText(content, createdAt?)` cria sempre uma tail `text`.
+- `Note.createTail` aceita `createdAt` opcional para importação; `updatedAt` usa a mesma data.
+- A posição continua sendo o final da cadeia; a data de origem não altera `position`.
+- `createdAt` inválido, futuro ou ausente deve ser normalizado pela camada de aplicação/importação.
+- `ImportTextNotes` anexa múltiplas tails na ordem recebida e persiste o lote uma única vez.
+
 ## Value Objects
 
 **`NotePosition`** — inteiro não-negativo. Imutável após criação.

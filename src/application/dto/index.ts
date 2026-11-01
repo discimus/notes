@@ -106,6 +106,22 @@ export interface UpdateNoteCommand {
   contentType?: NoteContentType | undefined;
 }
 
+export interface ImportTextNoteCommand {
+  chainId: UUID;
+  content: string;
+  sourceCreatedAt?: ISODateString | undefined;
+}
+
+export interface ImportTextDocumentInput {
+  content: string;
+  sourceCreatedAt?: ISODateString | undefined;
+}
+
+export interface ImportTextNotesCommand {
+  chainId: UUID;
+  documents: ImportTextDocumentInput[];
+}
+
 export interface UpdateChainTitleCommand {
   chainId: UUID;
   title?: string | undefined;

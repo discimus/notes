@@ -450,9 +450,14 @@ export class EditorStore {
   }
 
   appendNoteToChainTab(id: string, note: NoteDTO): void {
+    this.appendNotesToChainTab(id, [note]);
+  }
+
+  appendNotesToChainTab(id: string, notes: NoteDTO[]): void {
+    if (notes.length === 0) return;
     const tab = this.tabs.find((item) => item.id === id);
     if (!tab || tab.kind !== 'chain') return;
-    tab.notes = [...tab.notes, cloneNote(note)];
+    tab.notes = [...tab.notes, ...notes.map(cloneNote)];
     this.notify();
   }
 

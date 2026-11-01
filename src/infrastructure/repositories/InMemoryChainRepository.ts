@@ -44,9 +44,20 @@ export class InMemoryChainRepository implements IChainRepository, ITimelineQuery
   }
 
   async save(chain: Chain, notes: Note[]): Promise<void> {
+    const merged = new Map<string, Note>();
+    for (const note of this.chains.get(chain.id)?.notes ?? []) {
+      merged.set(note.id, Note.reconstitute(note.toData()));
+    }
+    for (const note of notes) {
+      merged.set(note.id, Note.reconstitute(note.toData()));
+    }
+    const mergedNotes = [...merged.values()].sort((a, b) =>
+      a.position.compareTo(b.position)
+    );
+
     this.chains.set(chain.id, {
-      chain: Chain.reconstitute(chain.toData(), notes.map((n) => Note.reconstitute(n.toData()))),
-      notes: notes.map((n) => Note.reconstitute(n.toData())),
+      chain: Chain.reconstitute(chain.toData(), mergedNotes),
+      notes: mergedNotes,
     });
   }
 

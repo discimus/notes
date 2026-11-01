@@ -7,7 +7,14 @@ import { showConfirmDialog } from '../components/Dialog.js';
 import { DraftStore } from '../state/DraftStore.js';
 import { pushNavigation } from '../app/navigation.js';
 import { getSettings } from '../app/settings.js';
+import {
+  prepareTextImport as prepareTextFile,
+  prepareTextImportBatch as prepareTextFileBatch,
+  type PreparedTextImport,
+  type PreparedTextImportBatch,
+} from '../app/textFileImport.js';
 import type { ChainDetailDTO, NoteContentType, NoteDTO } from '@application/dto/index.js';
+import type { ISODateString } from '@shared/types/index.js';
 
 import {
   CreateChainWithHeader,
@@ -19,6 +26,8 @@ import {
   GetChainDetails,
   SearchNotes,
   GetTimelinePage,
+  ImportTextNote,
+  ImportTextNotes,
   ArchiveChain,
   RestoreChain,
   DeleteChain,
@@ -44,6 +53,8 @@ const removeTag = new RemoveTagFromChain(chainRepo, tagRepo);
 const getChainDetails = new GetChainDetails(chainRepo, tagRepo);
 const searchNotes = new SearchNotes(chainRepo, tagRepo);
 const getTimelinePage = new GetTimelinePage(chainRepo, tagRepo);
+const importTextNoteUseCase = new ImportTextNote(chainRepo);
+const importTextNotesUseCase = new ImportTextNotes(chainRepo);
 const archiveChain = new ArchiveChain(chainRepo);
 const restoreChain = new RestoreChain(chainRepo);
 const deleteChain = new DeleteChain(chainRepo);
@@ -73,6 +84,22 @@ export interface EditorAppendSuccess {
 }
 
 export type EditorAppendResult = EditorAppendSuccess | EditorSaveFailure;
+
+export type TextImportPreparationResult =
+  | { ok: true; data: PreparedTextImport }
+  | { ok: false; error: string };
+
+export type TextImportBatchPreparationResult =
+  | { ok: true; data: PreparedTextImportBatch }
+  | { ok: false; error: string };
+
+export interface EditorBatchAppendSuccess {
+  ok: true;
+  notes: NoteDTO[];
+  chainTitle: string;
+}
+
+export type EditorBatchAppendResult = EditorBatchAppendSuccess | EditorSaveFailure;
 
 function editorErrorMessage(error: unknown): string {
   return error instanceof Error && error.message
@@ -438,6 +465,101 @@ export const AppController = {
       const message = editorErrorMessage(error);
       snackbar.error(message);
       return { ok: false, error: message };
+    }
+  },
+
+  async prepareTextImport(file: File): Promise<TextImportPreparationResult> {
+    try {
+      return { ok: true, data: await prepareTextFile(file) };
+    } catch (error: unknown) {
+      return {
+        ok: false,
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Não foi possível preparar o documento para importação.',
+      };
+    }
+  },
+
+  async importTextNote(
+    chainId: string,
+    content: string,
+    sourceCreatedAt?: ISODateString
+  ): Promise<EditorAppendResult> {
+    try {
+      const note = await importTextNoteUseCase.execute({
+        chainId,
+        content,
+        ...(sourceCreatedAt ? { sourceCreatedAt } : {}),
+      });
+      await Promise.allSettled([loadChains()]);
+
+      const chainTab = editorStore.findChainTab(chainId);
+      if (chainTab) editorStore.appendNoteToChainTab(chainTab.id, note);
+
+      const chainTitle = chainTitleById(chainId);
+      snackbar.success('Documento importado.', {
+        label: 'Abrir cadeia',
+        onClick: () => {
+          void AppController.openChainInEditor(chainId);
+        },
+      });
+      return { ok: true, note, chainTitle };
+    } catch (error: unknown) {
+      return { ok: false, error: editorErrorMessage(error) };
+    }
+  },
+
+  async prepareTextImportBatch(
+    files: File[]
+  ): Promise<TextImportBatchPreparationResult> {
+    try {
+      return { ok: true, data: await prepareTextFileBatch(files) };
+    } catch (error: unknown) {
+      return {
+        ok: false,
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Não foi possível preparar os documentos para importação.',
+      };
+    }
+  },
+
+  async importTextNotes(
+    chainId: string,
+    files: PreparedTextImport[],
+    useSourceDates: boolean
+  ): Promise<EditorBatchAppendResult> {
+    try {
+      const notes = await importTextNotesUseCase.execute({
+        chainId,
+        documents: files.map((file) => ({
+          content: file.content,
+          ...(useSourceDates && file.sourceModifiedAt
+            ? { sourceCreatedAt: file.sourceModifiedAt }
+            : {}),
+        })),
+      });
+      await Promise.allSettled([loadChains()]);
+
+      const chainTab = editorStore.findChainTab(chainId);
+      if (chainTab) editorStore.appendNotesToChainTab(chainTab.id, notes);
+
+      const chainTitle = chainTitleById(chainId);
+      snackbar.success(
+        `${notes.length} ${notes.length === 1 ? 'documento importado' : 'documentos importados'}.`,
+        {
+          label: 'Abrir cadeia',
+          onClick: () => {
+            void AppController.openChainInEditor(chainId);
+          },
+        }
+      );
+      return { ok: true, notes, chainTitle };
+    } catch (error: unknown) {
+      return { ok: false, error: editorErrorMessage(error) };
     }
   },
 

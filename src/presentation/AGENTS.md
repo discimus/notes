@@ -152,6 +152,22 @@ editorStore.flush()
 
 - Role o scroll sobre o seletor para alternar entre Texto e Código sem abrir o menu; o gesto tem cooldown para não alternar várias vezes.
 
+## Importação de documentos externos
+
+- DnD é exclusivo para arquivos externos; abas internas não são arrastáveis.
+- Destinos: item de cadeia na sidebar e área da cadeia aberta no Editor.
+- Limite: 256 KiB por arquivo, até 10 arquivos e 1 MiB por lote; UTF-8 válido, sem NUL/binário e sem conteúdo vazio.
+- Todo arquivo é tratado como texto puro; nunca renderizar o conteúdo como HTML.
+- Cada arquivo vira uma tail separada, na ordem do `FileList`.
+- Um arquivo usa `ImportTextDialog`; 2+ usam `ImportTextFilesDialog`.
+- O lote mostra HEAD de 5 linhas por arquivo e expansão para o conteúdo integral.
+- Arquivos inválidos aparecem com falha e motivo; somente válidos são importados.
+- File.lastModified é a data de cada arquivo. O switch “Usar datas dos arquivos” é global, mas cada nota recebe sua própria data; ausência/invalidez/futuro usa `now()`.
+- A nota é sempre anexada como última tail; com data antiga, aparece na timeline naquela data.
+- Fallback acessível: botão upload_file no header da cadeia abre um seletor múltiplo e usa o mesmo preview.
+- Estado de drag é local à view; não usar AppState.
+- Cobertura: `textFileImport`, `textFileImportBatch`, `importTextDialog`, `importTextFilesDialog`, `editorSidebarFileDrop`, `chainDocumentImport`, `editorImportView`, `ImportTextNote` e `ImportTextNotes`.
+
 ## Dialog e Snackbar
 
 ```typescript

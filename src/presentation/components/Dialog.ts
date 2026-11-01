@@ -82,10 +82,15 @@ function ensureGlobalEscape(): void {
  * Monta um diálogo já construído no DOM, cuidando de foco, Escape e pilha.
  * Retorna a função de destruição para ser usada pelos botões internos.
  */
+export interface MountDialogOptions {
+  canClose?: () => boolean;
+}
+
 export function mountDialog(
   backdrop: HTMLElement,
   dialog: HTMLElement,
-  onExternalClose: () => void
+  onExternalClose: () => void,
+  options: MountDialogOptions = {}
 ): () => void {
   const restoreFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
   let destroyed = false;
@@ -102,6 +107,7 @@ export function mountDialog(
   };
 
   const close = () => {
+    if (options.canClose && !options.canClose()) return;
     destroy();
     onExternalClose();
   };

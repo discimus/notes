@@ -122,6 +122,18 @@ export class Chain {
    * Garante posiÃ§Ã£o correta e atualiza o timestamp da cadeia.
    */
   appendNote(content: string, contentType?: NoteContentType): Note {
+    return this.appendNoteInternal(content, contentType);
+  }
+
+  appendImportedText(content: string, createdAt?: ISODateString): Note {
+    return this.appendNoteInternal(content, 'text', createdAt);
+  }
+
+  private appendNoteInternal(
+    content: string,
+    contentType?: NoteContentType,
+    createdAt?: ISODateString
+  ): Note {
     if (this.isArchived()) {
       throw new InvariantViolationError('NÃ£o Ã© possÃ­vel adicionar notas a uma cadeia arquivada.');
     }
@@ -135,6 +147,7 @@ export class Chain {
       chainId: this._id,
       position: nextPosition,
       ...(contentType ? { contentType } : {}),
+      ...(createdAt ? { createdAt } : {}),
     });
 
     this._notes.push(tail);

@@ -20,6 +20,8 @@ import { mountChainDocument } from '../components/ChainDocument.js';
 import type { ChainDocumentView } from '../components/ChainDocument.js';
 import { showAppendToChainDialog } from '../components/AppendToChainDialog.js';
 import { showCloseTabDialog } from '../components/CloseTabDialog.js';
+import { showImportTextDialog } from '../components/ImportTextDialog.js';
+import { showImportTextFilesDialog } from '../components/ImportTextFilesDialog.js';
 import { snackbar } from '../components/Snackbar.js';
 import { togglePinnedChain } from '../app/pinnedChains.js';
 import { el } from '../dom.js';
@@ -65,6 +67,71 @@ export function mountEditorView(
   overlay.id = 'editor-sidebar-overlay';
   overlay.hidden = true;
 
+  let importingFile = false;
+
+  const importFilesToChain = async (chainId: string, files: File[]): Promise<void> => {
+    if (importingFile || files.length === 0) return;
+
+    importingFile = true;
+    try {
+      const chainTitle =
+        appState.get().chainSummaries.find((chain) => chain.id === chainId)?.displayTitle ??
+        'Cadeia';
+
+      if (files.length === 1) {
+        const prepared = await AppController.prepareTextImport(files[0]!);
+        if (!prepared.ok) {
+          snackbar.error(prepared.error);
+          return;
+        }
+
+        await showImportTextDialog({
+          chainTitle,
+          fileName: prepared.data.fileName,
+          byteSize: prepared.data.byteSize,
+          ...(prepared.data.sourceModifiedAt
+            ? { sourceModifiedAt: prepared.data.sourceModifiedAt }
+            : {}),
+          preview: prepared.data.preview,
+          characterCount: prepared.data.characterCount,
+          truncated: prepared.data.truncated,
+          onConfirm: async (useSourceDate) => {
+            const result = await AppController.importTextNote(
+              chainId,
+              prepared.data.content,
+              useSourceDate ? prepared.data.sourceModifiedAt : undefined
+            );
+            return result.ok ? { ok: true } : { ok: false, error: result.error };
+          },
+        });
+        return;
+      }
+
+      const prepared = await AppController.prepareTextImportBatch(files);
+      if (!prepared.ok) {
+        snackbar.error(prepared.error);
+        return;
+      }
+
+      await showImportTextFilesDialog({
+        chainTitle,
+        valid: prepared.data.valid,
+        rejected: prepared.data.rejected,
+        totalBytes: prepared.data.totalBytes,
+        onConfirm: async (useSourceDates) => {
+          const result = await AppController.importTextNotes(
+            chainId,
+            prepared.data.valid,
+            useSourceDates
+          );
+          return result.ok ? { ok: true } : { ok: false, error: result.error };
+        },
+      });
+    } finally {
+      importingFile = false;
+    }
+  };
+
   const sidebarView = mountEditorSidebar({
     onOpenChain: (chainId) => {
       focusNoteEditorOnNextChain = true;
@@ -85,6 +152,9 @@ export function mountEditorView(
           .find((element) => element.dataset['chainId'] === chainId);
         item?.querySelector<HTMLButtonElement>('.chain-item__pin')?.focus();
       });
+    },
+    onImportFiles: (chainId, files) => {
+      void importFilesToChain(chainId, files);
     },
   });
 
@@ -108,6 +178,14 @@ export function mountEditorView(
   root.append(overlay, sidebarView.element, main);
   container.innerHTML = '';
   container.appendChild(root);
+
+  const preventFileNavigation = (event: DragEvent): void => {
+    if (Array.from(event.dataTransfer?.types ?? []).includes('Files')) {
+      event.preventDefault();
+    }
+  };
+  root.addEventListener('dragover', preventFileNavigation);
+  root.addEventListener('drop', preventFileNavigation);
 
   const tabsElement = main.querySelector<HTMLElement>('#editor-tabs')!;
   const documentHost = main.querySelector<HTMLElement>('#editor-document-host')!;
@@ -211,6 +289,9 @@ export function mountEditorView(
         const current = store.getTab(tab.id);
         if (!current || current.kind !== 'chain') return;
         store.setChainComposerCollapsed(tab.id, !current.composerCollapsed);
+      },
+      onImportFiles: (files) => {
+        void importFilesToChain(tab.chainId, files);
       },
     });
     activeDocument = { id: tab.id, kind: 'chain', view };

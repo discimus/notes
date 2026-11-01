@@ -25,6 +25,7 @@ export interface ChainDocumentHandlers {
   onSelectNote: (noteTabId: string) => void;
   onCloseNote: (noteTabId: string) => void;
   onToggleComposer: () => void;
+  onImportFiles?: (files: File[]) => void;
 }
 
 export interface ChainDocumentView {
@@ -190,7 +191,12 @@ export function mountChainDocument(
       <div class="chain-document__title-row">
         <h2 class="chain-document__title" contenteditable="true" role="textbox" aria-label="Título da cadeia" spellcheck="true"></h2>
         <div class="chain-document__actions">
-          <button class="btn-icon" id="chain-more" type="button" aria-label="Mais opções" title="Mais opções">
+          <button class="btn-icon" id="chain-import-file" type="button"
+            aria-label="Importar documento para esta cadeia" title="Importar documento">
+            <span class="material-symbols-rounded" aria-hidden="true">upload_file</span>
+          </button>
+          <input id="chain-file-input" type="file" multiple hidden />
+          <button class="btn-icon" id="chain-more" type="button" aria-label="Mais op�oes" title="Mais op�oes">
             <span class="material-symbols-rounded" aria-hidden="true">more_vert</span>
           </button>
         </div>
@@ -253,10 +259,18 @@ export function mountChainDocument(
         </div>
       </div>
     </div>
+
+    <div class="chain-document__drop-overlay" id="chain-drop-overlay" hidden aria-hidden="true">
+      <span class="material-symbols-rounded chain-document__drop-icon" aria-hidden="true">upload_file</span>
+      <span class="chain-document__drop-text">Solte para importar nesta cadeia</span>
+    </div>
   `;
 
   const title = root.querySelector<HTMLElement>('.chain-document__title')!;
   const more = root.querySelector<HTMLButtonElement>('#chain-more')!;
+  const importButton = root.querySelector<HTMLButtonElement>('#chain-import-file')!;
+  const fileInput = root.querySelector<HTMLInputElement>('#chain-file-input')!;
+  const dropOverlay = root.querySelector<HTMLElement>('#chain-drop-overlay')!;
   const tags = root.querySelector<HTMLElement>('#chain-tags')!;
   const count = root.querySelector<HTMLElement>('#chain-note-count')!;
   const scroll = root.querySelector<HTMLElement>('#chain-document-scroll')!;
@@ -586,8 +600,69 @@ export function mountChainDocument(
     syncNoteEditor();
   };
 
+  let fileDragDepth = 0;
+
+  const hasFilePayload = (event: DragEvent): boolean =>
+    Array.from(event.dataTransfer?.types ?? []).includes('Files');
+
+  const setDropActive = (active: boolean): void => {
+    root.classList.toggle('chain-document--drop-target', active);
+    dropOverlay.hidden = !active;
+  };
+
+  const resetFileDrag = (): void => {
+    fileDragDepth = 0;
+    setDropActive(false);
+  };
+
+  importButton.addEventListener('click', () => {
+    if (handlers.onImportFiles) fileInput.click();
+  });
+  fileInput.addEventListener('change', () => {
+    const files = fileInput.files ? [...fileInput.files] : [];
+    fileInput.value = '';
+    if (files.length > 0) handlers.onImportFiles?.(files);
+  });
+
+  root.addEventListener('dragenter', (event) => {
+    if (!handlers.onImportFiles || !hasFilePayload(event)) return;
+    event.preventDefault();
+    fileDragDepth += 1;
+    setDropActive(true);
+  });
+  root.addEventListener('dragover', (event) => {
+    if (!handlers.onImportFiles || !hasFilePayload(event)) return;
+    event.preventDefault();
+    if (event.dataTransfer) event.dataTransfer.dropEffect = 'copy';
+    setDropActive(true);
+  });
+  root.addEventListener('dragleave', (event) => {
+    if (!handlers.onImportFiles || fileDragDepth === 0) return;
+    event.preventDefault();
+    fileDragDepth = Math.max(0, fileDragDepth - 1);
+    if (fileDragDepth === 0) setDropActive(false);
+  });
+  root.addEventListener('drop', (event) => {
+    if (!handlers.onImportFiles || !hasFilePayload(event)) return;
+    event.preventDefault();
+    event.stopPropagation();
+    resetFileDrag();
+    const files = event.dataTransfer ? [...event.dataTransfer.files] : [];
+    if (files.length > 0) handlers.onImportFiles(files);
+  });
+  const resetWhenLeavingWindow = (event: DragEvent): void => {
+    if (event.relatedTarget === null) resetFileDrag();
+  };
+
+  window.addEventListener('dragend', resetFileDrag);
+  window.addEventListener('drop', resetFileDrag, true);
+  window.addEventListener('dragleave', resetWhenLeavingWindow);
+
   const destroy = (): void => {
     if (titleTimer) clearTimeout(titleTimer);
+    window.removeEventListener('dragend', resetFileDrag);
+    window.removeEventListener('drop', resetFileDrag, true);
+    window.removeEventListener('dragleave', resetWhenLeavingWindow);
     contentTypeMenu.destroy();
     activeLine.destroy();
     tagEditor.destroy();

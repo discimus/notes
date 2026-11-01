@@ -8,6 +8,8 @@ export { GetChainDetails } from './GetChainDetails.js';
 export { SearchNotes } from './SearchNotes.js';
 export { GetChronologicalTimeline } from './GetChronologicalTimeline.js';
 export { GetTimelinePage } from './GetTimelinePage.js';
+export { ImportTextNote } from './ImportTextNote.js';
+export { ImportTextNotes } from './ImportTextNotes.js';
 export { ArchiveChain } from './ArchiveChain.js';
 export { RestoreChain } from './RestoreChain.js';
 export { DeleteChain } from './DeleteChain.js';

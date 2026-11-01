@@ -62,3 +62,16 @@ Ao adicionar campo obrigatÃ³rio a uma entidade existente:
 - `contentType` é opcional no registro persistido; notas antigas são lidas como `text` por `Note.reconstitute`.
 - Não é necessário incrementar `DB_VERSION`: não há índice nem store novo.
 - Novas notas e atualizações gravam o campo via `Note.toData()`.
+
+## Importação de texto
+
+- `ImportTextNote` usa `saveNote` e `saveChainOnly`; não há store nem índice novo.
+- `createdAt`/`updatedAt` de importação reaproveitam os campos existentes em `NoteData`.
+- Notas importadas continuam ordenadas por `position` para append e por `createdAt` nas views de timeline/histórico.
+
+## Importação em lote
+
+- `ImportTextNotes` usa `chainRepo.save(chain, notes)` uma única vez para persistir o lote.
+- `IdbChainRepository.save` grava cadeia e notas na mesma transação.
+- `InMemoryChainRepository.save` faz merge das notas existentes e ordena por `position`, alinhado ao IDB.
+- Não há store, índice ou migração novos.

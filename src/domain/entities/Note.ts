@@ -81,6 +81,7 @@ export class Note {
     chainId: UUID;
     position: number;
     contentType?: NoteContentType;
+    createdAt?: ISODateString;
   }): Note {
     if (!params.content.trim()) {
       throw new ValidationError('O conteúdo da nota não pode ser vazio.');
@@ -89,7 +90,7 @@ export class Note {
       throw new ValidationError('A posição de uma tail deve ser maior que 0.');
     }
     const contentType = params.contentType ?? 'text';
-    const ts = now();
+    const ts = params.createdAt ?? now();
     return new Note({
       id: generateId(),
       content: normalizedContent(params.content, contentType),

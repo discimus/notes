@@ -9,6 +9,7 @@ export interface EditorSidebarHandlers {
   onNewChain: () => void;
   onFilter: (query: string) => void;
   onTogglePin: (chainId: string) => void;
+  onImportFiles?: (chainId: string, files: File[]) => void;
 }
 
 export interface EditorSidebarView {
@@ -59,12 +60,66 @@ export function mountEditorSidebar(handlers: EditorSidebarHandlers): EditorSideb
     .querySelector<HTMLButtonElement>('#editor-new-chain')
     ?.addEventListener('click', handlers.onNewChain);
 
+  let dropTarget: HTMLElement | null = null;
+
+  const hasFilePayload = (event: DragEvent): boolean =>
+    Array.from(event.dataTransfer?.types ?? []).includes('Files');
+
+  const clearDropTarget = (): void => {
+    dropTarget?.classList.remove('chain-item--drop-target');
+    dropTarget = null;
+  };
+
+  const setDropTarget = (item: HTMLElement | null): void => {
+    if (dropTarget === item) return;
+    clearDropTarget();
+    dropTarget = item;
+    dropTarget?.classList.add('chain-item--drop-target');
+  };
+
+  list.addEventListener('dragover', (event) => {
+    if (!handlers.onImportFiles || !hasFilePayload(event)) return;
+    const item = (event.target as HTMLElement | null)?.closest<HTMLElement>('.chain-item');
+    if (!item) {
+      clearDropTarget();
+      return;
+    }
+    event.preventDefault();
+    if (event.dataTransfer) event.dataTransfer.dropEffect = 'copy';
+    setDropTarget(item);
+  });
+
+  list.addEventListener('dragleave', (event) => {
+    if (!handlers.onImportFiles) return;
+    const related = event.relatedTarget;
+    if (related instanceof Node && list.contains(related)) return;
+    clearDropTarget();
+  });
+
+  list.addEventListener('drop', (event) => {
+    if (!handlers.onImportFiles || !hasFilePayload(event)) return;
+    event.preventDefault();
+    const item = (event.target as HTMLElement | null)?.closest<HTMLElement>('.chain-item');
+    if (!item) {
+      clearDropTarget();
+      return;
+    }
+
+    event.stopPropagation();
+    clearDropTarget();
+
+    const chainId = item.dataset['chainId'];
+    const files = event.dataTransfer ? [...event.dataTransfer.files] : [];
+    if (chainId && files.length > 0) handlers.onImportFiles(chainId, files);
+  });
+
   const update = (state: AppState, activeChainId: string | null): void => {
     if (search.value !== state.chainFilterQuery) {
       search.value = state.chainFilterQuery;
     }
     clear.hidden = !state.chainFilterQuery.trim();
 
+    clearDropTarget();
     list.innerHTML = '';
 
     if (state.isLoading && state.chainSummaries.length === 0) {
