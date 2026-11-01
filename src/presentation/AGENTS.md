@@ -141,16 +141,17 @@ editorStore.flush()
 
 ## Ações rápidas da cadeia
 
-- O `ChainDocument` usa um footer absoluto, centralizado no fundo e fora da área de scroll; o próprio documento reserva `--chain-fab-clearance` para não cobrir o compositor.
+- O `ChainDocument` usa um footer absoluto, centralizado no fundo e fora da área de scroll. No modo leitura (`chain-document--notes-collapsed`), o documento não reserva faixa inferior: o scroll ocupa a altura toda e o conteúdo passa atrás do footer transparente, com `--chain-actions-overlay-space` no padding inferior do scroll. Com o compositor aberto, `--chain-fab-clearance` continua reservando espaço para não cobrir o compositor.
 - As ações são FABs MD3 com 56×56, raio de 16dp, elevação `level-1`, `surface-container-high` e state layer de 8%/12%; apenas `Documento` é funcional.
 - O FAB principal usa `primary-container`/`on-primary-container`; ícone e descrição ficam empilhados, com a descrição abaixo.
 - Imagem, áudio e link ficam `disabled` com indicação `Em breve`.
+- No modo leitura, as labels das ações usam um chip discreto de `surface-container-lowest` para manter contraste sobre o conteúdo que passa atrás.
 - `Documento` alterna o compositor: expande, reutiliza uma nota pendente vazia via `ensureChainNoteTab` e foca o textarea; se já estiver aberto, recolhe.
 - Um `pointerdown` fora do `.chain-composer` recolhe o compositor para liberar a leitura da cadeia; cliques no FAB e em menus, diálogos, listboxes e snackbars são ignorados.
 - Não existe mais o header “Notas em edição”; `aria-expanded` e `aria-controls` do FAB controlam o `#chain-composer-body`.
 - Abrir uma cadeia pelo `AppController` usa `openChainTab(chainId, title, { composerCollapsed: true })`.
 - O dot badge `#chain-unsaved-badge` aparece quando há nota pendente não salva; o `aria-label` da ação informa a contagem.
-- Ao rolar para baixo (`scrollTop > 24` e delta > 4), o footer recebe `chain-document--actions-compact`: os FABs diminuem, as descrições são ocultadas e `--chain-fab-clearance` encolhe para 64px.
+- Ao rolar para baixo (`scrollTop > 24` e delta > 4), o footer recebe `chain-document--actions-compact`: os FABs diminuem, as descrições são ocultadas e `--chain-fab-clearance` encolhe para 64px quando o compositor está aberto. No modo leitura, a reserva do scroll permanece fixa em `--chain-actions-overlay-space`.
 - Ao rolar para cima pelo menos 8 px, a expansão ocorre depois de 120 ms; no topo (`scrollTop <= 8`) a expansão é imediata.
 - Rolagem programática inicial até a última nota é ignorada pela lógica de compactação.
 - O estado vazio do Editor ("Nenhum documento aberto") reutiliza o mesmo grupo de ações via `QuickActions`, sem badge, `aria-controls` ou `aria-expanded`; `Documento` cria um rascunho.
