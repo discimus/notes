@@ -1888,6 +1888,7 @@
 .chain-document__history {
   width: 100%;
   max-width: var(--chain-note-measure);
+  margin-inline: auto;
   padding-bottom: var(--chain-actions-overlay-space);
 }
 .period-menu {
@@ -2272,19 +2273,6 @@
   outline-offset: 2px;
 }
 @container (min-width: 640px) {
-  .chain-document .chain-composer {
-    top: 0;
-    bottom: 0;
-    left: auto;
-    right: 0;
-    width: 62%;
-    height: 100%;
-    max-height: none;
-    padding-bottom: 0;
-    border-top: 0;
-    border-left: 1px solid var(--md-sys-color-outline-variant);
-    border-radius: 0;
-  }
   .chain-note__body {
     cursor: pointer;
     border-radius: var(--md-sys-shape-corner-medium);
@@ -2369,6 +2357,56 @@
 }
 .chain-document:not(.chain-document--notes-collapsed) .chain-document__footer {
   display: none;
+}
+@container (min-width: 800px) {
+  .chain-document .chain-document__body,
+  .chain-document.chain-document--notes-collapsed .chain-document__body {
+    display: flex;
+    flex-direction: row;
+  }
+  .chain-document .chain-document__scroll {
+    flex: 0 0 100%;
+    min-width: 0;
+    transition: flex-basis var(--md-sys-motion-duration-medium2)
+      var(--md-sys-motion-easing-emphasized);
+  }
+  .chain-document:not(.chain-document--notes-collapsed)
+    .chain-document__scroll {
+    flex-basis: 38%;
+  }
+  .chain-document .chain-composer {
+    position: relative;
+    inset: auto;
+    z-index: 1;
+    flex: 0 0 0;
+    width: auto;
+    height: auto;
+    max-height: none;
+    min-width: 0;
+    padding-bottom: 0;
+    border-top: 0;
+    border-left: 1px solid transparent;
+    border-radius: 0;
+    box-shadow: none;
+    opacity: 0;
+    pointer-events: none;
+    transition:
+      flex-basis var(--md-sys-motion-duration-medium2)
+        var(--md-sys-motion-easing-emphasized),
+      opacity var(--md-sys-motion-duration-medium2)
+        var(--md-sys-motion-easing-emphasized),
+      border-color var(--md-sys-motion-duration-medium2)
+        var(--md-sys-motion-easing-emphasized);
+  }
+  .chain-document.chain-document--notes-collapsed .chain-composer {
+    display: flex;
+  }
+  .chain-document:not(.chain-document--notes-collapsed) .chain-composer {
+    flex-basis: 62%;
+    border-left-color: var(--md-sys-color-outline-variant);
+    opacity: 1;
+    pointer-events: auto;
+  }
 }
 .chain-composer__input {
   position: relative;
