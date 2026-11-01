@@ -10,11 +10,18 @@ import type {
   ITimelineQueryRepository,
   TimelinePageQuery,
   TimelinePageResult,
+  ISearchQueryRepository,
+  SearchPageQuery,
+  SearchPageResult,
 } from '@domain/repositories/index.js';
+import type { SearchResult } from '@domain/services/index.js';
+import { rankSearchResult } from '@domain/services/index.js';
 import type { UUID } from '@shared/types/index.js';
 import { normalizeText } from '@shared/utilities/index.js';
 
-export class IdbChainRepository implements IChainRepository, ITimelineQueryRepository {
+export class IdbChainRepository
+  implements IChainRepository, ITimelineQueryRepository, ISearchQueryRepository
+{
   private async db(): Promise<IDBPDatabase<ThreadNotesDB>> {
     return getDatabase();
   }
@@ -249,6 +256,74 @@ export class IdbChainRepository implements IChainRepository, ITimelineQueryRepos
 
     await tx.done;
     return { entries, total };
+  }
+
+  async searchNotesPage(query: SearchPageQuery): Promise<SearchPageResult> {
+    const db = await this.db();
+    const normalizedQuery = normalizeText(query.query);
+    if (!normalizedQuery) return { results: [], hasMore: false };
+
+    const allChains = await db.getAll('chains');
+    const activeChains = allChains.filter(
+      (chain) => !chain.deletedAt && !chain.archivedAt
+    );
+    if (activeChains.length === 0) return { results: [], hasMore: false };
+
+    const chainTitles = new Map<string, string>();
+    await Promise.all(
+      activeChains.map(async (chain) => {
+        const header = chain.headerNoteId
+          ? await db.get('notes', chain.headerNoteId)
+          : undefined;
+        const title =
+          chain.title ??
+          header?.title ??
+          header?.content.split(/\r?\n/)[0] ??
+          'Cadeia';
+        chainTitles.set(chain.id, title);
+      })
+    );
+
+    const tagChainIds = new Set(query.tagChainIds ?? []);
+    const tagNoteIds = new Set(query.tagNoteIds ?? []);
+    const results: SearchResult[] = [];
+    const offset = Math.max(0, query.offset);
+    const limit = Math.max(1, query.limit);
+
+    const tx = db.transaction('notes');
+    let cursor = await tx.store.index('by-createdAt').openCursor();
+    while (cursor) {
+      const note = cursor.value;
+      const chainTitle = chainTitles.get(note.chainId);
+      if (chainTitle) {
+        const result = rankSearchResult(normalizedQuery, {
+          noteId: note.id,
+          chainId: note.chainId,
+          chainTitle,
+          content: note.content,
+          ...(note.title ? { title: note.title } : {}),
+          noteCreatedAt: note.createdAt,
+          noteRole: note.role,
+          chainTagMatch:
+            note.role === 'header' && tagChainIds.has(note.chainId),
+          noteTagMatch: tagNoteIds.has(note.id),
+        });
+        if (result) results.push(result);
+      }
+      cursor = await cursor.continue();
+    }
+    await tx.done;
+
+    results.sort((a, b) => {
+      if (b.score !== a.score) return b.score - a.score;
+      const dateDiff = b.noteCreatedAt.localeCompare(a.noteCreatedAt);
+      return dateDiff !== 0 ? dateDiff : a.noteId.localeCompare(b.noteId);
+    });
+
+    return {
+      results: results.slice(offset, offset + limit),
+      hasMore: results.length > offset + limit,
+    };
   }
 
   async countByTagId(tagId: UUID): Promise<number> {

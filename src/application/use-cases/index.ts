@@ -10,6 +10,7 @@ export { AssignTagToNote } from './AssignTagToNote.js';
 export { RemoveTagFromNote } from './RemoveTagFromNote.js';
 export { GetChainDetails } from './GetChainDetails.js';
 export { SearchNotes } from './SearchNotes.js';
+export { SearchNotesPage } from './SearchNotesPage.js';
 export { GetChronologicalTimeline } from './GetChronologicalTimeline.js';
 export { GetTimelinePage } from './GetTimelinePage.js';
 export { ImportTextNote } from './ImportTextNote.js';

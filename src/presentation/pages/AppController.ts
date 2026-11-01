@@ -39,7 +39,7 @@ import {
   AssignTagToNote,
   RemoveTagFromNote,
   GetChainDetails,
-  SearchNotes,
+  SearchNotesPage,
   GetTimelinePage,
   ImportTextNote,
   ImportTextNotes,
@@ -75,8 +75,9 @@ const removeTag = new RemoveTagFromChain(chainRepo, tagRepo);
 const assignNoteTag = new AssignTagToNote(chainRepo, tagRepo);
 const removeNoteTag = new RemoveTagFromNote(chainRepo, tagRepo);
 const getChainDetails = new GetChainDetails(chainRepo, tagRepo, attachmentRepo);
-const searchNotes = new SearchNotes(chainRepo, tagRepo);
+const searchNotesPage = new SearchNotesPage(chainRepo, tagRepo);
 const getTimelinePage = new GetTimelinePage(chainRepo, tagRepo);
+let searchRequestId = 0;
 const importTextNoteUseCase = new ImportTextNote(chainRepo);
 const importTextNotesUseCase = new ImportTextNotes(chainRepo);
 const archiveChain = new ArchiveChain(chainRepo);
@@ -934,13 +935,81 @@ export const AppController = {
     }
   },
 
+  clearSearch(): void {
+    searchRequestId += 1;
+    appState.set({
+      searchQuery: '',
+      searchResults: [],
+      searchLoadedOffset: 0,
+      searchHasMore: false,
+      searchIsLoadingMore: false,
+      isLoading: false,
+    });
+  },
+
   async search(query: string): Promise<void> {
-    appState.set({ searchQuery: query, view: 'search', isLoading: true });
+    const requestId = ++searchRequestId;
+    const limit = appState.get().searchPageSize;
+    appState.set({
+      searchQuery: query,
+      view: 'search',
+      isLoading: true,
+      searchResults: [],
+      searchLoadedOffset: 0,
+      searchHasMore: false,
+      searchIsLoadingMore: false,
+    });
     try {
-      const results = await searchNotes.execute({ query });
-      appState.set({ searchResults: results, isLoading: false });
+      const page = await searchNotesPage.execute({ query, offset: 0, limit });
+      if (requestId !== searchRequestId) return;
+      appState.set({
+        searchResults: page.results,
+        searchLoadedOffset: page.offset + page.results.length,
+        searchHasMore: page.hasMore,
+        isLoading: false,
+      });
     } catch (e: unknown) {
-      appState.set({ isLoading: false });
+      if (requestId !== searchRequestId) return;
+      appState.set({ isLoading: false, searchHasMore: false });
+      snackbar.error((e as Error).message);
+    }
+  },
+
+  async loadMoreSearch(): Promise<void> {
+    const state = appState.get();
+    if (
+      state.view !== 'search' ||
+      state.isLoading ||
+      state.searchIsLoadingMore ||
+      !state.searchHasMore ||
+      !state.searchQuery.trim()
+    ) {
+      return;
+    }
+
+    const requestId = ++searchRequestId;
+    const offset = state.searchLoadedOffset;
+    appState.set({ searchIsLoadingMore: true });
+    try {
+      const page = await searchNotesPage.execute({
+        query: state.searchQuery,
+        offset,
+        limit: state.searchPageSize,
+      });
+      if (requestId !== searchRequestId) return;
+      const seen = new Set(state.searchResults.map((result) => result.noteId));
+      const appended = page.results.filter(
+        (result) => !seen.has(result.noteId)
+      );
+      appState.set({
+        searchResults: [...state.searchResults, ...appended],
+        searchLoadedOffset: page.offset + page.results.length,
+        searchHasMore: page.hasMore,
+        searchIsLoadingMore: false,
+      });
+    } catch (e: unknown) {
+      if (requestId !== searchRequestId) return;
+      appState.set({ searchIsLoadingMore: false });
       snackbar.error((e as Error).message);
     }
   },

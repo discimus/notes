@@ -34,6 +34,10 @@ export interface AppState {
   chainFilterQuery: string;
   searchQuery: string;
   searchResults: SearchResultDTO[];
+  searchLoadedOffset: number;
+  searchPageSize: number;
+  searchHasMore: boolean;
+  searchIsLoadingMore: boolean;
   timelineEntries: TimelineEntryDTO[];
   timelineTotal: number;
   timelineLoadedOffset: number;
@@ -66,6 +70,10 @@ class AppStateStore {
     chainFilterQuery: '',
     searchQuery: '',
     searchResults: [],
+    searchLoadedOffset: 0,
+    searchPageSize: 10,
+    searchHasMore: false,
+    searchIsLoadingMore: false,
     timelineEntries: [],
     timelineTotal: 0,
     timelineLoadedOffset: 0,

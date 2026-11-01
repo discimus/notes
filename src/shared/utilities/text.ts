@@ -32,19 +32,86 @@ export function isNonEmpty(text: string): boolean {
   return text.trim().length > 0;
 }
 
+interface NormalizedTextMap {
+  text: string;
+  starts: number[];
+  ends: number[];
+}
+
+function foldCharacter(character: string): string {
+  return character
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+}
+
+function normalizeWithMap(input: string): NormalizedTextMap {
+  let text = '';
+  const starts: number[] = [];
+  const ends: number[] = [];
+  let whitespaceIndex: number | undefined;
+  let index = 0;
+
+  while (index < input.length) {
+    const codePoint = input.codePointAt(index);
+    if (codePoint === undefined) break;
+    const original = String.fromCodePoint(codePoint);
+    const isWhitespace = /\s/.test(original);
+
+    if (isWhitespace) {
+      if (whitespaceIndex === undefined) {
+        whitespaceIndex = starts.length;
+        text += ' ';
+        starts.push(index);
+        ends.push(index + original.length);
+      } else {
+        ends[whitespaceIndex] = index + original.length;
+      }
+    } else {
+      whitespaceIndex = undefined;
+      for (const character of foldCharacter(original)) {
+        text += character;
+        starts.push(index);
+        ends.push(index + original.length);
+      }
+    }
+
+    index += original.length;
+  }
+
+  let from = 0;
+  let to = text.length;
+  while (from < to && text[from] === ' ') from += 1;
+  while (to > from && text[to - 1] === ' ') to -= 1;
+
+  return {
+    text: text.slice(from, to),
+    starts: starts.slice(from, to),
+    ends: ends.slice(from, to),
+  };
+}
+
 /** Destaca ocorrências de um termo em um texto (retorna HTML seguro) */
 export function highlightMatch(text: string, query: string): string {
   if (!query.trim()) return escapeHtml(text);
   const normalized = normalizeText(query);
+  if (!normalized) return escapeHtml(text);
   const parts: string[] = [];
   let lastIndex = 0;
-  const normalizedText = normalizeText(text);
-  let idx = normalizedText.indexOf(normalized);
+  const mapped = normalizeWithMap(text);
+  let idx = mapped.text.indexOf(normalized);
+  let searchFrom = 0;
+
   while (idx !== -1) {
-    parts.push(escapeHtml(text.slice(lastIndex, idx)));
-    parts.push(`<mark>${escapeHtml(text.slice(idx, idx + normalized.length))}</mark>`);
-    lastIndex = idx + normalized.length;
-    idx = normalizedText.indexOf(normalized, lastIndex);
+    const start = mapped.starts[idx];
+    const end = mapped.ends[idx + normalized.length - 1];
+    if (start === undefined || end === undefined) break;
+
+    parts.push(escapeHtml(text.slice(lastIndex, start)));
+    parts.push(`<mark>${escapeHtml(text.slice(start, end))}</mark>`);
+    lastIndex = end;
+    searchFrom = idx + normalized.length;
+    idx = mapped.text.indexOf(normalized, searchFrom);
   }
   parts.push(escapeHtml(text.slice(lastIndex)));
   return parts.join('');

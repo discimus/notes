@@ -625,6 +625,12 @@
   color: var(--md-sys-color-on-surface-variant);
   margin-top: var(--spacing-1);
 }
+.search-results__loading {
+  padding: var(--spacing-4);
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: var(--md-sys-typescale-body-small-size);
+  text-align: center;
+}
 
 /* ── Timeline Selection ─────────────────────────────────── */
 .chain-selector {

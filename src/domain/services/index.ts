@@ -1,3 +1,3 @@
 export { TimelineService } from './TimelineService.js';
-export { SearchService } from './SearchService.js';
-export type { SearchResult } from './SearchService.js';
+export { SearchService, rankSearchResult } from './SearchService.js';
+export type { SearchRankInput, SearchResult } from './SearchService.js';

@@ -115,6 +115,13 @@ export interface SearchResultDTO {
   matchType: string;
 }
 
+export interface SearchPageDTO {
+  results: SearchResultDTO[];
+  offset: number;
+  limit: number;
+  hasMore: boolean;
+}
+
 // ── Input Commands ─────────────────────────────────────────────────────────
 
 export interface CreateChainCommand {
@@ -216,4 +223,10 @@ export interface GetTimelinePageCommand {
 
 export interface SearchCommand {
   query: string;
+}
+
+export interface SearchPageCommand {
+  query: string;
+  offset: number;
+  limit: number;
 }

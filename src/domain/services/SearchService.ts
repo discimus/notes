@@ -14,10 +14,64 @@ export interface SearchResult {
   score: number;
 }
 
+export interface SearchRankInput {
+  noteId: string;
+  chainId: string;
+  chainTitle: string;
+  content: string;
+  title?: string | undefined;
+  noteCreatedAt: string;
+  noteRole: string;
+  chainTagMatch: boolean;
+  noteTagMatch: boolean;
+}
+
+export function rankSearchResult(
+  normalizedQuery: string,
+  input: SearchRankInput
+): SearchResult | null {
+  const normalizedContent = normalizeText(input.content);
+  const normalizedTitle = input.title ? normalizeText(input.title) : '';
+
+  let score = 0;
+  let matchType: SearchResult['matchType'] = 'content';
+
+  if (normalizedTitle.includes(normalizedQuery)) {
+    score += 3;
+    matchType = 'title';
+  }
+  if (normalizedContent.includes(normalizedQuery)) {
+    score += 2;
+    matchType = matchType === 'title' ? 'title' : 'content';
+  }
+  if (input.chainTagMatch) {
+    score += 1;
+    matchType = score === 1 ? 'tag' : matchType;
+  }
+  if (input.noteTagMatch) {
+    score += 1;
+    matchType = score === 1 ? 'tag' : matchType;
+  }
+
+  if (score === 0) return null;
+
+  return {
+    noteId: input.noteId,
+    chainId: input.chainId,
+    chainTitle: input.chainTitle,
+    snippet: excerpt(input.content, 150),
+    noteContent: input.content,
+    noteCreatedAt: input.noteCreatedAt,
+    noteRole: input.noteRole,
+    matchType,
+    score,
+  };
+}
+
 /**
- * Serviço de domínio: SearchService.
- * Pesquisa textual sobre notas, títulos e tags.
- * Determinístico e sem dependências externas.
+ * ServiA�o de domA-nio: SearchService.
+ * Pesquisa textual sobre notas, tA-tulos e tags.
+ * DeterminA-stico e sem dependA�ncias externas.
  */
 export class SearchService {
   search(
@@ -35,52 +89,26 @@ export class SearchService {
       if (chain.isDeleted()) continue;
 
       const chainTags = tagsByChainId.get(chain.id) ?? [];
-
-      // Busca em tags da cadeia
-      const tagMatch = chainTags.some((t) =>
-        t.name.normalized.includes(normalizedQuery)
+      const chainTagMatch = chainTags.some((tag) =>
+        tag.name.normalized.includes(normalizedQuery)
       );
 
       for (const note of chain.notes) {
-        const normalizedContent = normalizeText(note.content);
-        const normalizedTitle = note.title ? normalizeText(note.title) : '';
         const noteTagMatch = (tagsByNoteId.get(note.id) ?? []).some((tag) =>
           tag.name.normalized.includes(normalizedQuery)
         );
-
-        let score = 0;
-        let matchType: SearchResult['matchType'] = 'content';
-
-        if (normalizedTitle.includes(normalizedQuery)) {
-          score += 3;
-          matchType = 'title';
-        }
-        if (normalizedContent.includes(normalizedQuery)) {
-          score += 2;
-          matchType = matchType === 'title' ? 'title' : 'content';
-        }
-        if (tagMatch && note.isHeader()) {
-          score += 1;
-          matchType = score === 1 ? 'tag' : matchType;
-        }
-        if (noteTagMatch) {
-          score += 1;
-          matchType = score === 1 ? 'tag' : matchType;
-        }
-
-        if (score === 0) continue;
-
-        results.push({
+        const result = rankSearchResult(normalizedQuery, {
           noteId: note.id,
           chainId: chain.id,
           chainTitle: chain.displayTitle,
-          snippet: excerpt(note.content, 150),
-          noteContent: note.content,
+          content: note.content,
+          ...(note.title ? { title: note.title } : {}),
           noteCreatedAt: note.createdAt,
           noteRole: note.role,
-          matchType,
-          score,
+          chainTagMatch: chainTagMatch && note.isHeader(),
+          noteTagMatch,
         });
+        if (result) results.push(result);
       }
     }
 

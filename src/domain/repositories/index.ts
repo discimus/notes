@@ -2,6 +2,11 @@ export type { IChainRepository, IChainReadModel, ChainSortOrder, ChainFilter } f
 export type { ITagRepository } from './ITagRepository.js';
 export type { IAttachmentRepository } from './IAttachmentRepository.js';
 export type {
+  ISearchQueryRepository,
+  SearchPageQuery,
+  SearchPageResult,
+} from './ISearchQueryRepository.js';
+export type {
   ITimelineQueryRepository,
   TimelinePageQuery,
   TimelinePageResult,
