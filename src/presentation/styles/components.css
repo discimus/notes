@@ -1629,6 +1629,11 @@
 .chain-note__edit .material-symbols-rounded {
   font-size: 18px;
 }
+.chain-note__body {
+  padding: var(--spacing-3) var(--spacing-4);
+  border-radius: var(--md-sys-shape-corner-medium);
+  background-color: var(--md-sys-color-surface-container-low);
+}
 .chain-note__text {
   color: var(--md-sys-color-on-surface);
   font-size: var(--md-sys-typescale-body-large-size);
@@ -2066,9 +2071,6 @@
   white-space: pre-wrap;
 }
 .chain-note__text--code {
-  padding: var(--spacing-3);
-  border-radius: var(--md-sys-shape-corner-small);
-  background-color: var(--md-sys-color-surface-container-low);
   font-family: var(--md-sys-font-mono);
   font-size: var(--md-sys-typescale-body-medium-size);
   line-height: 1.6;

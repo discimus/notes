@@ -173,7 +173,9 @@ function renderNote(note: NoteDTO, chainId: string): HTMLElement {
     else startNoteEdit(text, note, chainId);
   });
 
-  article.append(meta, text);
+  const body = el('div', 'chain-note__body');
+  body.appendChild(text);
+  article.append(meta, body);
   return article;
 }
 

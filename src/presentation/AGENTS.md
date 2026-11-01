@@ -242,6 +242,7 @@ Ações destrutivas **sempre** pedem confirmação via `showConfirmDialog` antes
 - O header do `ChainDocument` não repete o título; exibe tags, contador, Importar e Mais.
 - Cobertura: `editorTabRename`, `chainMenuRename` e `editorChainRename`.
 - O rodapé de notas da cadeia é colapsável. `ChainTab.composerCollapsed` é persistido por aba; `aria-expanded`, `aria-controls` e `hidden` controlam a acessibilidade. Quando recolhido, o histórico ocupa o espaço liberado.
+- O corpo de cada nota usa `.chain-note__body` com `surface-container-low`, padding e canto MD3; metadados permanecem fora dessa superfície. Código mantém apenas tipografia mono/badge, sem fundo duplicado.
 
 ## Renderização DOM — sem framework
 
