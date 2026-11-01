@@ -97,6 +97,17 @@ export interface CreateChainTitleCommand {
   title: string;
 }
 
+export interface CreateChainWithNoteCommand {
+  title: string;
+  content: string;
+  contentType?: NoteContentType | undefined;
+}
+
+export interface CreateChainWithNoteResult {
+  chain: ChainDetailDTO;
+  note: NoteDTO;
+}
+
 export interface AppendNoteCommand {
   chainId: UUID;
   content: string;

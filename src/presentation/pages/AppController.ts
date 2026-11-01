@@ -19,6 +19,7 @@ import type { ISODateString } from '@shared/types/index.js';
 import {
   CreateChain,
   CreateChainWithHeader,
+  CreateChainWithNote,
   AppendNoteToChain,
   UpdateNoteContent,
   UpdateChainTitle,
@@ -47,6 +48,7 @@ const tagRepo = new IdbTagRepository();
 // Use cases
 const createEmptyChain = new CreateChain(chainRepo);
 const createChainWithHeader = new CreateChainWithHeader(chainRepo, tagRepo);
+const createChainWithNoteUseCase = new CreateChainWithNote(chainRepo);
 const appendNote = new AppendNoteToChain(chainRepo);
 const updateNote = new UpdateNoteContent(chainRepo);
 const updateTitle = new UpdateChainTitle(chainRepo);
@@ -370,6 +372,35 @@ export const AppController = {
       };
 
       return { ok: true, target, chainTitle: result.displayTitle, note: header };
+    } catch (error: unknown) {
+      const message = editorErrorMessage(error);
+      snackbar.error(message);
+      return { ok: false, error: message };
+    }
+  },
+
+  async createChainWithNote(
+    title: string,
+    content: string,
+    contentType?: NoteContentType
+  ): Promise<EditorSaveResult> {
+    try {
+      const result = await createChainWithNoteUseCase.execute({
+        title,
+        content,
+        ...(contentType ? { contentType } : {}),
+      });
+      await Promise.allSettled([loadChains()]);
+
+      const chainTitle = result.chain.displayTitle;
+      const target: EditorTarget = {
+        chainId: result.chain.id,
+        noteId: result.note.id,
+        role: result.note.role,
+        chainTitle,
+      };
+
+      return { ok: true, target, chainTitle, note: result.note };
     } catch (error: unknown) {
       const message = editorErrorMessage(error);
       snackbar.error(message);

@@ -104,6 +104,16 @@ editorStore.flush()
 - O botão “Nova cadeia” do compositor legado abre o mesmo modal.
 - Cobertura: `createChainDialog`, `HeaderlessChain`, `CreateEmptyChain` e `emptyChainDocument`.
 
+## Salvar rascunho em uma cadeia
+
+- `AppendToChainDialog` busca cadeias com `normalizeText`.
+- Texto digitado sem correspondência exata exibe `Criar cadeia`; o clique cria e salva imediatamente.
+- Correspondência exata normalizada oculta a criação para evitar duplicata.
+- `Enter` confirma a seleção/correspondência exata ou cria a nova cadeia quando aplicável.
+- Criação usa `CreateChainWithNote` para persistir cadeia + primeira tail atomicamente.
+- A nova cadeia é headerless; a nota fica na posição 1.
+- Cobertura: `appendToChainDialogCreate`, `CreateChainWithNote` e `editorCreateChainFromDraft`.
+
 ## Timeline paginada
 
 - A timeline é montada somente após o usuário selecionar ao menos uma cadeia; não há botão “Ver cronologia”.

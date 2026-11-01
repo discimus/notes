@@ -479,22 +479,32 @@ export function mountEditorView(
         return true;
       }
 
-      const chain = await showAppendToChainDialog({
+      const choice = await showAppendToChainDialog({
         chains: appState.get().chainSummaries,
       });
-      if (!chain) return false;
+      if (!choice) return false;
 
-      const result =
-        contentType === 'code'
-          ? await AppController.saveEditorToChain(chain.chainId, content, contentType)
-          : await AppController.saveEditorToChain(chain.chainId, content);
+      const result = choice.chainId === null
+        ? await AppController.createChainWithNote(
+            choice.createTitle,
+            content,
+            contentType
+          )
+        : contentType === 'code'
+          ? await AppController.saveEditorToChain(choice.chainId, content, contentType)
+          : await AppController.saveEditorToChain(choice.chainId, content);
       if (!result.ok) return false;
 
       store.markDraftSaved(id, result.target, content);
-      snackbar.success('Nota adicionada à cadeia.', {
-        label: 'Abrir cadeia',
-        onClick: () => openChainAction(result.target.chainId),
-      });
+      snackbar.success(
+        choice.chainId === null
+          ? 'Cadeia criada e nota adicionada.'
+          : 'Nota adicionada à cadeia.',
+        {
+          label: 'Abrir cadeia',
+          onClick: () => openChainAction(result.target.chainId),
+        }
+      );
       return true;
     } finally {
       saving = false;

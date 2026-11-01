@@ -1,12 +1,23 @@
 import type { ChainSummaryDTO } from '@application/dto/index.js';
-import { formatDateCompact } from '@shared/utilities/index.js';
+import { escapeHtml, formatDateCompact, normalizeText } from '@shared/utilities/index.js';
 import { el } from '../dom.js';
 import { mountDialog } from './Dialog.js';
 
-export interface AppendToChainChoice {
+export interface ExistingAppendToChainChoice {
   chainId: string;
   chainTitle: string;
+  createTitle?: undefined;
 }
+
+export interface NewAppendToChainChoice {
+  chainId: null;
+  chainTitle: string;
+  createTitle: string;
+}
+
+export type AppendToChainChoice =
+  | ExistingAppendToChainChoice
+  | NewAppendToChainChoice;
 
 export interface AppendToChainDialogOptions {
   chains: ChainSummaryDTO[];
@@ -22,6 +33,7 @@ export function showAppendToChainDialog(
     const titleId = `append-chain-title-${uid}`;
     const descriptionId = `append-chain-description-${uid}`;
     const searchId = `append-chain-search-${uid}`;
+    const createSlotId = `append-chain-create-${uid}`;
     const listId = `append-chain-list-${uid}`;
     const statusId = `append-chain-status-${uid}`;
     const radioName = `append-chain-choice-${uid}`;
@@ -41,7 +53,7 @@ export function showAppendToChainDialog(
         <div>
           <h2 id="${titleId}" class="dialog__title dialog__title--left">Adicionar à cadeia</h2>
           <p id="${descriptionId}" class="dialog__body dialog__body--left">
-            Escolha a cadeia que receberá este documento como uma nova nota.
+            Escolha uma cadeia existente ou crie uma nova com o título digitado.
           </p>
         </div>
         <button class="btn-icon" id="append-chain-close-${uid}" type="button" aria-label="Fechar" title="Fechar">
@@ -51,9 +63,11 @@ export function showAppendToChainDialog(
 
       <div class="editor-field">
         <label class="editor-field__label" for="${searchId}">Cadeia</label>
-        <input class="editor-field__input" id="${searchId}" type="search" autocomplete="off" placeholder="Buscar cadeia..." data-autofocus />
+        <input class="editor-field__input" id="${searchId}" type="search" autocomplete="off"
+          placeholder="Buscar ou criar cadeia..." data-autofocus />
       </div>
 
+      <div id="${createSlotId}"></div>
       <div class="save-chain-list" id="${listId}" role="radiogroup" aria-label="Cadeias disponíveis"></div>
       <p class="editor-field__support" id="${statusId}" aria-live="polite"></p>
 
@@ -64,35 +78,85 @@ export function showAppendToChainDialog(
     `;
 
     const search = dialog.querySelector<HTMLInputElement>(`#${searchId}`)!;
+    const createSlot = dialog.querySelector<HTMLElement>(`#${createSlotId}`)!;
     const list = dialog.querySelector<HTMLElement>(`#${listId}`)!;
     const status = dialog.querySelector<HTMLParagraphElement>(`#${statusId}`)!;
     const confirm = dialog.querySelector<HTMLButtonElement>(`#append-chain-confirm-${uid}`)!;
 
     let selectedChainId: string | null = null;
+    let creatableTitle: string | null = null;
 
     const selectedChain = (): ChainSummaryDTO | null =>
       options.chains.find((chain) => chain.id === selectedChainId) ?? null;
 
+    const exactChain = (): ChainSummaryDTO | null => {
+      const query = normalizeText(search.value);
+      if (!query) return null;
+      return (
+        options.chains.find((chain) => normalizeText(chain.displayTitle) === query) ??
+        null
+      );
+    };
+
+    const chooseExisting = (chain: ChainSummaryDTO): void => {
+      finish({ chainId: chain.id, chainTitle: chain.displayTitle });
+    };
+
+    const chooseNew = (title: string): void => {
+      finish({ chainId: null, chainTitle: title, createTitle: title });
+    };
+
     const updateValidation = (): void => {
-      confirm.disabled = selectedChainId === null;
-      status.textContent =
-        options.chains.length === 0
-          ? 'Crie uma cadeia pela lateral para poder adicionar este documento.'
-          : selectedChainId === null
-            ? 'Selecione uma cadeia para continuar.'
-            : '';
+      const exact = exactChain();
+      confirm.disabled = selectedChainId === null && exact === null;
+
+      if (selectedChainId !== null || exact) {
+        status.textContent = '';
+      } else if (creatableTitle) {
+        status.textContent = 'Pressione Enter para criar esta cadeia.';
+      } else if (options.chains.length === 0) {
+        status.textContent =
+          'Crie uma cadeia pela lateral ou digite um título para criá-la aqui.';
+      } else {
+        status.textContent = 'Selecione uma cadeia para continuar.';
+      }
+    };
+
+    const renderCreateAction = (): void => {
+      createSlot.innerHTML = '';
+      if (!creatableTitle) return;
+
+      const title = creatableTitle;
+      const button = el('button', 'save-chain-create');
+      button.type = 'button';
+      button.setAttribute('aria-label', `Criar cadeia ${title}`);
+      button.innerHTML = `
+        <span class="save-chain-create__icon material-symbols-rounded" aria-hidden="true">add</span>
+        <span class="save-chain-create__content">
+          <span class="save-chain-create__title">Criar cadeia</span>
+          <span class="save-chain-create__meta">“${escapeHtml(title)}”</span>
+        </span>
+        <span class="save-chain-create__arrow material-symbols-rounded" aria-hidden="true">arrow_forward</span>
+      `;
+      button.addEventListener('click', () => chooseNew(title));
+      createSlot.appendChild(button);
     };
 
     const renderList = (): void => {
-      const query = search.value.trim().toLocaleLowerCase();
+      const query = normalizeText(search.value);
       const chains = options.chains.filter((chain) =>
-        chain.displayTitle.toLocaleLowerCase().includes(query)
+        normalizeText(chain.displayTitle).includes(query)
       );
+      const exact = query
+        ? options.chains.find((chain) => normalizeText(chain.displayTitle) === query)
+        : undefined;
+      creatableTitle = search.value.trim() && !exact ? search.value.trim() : null;
 
       if (selectedChainId && !chains.some((chain) => chain.id === selectedChainId)) {
         selectedChainId = null;
       }
 
+      renderCreateAction();
       list.innerHTML = '';
 
       if (chains.length === 0) {
@@ -118,13 +182,13 @@ export function showAppendToChainDialog(
         input.checked = selectedChainId === chain.id;
 
         const content = el('span', 'save-chain-item__content');
-        const title = el('span', 'save-chain-item__title');
-        title.textContent = chain.displayTitle;
+        const chainTitle = el('span', 'save-chain-item__title');
+        chainTitle.textContent = chain.displayTitle;
         const meta = el('span', 'save-chain-item__meta');
         meta.textContent = `${formatDateCompact(chain.updatedAt)} · ${chain.noteCount} ${
           chain.noteCount === 1 ? 'nota' : 'notas'
         }`;
-        content.append(title, meta);
+        content.append(chainTitle, meta);
 
         label.append(input, content);
         label.classList.toggle('save-chain-item--selected', input.checked);
@@ -159,9 +223,12 @@ export function showAppendToChainDialog(
     };
 
     const submit = (): void => {
-      const chain = selectedChain();
-      if (!chain) return;
-      finish({ chainId: chain.id, chainTitle: chain.displayTitle });
+      const chain = selectedChain() ?? exactChain();
+      if (chain) {
+        chooseExisting(chain);
+        return;
+      }
+      if (creatableTitle) chooseNew(creatableTitle);
     };
 
     backdrop.appendChild(dialog);
