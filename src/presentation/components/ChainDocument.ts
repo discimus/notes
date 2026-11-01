@@ -240,6 +240,14 @@ export function mountChainDocument(
   let renderedNotesSignature = '__initial__';
   let renderedNoteTabId: string | null = null;
   let savingState = false;
+  let actionsCompact = false;
+
+  const syncActionFooter = (): void => {
+    root.classList.toggle(
+      'chain-document--actions-compact',
+      actionsCompact || !currentTab.composerCollapsed
+    );
+  };
 
   more.addEventListener('click', (event) => {
     showChainMenu(
@@ -265,6 +273,7 @@ export function mountChainDocument(
     );
     documentAction.title =
       dirtyCount > 0 ? 'Documento · há notas não salvas' : 'Documento';
+    syncActionFooter();
   };
 
   const renderTags = (): void => {
@@ -550,7 +559,6 @@ export function mountChainDocument(
     if (active) handlers.onSaveNote(active.id);
   });
 
-  let actionsCompact = false;
   let lastScrollTop = scroll.scrollTop;
   let upwardDistance = 0;
   let expandTimer: ReturnType<typeof setTimeout> | null = null;
@@ -563,11 +571,8 @@ export function mountChainDocument(
   };
 
   const setActionsCompact = (value: boolean): void => {
-    const changed = actionsCompact !== value;
     actionsCompact = value;
-    if (changed) {
-      root.classList.toggle('chain-document--actions-compact', value);
-    }
+    syncActionFooter();
     const headerFocused = header.contains(document.activeElement);
     root.classList.toggle('chain-document--header-hidden', value && !headerFocused);
   };

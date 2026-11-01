@@ -171,7 +171,7 @@ editorStore.flush()
 - Rolagem programática inicial até a última nota é ignorada pela lógica de compactação.
 - O rótulo de data é um badge sticky com fundo `secondary-container` e texto `on-secondary-container`; ele permanece visível durante o scroll para manter o contexto temporal.
 - O estado vazio do Editor ("Nenhum documento aberto") reutiliza o mesmo grupo de ações via `QuickActions`, sem badge, `aria-controls` ou `aria-expanded`; `Documento` cria um rascunho.
-- Cobertura: `chainQuickActions`, `chainHeaderVisibility`, `editorQuickActions`, `editorEmptyQuickActions` e `editorStoreComposerOption`.
+- Cobertura: `chainQuickActions`, `chainActionsComposerOpen`, `chainHeaderVisibility`, `editorQuickActions`, `editorEmptyQuickActions` e `editorStoreComposerOption`.
 
 ## Configurações
 
@@ -297,7 +297,7 @@ Ações destrutivas **sempre** pedem confirmação via `showConfirmDialog` antes
 - O compositor de notas da cadeia é colapsável pelo FAB “Documento”. `ChainTab.composerCollapsed` é persistido por aba; `aria-expanded`, `aria-controls` e `hidden` controlam a acessibilidade. Quando recolhido, o histórico ocupa o espaço liberado.
 - O compositor expandido é uma bottom sheet tonal: `surface-container-low`, cantos superiores `large`, borda superior sutil e `overflow: hidden`. A tab bar é transparente, a aba ativa usa `surface-container-lowest` e o estado vazio é transparente. Em edição, o footer usa `surface-container`. Com o compositor aberto, o `border-bottom` do scroll é removido para não duplicar a divisória.
 - O `.chain-composer` tem `position: relative` e `z-index` acima do footer de ações, garantindo que o editor nunca seja coberto pelos botões do footer.
-- Com o compositor aberto, as ações rápidas entram no modo compacto (ícones 44px, labels ocultos) e `--chain-fab-clearance` cai para 64px, preservando o botão `Documento` como ação de recolher.
+- Com o compositor aberto, as ações rápidas entram no modo compacto (ícones 44px, labels ocultos) e `--chain-fab-clearance` cai para 64px, preservando o botão `Documento` como ação de recolher. O estado compacto é derivado de `actionsCompact || compositor aberto`, portanto o scroll para cima não expande os botões enquanto o editor está aberto; ao fechar o compositor, o comportamento volta a seguir apenas a direção do scroll.
 - O histórico de notas é um fluxo de leitura: `.chain-note__body` de texto é transparente e sem padding; apenas `.chain-note__body--code` usa `surface-container-low`, padding e canto MD3. Metadados ficam fora do body, em baixa ênfase, e o selo "Início" aparece apenas na nota header. A separação entre notas usa uma hairline sutil; não há cards por nota.
 
 ## Renderização DOM — sem framework
