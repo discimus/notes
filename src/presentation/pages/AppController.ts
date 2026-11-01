@@ -946,12 +946,16 @@ export const AppController = {
   },
 
   async reloadTimeline(): Promise<void> {
-    appState.set({ timelinePageIndex: 0 });
+    appState.set({ timelinePageIndex: 0, timelinePreviewNoteId: null });
     await loadTimelinePage(0, 'replace');
   },
 
   async updateTimelineSelection(chainIds: string[]): Promise<void> {
-    appState.set({ timelineSelectedChainIds: [...new Set(chainIds)], timelinePageIndex: 0 });
+    appState.set({
+      timelineSelectedChainIds: [...new Set(chainIds)],
+      timelinePageIndex: 0,
+      timelinePreviewNoteId: null,
+    });
     await loadTimelinePage(0, 'replace');
   },
 
@@ -959,6 +963,7 @@ export const AppController = {
     appState.set({
       timelineFilters: { ...appState.get().timelineFilters, ...patch },
       timelinePageIndex: 0,
+      timelinePreviewNoteId: null,
     });
     await loadTimelinePage(0, 'replace');
   },
@@ -975,6 +980,7 @@ export const AppController = {
         sort: 'newest',
       },
       timelinePageIndex: 0,
+      timelinePreviewNoteId: null,
     });
     await loadTimelinePage(0, 'replace');
   },
@@ -991,6 +997,7 @@ export const AppController = {
     const state = appState.get();
     const totalPages = Math.max(1, Math.ceil(state.timelineTotal / state.timelinePageSize));
     const page = Math.min(Math.max(0, pageIndex), totalPages - 1);
+    appState.set({ timelinePreviewNoteId: null });
     await loadTimelinePage(page * state.timelinePageSize, 'replace');
   },
 

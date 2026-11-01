@@ -183,10 +183,18 @@ export function renderTimelineLayout(state: AppState): HTMLElement {
   header.prepend(renderNavToggle());
   layout.appendChild(header);
 
+  const content = el('div', 'timeline-panel__content');
   const list = el('div', 'timeline-panel__list');
   list.setAttribute('id', 'timeline-list');
   list.setAttribute('aria-live', 'polite');
-  layout.appendChild(list);
+
+  const preview = el('aside', 'timeline-preview');
+  preview.id = 'timeline-preview';
+  preview.setAttribute('aria-label', 'Prévia da nota');
+  preview.hidden = true;
+
+  content.append(list, preview);
+  layout.appendChild(content);
 
   const query = header.querySelector<HTMLInputElement>('#timeline-query')!;
   const from = header.querySelector<HTMLInputElement>('#timeline-from')!;
@@ -419,6 +427,7 @@ export function renderTimelineLayout(state: AppState): HTMLElement {
   updateTimelineEntries(list, state);
   updateTimelineSummary(header, state);
   updateTimelineSlider(slider, pageLabel, state);
+  renderTimelinePreview(preview, state);
   return layout;
 }
 
@@ -440,6 +449,8 @@ export function updateTimelineLayout(content: HTMLElement, state: AppState): voi
     qs<HTMLElement>('#timeline-page-label', header)!,
     state
   );
+  const preview = qs<HTMLElement>('#timeline-preview', content);
+  if (preview) renderTimelinePreview(preview, state);
 }
 
 function renderTimelineFilters(header: HTMLElement, state: AppState): void {
@@ -774,6 +785,110 @@ function updateTimelineSummary(header: HTMLElement, state: AppState): void {
   legend.hidden = items.length === 0;
 }
 
+function renderTimelinePreview(host: HTMLElement, state: AppState): void {
+  const entry =
+    state.timelinePreviewNoteId === null
+      ? undefined
+      : state.timelineEntries.find(
+          (item) => item.note.id === state.timelinePreviewNoteId
+        );
+
+  if (!entry) {
+    host.hidden = true;
+    host.replaceChildren();
+    return;
+  }
+
+  host.hidden = false;
+  host.replaceChildren();
+
+  const colors = getTimelineChainColors(
+    state.chainSummaries.map((chain) => chain.id)
+  );
+  const accent =
+    colors.get(entry.chainId) ?? 'var(--md-sys-color-outline-variant)';
+  host.style.setProperty('--timeline-chain-accent', accent);
+
+  const header = el('div', 'timeline-preview__header');
+  const heading = el('div', 'timeline-preview__heading');
+  const eyebrow = el('span', 'timeline-preview__eyebrow');
+  eyebrow.textContent = 'Prévia da nota';
+  const title = el('h2', 'timeline-preview__title');
+  title.textContent = entry.chainTitle;
+  heading.append(eyebrow, title);
+
+  const close = el('button', 'btn-icon timeline-preview__close');
+  close.type = 'button';
+  close.setAttribute('aria-label', 'Fechar prévia');
+  close.title = 'Fechar prévia';
+  close.innerHTML =
+    '<span class="material-symbols-rounded" aria-hidden="true">close</span>';
+  close.addEventListener('click', () => {
+    appState.set({ timelinePreviewNoteId: null });
+  });
+  header.append(heading, close);
+
+  const meta = el('div', 'timeline-preview__meta');
+  const chain = el('span', 'timeline-preview__chain');
+  const dot = el('span', 'timeline-chain-swatch');
+  dot.setAttribute('aria-hidden', 'true');
+  dot.style.backgroundColor = accent;
+  const chainName = el('span');
+  chainName.textContent = entry.chainTitle;
+  chain.append(dot, chainName);
+
+  const time = el('time', 'timeline-preview__time');
+  time.dateTime = entry.note.createdAt;
+  time.textContent = `${formatDateFull(entry.note.createdAt)} • ${formatTime(
+    entry.note.createdAt
+  )}`;
+
+  meta.append(chain, time);
+  if ((entry.note.contentType ?? 'text') !== 'text') {
+    const type = el('span', 'timeline-entry__type');
+    type.textContent = contentTypeLabel(entry.note.contentType ?? 'text');
+    meta.appendChild(type);
+  }
+
+  const content = el('div', 'timeline-preview__content');
+  const type = entry.note.contentType ?? 'text';
+  const isMarkdown = type === 'markdown';
+  const isCode = type === 'code';
+  const text = el(
+    isMarkdown ? 'div' : 'p',
+    `timeline-preview__text${isCode ? ' timeline-preview__text--code' : ''}${
+      isMarkdown ? ' note-markdown' : ''
+    }`
+  );
+  if (isMarkdown) renderMarkdownContent(text, entry.note.content);
+  else renderLinkedText(text, entry.note.content);
+  highlightTextInElement(text, state.timelineFilters.query);
+  content.appendChild(text);
+
+  if (entry.note.tags && entry.note.tags.length > 0) {
+    const tags = el('div', 'timeline-preview__tags');
+    entry.note.tags.forEach((tag) => {
+      const chip = el('span', 'chip chip--sm');
+      chip.textContent = tag.name;
+      tags.appendChild(chip);
+    });
+    content.appendChild(tags);
+  }
+
+  const actions = el('div', 'timeline-preview__actions');
+  const open = el('button', 'btn btn-tonal');
+  open.type = 'button';
+  open.innerHTML =
+    '<span class="material-symbols-rounded" aria-hidden="true">open_in_new</span> Abrir cadeia';
+  open.addEventListener('click', () => {
+    void AppController.navigateTo('editor', entry.chainId);
+  });
+  actions.appendChild(open);
+  content.appendChild(actions);
+
+  host.append(header, meta, content);
+}
+
 function updateTimelineSlider(
   slider: HTMLInputElement,
   label: HTMLElement,
@@ -857,7 +972,8 @@ function updateTimelineEntries(container: HTMLElement, state: AppState): void {
     container,
     state.timelineEntries,
     colors,
-    state.timelineFilters.query
+    state.timelineFilters.query,
+    state.timelinePreviewNoteId
   );
 
   if (state.timelineIsLoadingMore) {
@@ -885,7 +1001,8 @@ function renderEntries(
   container: HTMLElement,
   entries: TimelineEntryDTO[],
   colors: Map<string, string>,
-  query: string
+  query: string,
+  previewNoteId: string | null
 ): void {
   let lastDate = '';
 
@@ -907,11 +1024,35 @@ function renderEntries(
     }
 
     const row = el('div', 'timeline-entry timeline-entry--chain-color');
+    const selected = previewNoteId === entry.note.id;
     row.setAttribute('role', 'article');
+    row.tabIndex = 0;
+    row.dataset['noteId'] = entry.note.id;
+    row.classList.toggle('timeline-entry--selected', selected);
+    row.setAttribute('aria-current', selected ? 'true' : 'false');
+    row.setAttribute(
+      'aria-label',
+      `Abrir prévia da nota de ${formatDateFull(entry.note.createdAt)}`
+    );
     row.style.setProperty(
       '--timeline-chain-accent',
       colors.get(entry.chainId) ?? 'var(--md-sys-color-outline-variant)'
     );
+
+    const openPreview = (): void => {
+      appState.set({ timelinePreviewNoteId: entry.note.id });
+    };
+    row.addEventListener('click', (event) => {
+      const target = event.target as Element | null;
+      if (target?.closest('a, button')) return;
+      openPreview();
+    });
+    row.addEventListener('keydown', (event) => {
+      if (event.target !== row) return;
+      if (event.key !== 'Enter' && event.key !== ' ') return;
+      event.preventDefault();
+      openPreview();
+    });
 
     const timeEl = el('time', 'timeline-entry__time');
     timeEl.setAttribute('datetime', entry.note.createdAt);
@@ -942,7 +1083,8 @@ function renderEntries(
     const chainLabel = el('span');
     chainLabel.textContent = entry.chainTitle;
     chainLink.append(chainDot, chainLabel);
-    chainLink.addEventListener('click', () => {
+    chainLink.addEventListener('click', (event) => {
+      event.stopPropagation();
       void AppController.navigateTo('editor', entry.chainId);
     });
     meta.appendChild(chainLink);
