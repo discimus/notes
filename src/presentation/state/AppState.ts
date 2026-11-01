@@ -37,6 +37,7 @@ export interface AppState {
   drawerOpen: boolean;
   chainsPanelVisible: boolean;
   compactMode: boolean;
+  fullNoteContent: boolean;
   pinnedChainIds: string[];
 }
 
@@ -66,6 +67,7 @@ class AppStateStore {
     drawerOpen: false,
     chainsPanelVisible: true,
     compactMode: false,
+    fullNoteContent: false,
     pinnedChainIds: [],
   };
 

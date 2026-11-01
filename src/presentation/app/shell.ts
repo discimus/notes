@@ -3,6 +3,7 @@ import type { AppState } from '../state/AppState.js';
 import { el } from '../dom.js';
 import { initTheme } from './theme.js';
 import { initCompactMode } from './compactMode.js';
+import { initNoteContentDisplay } from './noteContentDisplay.js';
 import { initPinnedChains } from './pinnedChains.js';
 import { initNavigationHistory } from './navigation.js';
 import { AppController } from '../pages/AppController.js';
@@ -17,6 +18,7 @@ import { initEditorSession, mountEditorView } from '../views/editor.js';
 export function renderApp(root: HTMLElement): void {
   initTheme();
   initCompactMode();
+  initNoteContentDisplay();
   initPinnedChains();
   initEditorSession();
   root.innerHTML = '';
@@ -56,6 +58,7 @@ export function renderApp(root: HTMLElement): void {
 
   const applyState = (state: AppState) => {
     shell.classList.toggle('app-shell--compact', state.compactMode);
+    shell.classList.toggle('app-shell--full-note-content', state.fullNoteContent);
     updateViewTitle(viewTitle, state);
     contentCleanup = updateContent(content, state, contentCleanup);
     updateNavDrawer(state);

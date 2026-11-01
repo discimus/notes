@@ -1830,6 +1830,16 @@
     overflow: hidden;
   }
 }
+.app-shell--full-note-content
+  .chain-note__body:not(.chain-note__body--code)
+  .chain-note__text,
+.app-shell--full-note-content
+  .chain-note__body--code
+  .chain-note__text--code {
+  display: block;
+  -webkit-line-clamp: unset;
+  overflow: visible;
+}
 @media (hover: none) {
   .chain-note__edit {
     opacity: 1;
