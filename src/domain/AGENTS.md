@@ -16,14 +16,18 @@ Repositórios aqui são **interfaces**. Implementações concretas ficam em `src
 `Chain` é o único agregado. Todas as operações sobre `Note` passam por ele.
 
 **Invariantes obrigatórias:**
-1. Toda cadeia tem **exatamente um** header (`role: 'header'`, `position: 0`).
-2. Tails têm `position > 0` e são sempre adicionadas ao final.
-3. Uma cadeia arquivada (`archivedAt` definido) não aceita novas notas.
-4. Uma cadeia excluída (`deletedAt` definido) não aceita novas notas nem pode ser arquivada.
+1. Cadeias com `headerNoteId` têm **exatamente um** header (`role: 'header'`, `position: 0`).
+2. Cadeias novas criadas por `Chain.create({ title })` são **headerless**: zero headers e `headerNoteId` ausente.
+3. Tails têm `position > 0` e são sempre adicionadas ao final. Em cadeia headerless, a primeira tail usa posição `1`.
+4. Uma cadeia arquivada (`archivedAt` definido) não aceita novas notas.
+5. Uma cadeia excluída (`deletedAt` definido) não aceita novas notas nem pode ser arquivada.
 
-**Criação — sempre via fábrica estática:**
+**Criação — via fábrica estática:**
 ```typescript
-// ✅ correto — cria chain + header atomicamente
+// ✅ cadeia nova apenas com título — headerless
+const chain = Chain.create({ title });
+
+// ✅ fluxo legado/interno — cria chain + header atomicamente
 const { chain, header } = Chain.createWithHeader({ content, title? });
 
 // ❌ errado — Note.createHeader() existe mas não deve ser chamado fora do Chain
@@ -38,7 +42,9 @@ const tail = chain.appendNote(content); // retorna Note para persistência
 
 **Reconstrução do IDB:**
 ```typescript
-Chain.reconstitute(chainData, notes[]) // valida invariante do header ao carregar
+Chain.reconstitute(chainData, notes[])
+// headerNoteId presente → exige exatamente um header correspondente
+// headerNoteId ausente → aceita zero headers e zero ou mais tails
 ```
 
 ## Ciclo de vida do Chain

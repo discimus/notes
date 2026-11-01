@@ -17,6 +17,7 @@ import type { ChainDetailDTO, NoteContentType, NoteDTO } from '@application/dto/
 import type { ISODateString } from '@shared/types/index.js';
 
 import {
+  CreateChain,
   CreateChainWithHeader,
   AppendNoteToChain,
   UpdateNoteContent,
@@ -44,7 +45,8 @@ const chainRepo = new IdbChainRepository();
 const tagRepo = new IdbTagRepository();
 
 // Use cases
-const createChain = new CreateChainWithHeader(chainRepo, tagRepo);
+const createEmptyChain = new CreateChain(chainRepo);
+const createChainWithHeader = new CreateChainWithHeader(chainRepo, tagRepo);
 const appendNote = new AppendNoteToChain(chainRepo);
 const updateNote = new UpdateNoteContent(chainRepo);
 const updateTitle = new UpdateChainTitle(chainRepo);
@@ -285,24 +287,13 @@ export const AppController = {
     await loadTags();
   },
 
-  async createChain(
-    content: string,
-    title?: string,
-    tagNames?: string[],
-    contentType?: NoteContentType
-  ): Promise<void> {
+  async createChain(title: string): Promise<void> {
     try {
-      const result = await createChain.execute({
-        content,
-        ...(contentType ? { contentType } : {}),
-        ...(title ? { title } : {}),
-        ...(tagNames && tagNames.length > 0 ? { tagNames } : {}),
-      });
+      const result = await createEmptyChain.execute({ title });
       DraftStore.clear();
       appState.set({ chainFilterQuery: '' });
       snackbar.success('Cadeia criada.');
       await loadChains();
-      await loadTags();
       await AppController.openChainInEditor(result.id, result);
     } catch (e: unknown) {
       snackbar.error((e as Error).message);
@@ -357,7 +348,7 @@ export const AppController = {
     tagNames?: string[];
   }): Promise<EditorSaveResult> {
     try {
-      const result = await createChain.execute({
+      const result = await createChainWithHeader.execute({
         content: input.content,
         ...(input.contentType ? { contentType: input.contentType } : {}),
         ...(input.title?.trim() ? { title: input.title.trim() } : {}),

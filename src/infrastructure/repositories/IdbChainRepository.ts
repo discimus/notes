@@ -160,7 +160,9 @@ export class IdbChainRepository implements IChainRepository, ITimelineQueryRepos
     const chainTitles = new Map<string, string>();
     await Promise.all(
       activeChains.map(async (chain) => {
-        const header = await db.get('notes', chain.headerNoteId);
+        const header = chain.headerNoteId
+          ? await db.get('notes', chain.headerNoteId)
+          : undefined;
         const title = chain.title ?? header?.title ?? header?.content.split(/\r?\n/)[0] ?? 'Cadeia';
         chainTitles.set(chain.id, title);
       })

@@ -75,3 +75,10 @@ Ao adicionar campo obrigatÃ³rio a uma entidade existente:
 - `IdbChainRepository.save` grava cadeia e notas na mesma transação.
 - `InMemoryChainRepository.save` faz merge das notas existentes e ordena por `position`, alinhado ao IDB.
 - Não há store, índice ou migração novos.
+
+## Cadeias headerless
+
+- `ChainData.headerNoteId` é opcional; cadeias antigas continuam com header.
+- Cadeias criadas por `CreateChain` gravam sem header e com zero notas.
+- `IdbChainRepository.findTimelinePage` consulta o header apenas quando `headerNoteId` existe.
+- Não é necessário incrementar `DB_VERSION`: o campo não é indexado.

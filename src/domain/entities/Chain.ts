@@ -6,7 +6,7 @@ import { generateId, now } from '@shared/utilities/index.js';
 
 export interface ChainData {
   id: UUID;
-  headerNoteId: UUID;
+  headerNoteId?: UUID | undefined;
   title?: string | undefined;
   createdAt: ISODateString;
   updatedAt: ISODateString;
@@ -19,15 +19,15 @@ export interface ChainData {
  * ResponsÃ¡vel por manter a integridade de suas notas.
  *
  * Invariantes:
- * 1. Toda cadeia possui exatamente um header.
- * 2. Uma cadeia nÃ£o pode possuir mais de um header.
- * 3. A criaÃ§Ã£o de uma cadeia exige um header vÃ¡lido.
- * 4. Notas tÃªm ordem determinÃ­stica por posiÃ§Ã£o.
- * 5. Tails sÃ£o sempre adicionadas ao final.
+ * 1. Cadeias com headerNoteId possuem exatamente um header correspondente.
+ * 2. Cadeias criadas apenas com título são headerless.
+ * 3. Cadeias headerless aceitam apenas tails, começando na posição 1.
+ * 4. Notas têm ordem determinística por posição.
+ * 5. Tails são sempre adicionadas ao final.
  */
 export class Chain {
   private readonly _id: UUID;
-  private readonly _headerNoteId: UUID;
+  private _headerNoteId: UUID | undefined;
   private _title: string | undefined;
   private readonly _createdAt: ISODateString;
   private _updatedAt: ISODateString;
@@ -47,9 +47,24 @@ export class Chain {
     this._deletedAt = data.deletedAt;
   }
 
+  static create(params: { title: string }): Chain {
+    const title = params.title.trim();
+    if (!title) {
+      throw new ValidationError('O título da cadeia não pode ser vazio.');
+    }
+
+    const ts = now();
+    return new Chain({
+      id: generateId(),
+      title,
+      createdAt: ts,
+      updatedAt: ts,
+    });
+  }
+
   /**
    * Cria uma nova cadeia com seu header.
-   * Retorna o Chain e a Note (header) para persistÃªncia.
+   * Retorna o Chain e a Note (header) para persistA�ncia.
    */
   static createWithHeader(params: {
     content: string;
@@ -84,19 +99,26 @@ export class Chain {
 
   static reconstitute(data: ChainData, notes: Note[] = []): Chain {
     const chain = new Chain(data);
-    // Valida que existe exatamente um header
     const headers = notes.filter((n) => n.isHeader());
-    if (notes.length > 0 && headers.length !== 1) {
+
+    if (data.headerNoteId) {
+      if (headers.length !== 1 || headers[0]?.id !== data.headerNoteId) {
+        throw new InvariantViolationError(
+          `Cadeia ${data.id} deve ter exatamente um header correspondente ao headerNoteId.`
+        );
+      }
+    } else if (headers.length > 0) {
       throw new InvariantViolationError(
-        `Cadeia ${data.id} deve ter exatamente um header, mas tem ${headers.length}.`
+        `Cadeia ${data.id} possui header sem headerNoteId.`
       );
     }
+
     chain._notes = [...notes].sort((a, b) => a.position.compareTo(b.position));
     return chain;
   }
 
   get id(): UUID { return this._id; }
-  get headerNoteId(): UUID { return this._headerNoteId; }
+  get headerNoteId(): UUID | undefined { return this._headerNoteId; }
   get title(): string | undefined { return this._title; }
   get createdAt(): ISODateString { return this._createdAt; }
   get updatedAt(): ISODateString { return this._updatedAt; }
@@ -141,7 +163,9 @@ export class Chain {
       throw new InvariantViolationError('NÃ£o Ã© possÃ­vel adicionar notas a uma cadeia excluÃ­da.');
     }
 
-    const nextPosition = this._notes.length; // header = 0, first tail = 1, etc.
+    const nextPosition = this._headerNoteId
+      ? this._notes.length
+      : this._notes.length + 1;
     const tail = Note.createTail({
       content,
       chainId: this._id,
@@ -208,7 +232,7 @@ export class Chain {
   toData(): ChainData {
     return {
       id: this._id,
-      headerNoteId: this._headerNoteId,
+      ...(this._headerNoteId ? { headerNoteId: this._headerNoteId } : {}),
       ...(this._title ? { title: this._title } : {}),
       createdAt: this._createdAt,
       updatedAt: this._updatedAt,

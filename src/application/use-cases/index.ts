@@ -1,4 +1,5 @@
-﻿export { CreateChainWithHeader } from './CreateChainWithHeader.js';
+﻿export { CreateChain } from './CreateChain.js';
+export { CreateChainWithHeader } from './CreateChainWithHeader.js';
 export { AppendNoteToChain } from './AppendNoteToChain.js';
 export { UpdateNoteContent } from './UpdateNoteContent.js';
 export { UpdateChainTitle } from './UpdateChainTitle.js';

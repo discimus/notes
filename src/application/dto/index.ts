@@ -93,6 +93,10 @@ export interface CreateChainCommand {
   tagNames?: string[] | undefined;
 }
 
+export interface CreateChainTitleCommand {
+  title: string;
+}
+
 export interface AppendNoteCommand {
   chainId: UUID;
   content: string;

@@ -301,7 +301,7 @@ export function mountChainDocument(
   });
   let titleTimer: ReturnType<typeof setTimeout> | null = null;
   let previousStatus = tab.status;
-  let renderedNotesSignature = '';
+  let renderedNotesSignature = '__initial__';
   let renderedNoteTabId: string | null = null;
   let savingState = false;
 

@@ -401,7 +401,7 @@ function renderComposer(chainId: string): HTMLElement {
   headerBtn.setAttribute('aria-pressed', 'false');
   headerBtn.innerHTML = '<span class="material-symbols-rounded icon-md" aria-hidden="true">fiber_new</span> Nova cadeia';
 
-  let composerMode: 'tail' | 'header' = draft?.mode ?? 'tail';
+  let composerMode: 'tail' | 'header' = 'tail';
 
   const placeholder = el('textarea', 'composer__textarea');
 
@@ -417,7 +417,7 @@ function renderComposer(chainId: string): HTMLElement {
   };
 
   tailBtn.addEventListener('click', () => updateMode('tail'));
-  headerBtn.addEventListener('click', () => updateMode('header'));
+  headerBtn.addEventListener('click', showComposerModal);
 
   modeSelector.appendChild(tailBtn);
   modeSelector.appendChild(headerBtn);
@@ -468,11 +468,7 @@ function renderComposer(chainId: string): HTMLElement {
     saveBtn.disabled = true;
     saveBtn.textContent = 'Salvandoâ€¦';
     try {
-      if (composerMode === 'tail') {
-        await AppController.appendNote(chainId, content);
-      } else {
-        await AppController.createChain(content);
-      }
+      await AppController.appendNote(chainId, content);
       placeholder.value = '';
       DraftStore.clear();
       draftIndicator.hidden = true;

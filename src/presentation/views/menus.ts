@@ -1,5 +1,5 @@
 import { AppController } from '../pages/AppController.js';
-import { mountDialog, showInputDialog } from '../components/Dialog.js';
+import { mountDialog } from '../components/Dialog.js';
 import { el, qs } from '../dom.js';
 import { escapeHtml } from '@shared/utilities/index.js';
 
@@ -48,30 +48,28 @@ export function showComposerModal(): void {
   const backdrop = el('div', 'dialog-backdrop');
   backdrop.setAttribute('role', 'presentation');
 
-  const dialog = el('div', 'dialog dialog--wide');
+  const dialog = el('div', 'dialog');
   dialog.setAttribute('role', 'dialog');
   dialog.setAttribute('aria-modal', 'true');
   dialog.setAttribute('aria-labelledby', 'modal-title');
+  dialog.setAttribute('aria-describedby', 'modal-description modal-title-error');
 
   dialog.innerHTML = `
     <h2 id="modal-title" class="dialog__title dialog__title--left">Nova cadeia</h2>
+    <p id="modal-description" class="dialog__body dialog__body--left">
+      Você poderá adicionar notas depois.
+    </p>
     <div class="text-field text-field--outlined form-field--spaced">
       <div class="text-field__container">
         <input type="text" class="text-field__input" id="modal-title-input"
-          placeholder=" " autocomplete="off" aria-label="Título opcional" />
-        <label class="text-field__label" for="modal-title-input">Título (opcional)</label>
+          placeholder=" " autocomplete="off" aria-label="Título da cadeia"
+          aria-required="true" data-autofocus />
+        <label class="text-field__label" for="modal-title-input">Título *</label>
       </div>
     </div>
-    <div class="text-field text-field--textarea text-field--outlined">
-      <div class="text-field__container">
-        <textarea class="text-field__input" id="modal-content-input"
-          placeholder=" " rows="5" aria-label="Conteúdo da nota" required data-autofocus></textarea>
-        <label class="text-field__label" for="modal-content-input">Conteúdo *</label>
-      </div>
-    </div>
-    <div id="modal-tags-row" class="modal-tags-row">
-      <span class="modal-tags-label">Tags:</span>
-    </div>
+    <p class="text-field__supporting text-field__supporting--error" id="modal-title-error" role="alert" hidden>
+      Informe um título para a cadeia.
+    </p>
     <div class="dialog__actions">
       <button class="btn btn-text" id="modal-cancel">Cancelar</button>
       <button class="btn btn-filled" id="modal-save">
@@ -80,55 +78,42 @@ export function showComposerModal(): void {
     </div>
   `;
 
-  const tags: string[] = [];
-  const tagsRow = dialog.querySelector('#modal-tags-row')!;
-
-  const addTagChip = (name: string) => {
-    const chip = el('span', 'chip chip--selected chip--sm');
-    const label = document.createElement('span');
-    label.textContent = name;
-    const rm = el('button', 'chip__remove');
-    rm.setAttribute('aria-label', `Remover tag ${name}`);
-    rm.innerHTML = '<span class="material-symbols-rounded icon-xs">close</span>';
-    rm.addEventListener('click', () => {
-      const idx = tags.indexOf(name);
-      if (idx > -1) tags.splice(idx, 1);
-      chip.remove();
-    });
-    chip.appendChild(label);
-    chip.appendChild(rm);
-    tagsRow.appendChild(chip);
-  };
-
-  const addTagBtn = el('button', 'chip chip--sm');
-  addTagBtn.innerHTML = '<span class="material-symbols-rounded icon-sm">add</span> tag';
-  addTagBtn.addEventListener('click', async () => {
-    const name = await showInputDialog({ title: 'Adicionar tag', label: 'Nome da tag' });
-    if (name && !tags.includes(name)) {
-      tags.push(name);
-      addTagChip(name);
-    }
-  });
-  tagsRow.appendChild(addTagBtn);
-
   const titleInput = dialog.querySelector<HTMLInputElement>('#modal-title-input')!;
-  const contentInput = dialog.querySelector<HTMLTextAreaElement>('#modal-content-input')!;
+  const error = dialog.querySelector<HTMLElement>('#modal-title-error')!;
 
-  let destroy = () => {};
-  const finish = () => destroy();
+  let destroy = (): void => {};
+  const finish = (): void => destroy();
+
+  const submit = async (): Promise<void> => {
+    const title = titleInput.value.trim();
+    if (!title) {
+      error.hidden = false;
+      titleInput.setAttribute('aria-invalid', 'true');
+      titleInput.focus();
+      return;
+    }
+
+    error.hidden = true;
+    titleInput.removeAttribute('aria-invalid');
+    finish();
+    await AppController.createChain(title);
+  };
 
   backdrop.appendChild(dialog);
   destroy = mountDialog(backdrop, dialog, finish);
 
   dialog.querySelector('#modal-cancel')!.addEventListener('click', finish);
-
-  dialog.querySelector('#modal-save')!.addEventListener('click', async () => {
-    const content = contentInput.value.trim();
-    if (!content) {
-      contentInput.focus();
-      return;
-    }
-    finish();
-    await AppController.createChain(content, titleInput.value.trim() || undefined, tags);
+  dialog.querySelector('#modal-save')!.addEventListener('click', () => {
+    void submit();
+  });
+  titleInput.addEventListener('input', () => {
+    if (error.hidden) return;
+    error.hidden = true;
+    titleInput.removeAttribute('aria-invalid');
+  });
+  titleInput.addEventListener('keydown', (event) => {
+    if (event.key !== 'Enter') return;
+    event.preventDefault();
+    void submit();
   });
 }

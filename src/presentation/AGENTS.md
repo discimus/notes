@@ -95,6 +95,15 @@ editorStore.flush()
 - `openChainInEditor`, `loadEditorChainTab`, `appendToEditorChainTab`, `saveEditorToChain` e `updateEditorNote` vivem no `AppController`.
 - `Ctrl+S`, `beforeunload`, sidebar mobile e foco das notas ficam na view Editor/sessão, não em `main.ts`.
 
+## Cadastro de cadeia
+
+- O modal `showComposerModal` solicita apenas o título, obrigatório, com validação inline.
+- Conteúdo e tags não fazem parte do cadastro inicial; tags continuam disponíveis no documento.
+- O fluxo usa `CreateChain` e cria uma cadeia headerless com `0 notas`.
+- A primeira nota posterior é uma tail na posição 1, nunca header.
+- O botão “Nova cadeia” do compositor legado abre o mesmo modal.
+- Cobertura: `createChainDialog`, `HeaderlessChain`, `CreateEmptyChain` e `emptyChainDocument`.
+
 ## Timeline paginada
 
 - A timeline é montada somente após o usuário selecionar ao menos uma cadeia; não há botão “Ver cronologia”.
