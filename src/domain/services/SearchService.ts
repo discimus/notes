@@ -23,7 +23,8 @@ export class SearchService {
   search(
     query: string,
     chains: Chain[],
-    tagsByChainId: Map<string, Tag[]>
+    tagsByChainId: Map<string, Tag[]>,
+    tagsByNoteId: Map<string, Tag[]> = new Map()
   ): SearchResult[] {
     if (!query.trim()) return [];
 
@@ -43,6 +44,9 @@ export class SearchService {
       for (const note of chain.notes) {
         const normalizedContent = normalizeText(note.content);
         const normalizedTitle = note.title ? normalizeText(note.title) : '';
+        const noteTagMatch = (tagsByNoteId.get(note.id) ?? []).some((tag) =>
+          tag.name.normalized.includes(normalizedQuery)
+        );
 
         let score = 0;
         let matchType: SearchResult['matchType'] = 'content';
@@ -56,6 +60,10 @@ export class SearchService {
           matchType = matchType === 'title' ? 'title' : 'content';
         }
         if (tagMatch && note.isHeader()) {
+          score += 1;
+          matchType = score === 1 ? 'tag' : matchType;
+        }
+        if (noteTagMatch) {
           score += 1;
           matchType = score === 1 ? 'tag' : matchType;
         }

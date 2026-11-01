@@ -30,6 +30,7 @@ export interface NoteDTO {
   contentType?: NoteContentType | undefined;
   title?: string | undefined;
   attachments?: AttachmentDTO[] | undefined;
+  tags?: TagDTO[] | undefined;
   createdAt: ISODateString;
   updatedAt: ISODateString;
 }
@@ -179,6 +180,18 @@ export interface AssignTagCommand {
 
 export interface RemoveTagCommand {
   chainId: UUID;
+  tagId: UUID;
+}
+
+export interface AssignNoteTagCommand {
+  chainId: UUID;
+  noteId: UUID;
+  tagName: string;
+}
+
+export interface RemoveNoteTagCommand {
+  chainId: UUID;
+  noteId: UUID;
   tagId: UUID;
 }
 

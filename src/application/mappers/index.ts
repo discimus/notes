@@ -26,7 +26,11 @@ export function mapAttachmentToDTO(attachment: Attachment): AttachmentDTO {
   };
 }
 
-export function mapNoteToDTO(note: Note, attachments: Attachment[] = []): NoteDTO {
+export function mapNoteToDTO(
+  note: Note,
+  attachments: Attachment[] = [],
+  tags: TagDTO[] = []
+): NoteDTO {
   return {
     id: note.id,
     content: note.content,
@@ -38,6 +42,7 @@ export function mapNoteToDTO(note: Note, attachments: Attachment[] = []): NoteDT
     ...(attachments.length > 0
       ? { attachments: attachments.map(mapAttachmentToDTO) }
       : {}),
+    ...(tags.length > 0 ? { tags } : {}),
     createdAt: note.createdAt,
     updatedAt: note.updatedAt,
   };
@@ -79,17 +84,24 @@ export function mapChainToDetail(
   tagIds: string[],
   tags: Array<{ id: string; name: string; normalizedName: string; createdAt: string; origin: string; chainCount: number }>,
   _suggestions?: TagSuggestion[],
-  attachments: Attachment[] = []
+  attachments: Attachment[] = [],
+  noteTagsByNoteId: Map<string, TagDTO[]> = new Map()
 ): ChainDetailDTO {
-  const byNoteId = new Map<string, Attachment[]>();
+  const attachmentsByNoteId = new Map<string, Attachment[]>();
   for (const attachment of attachments) {
-    const list = byNoteId.get(attachment.noteId) ?? [];
+    const list = attachmentsByNoteId.get(attachment.noteId) ?? [];
     list.push(attachment);
-    byNoteId.set(attachment.noteId, list);
+    attachmentsByNoteId.set(attachment.noteId, list);
   }
 
   return {
     ...mapChainToSummary(chain, tagIds, tags),
-    notes: notes.map((note) => mapNoteToDTO(note, byNoteId.get(note.id) ?? [])),
+    notes: notes.map((note) =>
+      mapNoteToDTO(
+        note,
+        attachmentsByNoteId.get(note.id) ?? [],
+        noteTagsByNoteId.get(note.id) ?? []
+      )
+    ),
   };
 }

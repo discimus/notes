@@ -27,7 +27,7 @@ function renderTagsContent(container: HTMLElement, state: AppState): void {
   container.appendChild(header);
 
   if (state.allTags.length === 0) {
-    container.appendChild(renderEmptyDetail('label_off', 'Nenhuma tag ainda', 'Tags são criadas ao associá-las a cadeias no editor.'));
+    container.appendChild(renderEmptyDetail('label_off', 'Nenhuma tag ainda', 'Tags são criadas ao associá-las a cadeias ou notas no editor.'));
     return;
   }
 

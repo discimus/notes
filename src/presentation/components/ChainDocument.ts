@@ -1,4 +1,9 @@
-import type { AttachmentDTO, NoteContentType, NoteDTO } from '@application/dto/index.js';
+import type {
+  AttachmentDTO,
+  NoteContentType,
+  NoteDTO,
+  TagDTO,
+} from '@application/dto/index.js';
 import type { ChainNoteTab, ChainTab } from '../state/EditorStore.js';
 import {
   contentTypeOf,
@@ -22,6 +27,7 @@ import { showChainMenu } from '../views/menus.js';
 import { renderTabList } from './EditorTabs.js';
 import { mountActiveLineHighlight } from './ActiveLineHighlight.js';
 import { mountInlineTagEditor } from './InlineTagEditor.js';
+import type { InlineTagEditorView } from './InlineTagEditor.js';
 import { mountContentTypeMenu } from './ContentTypeMenu.js';
 import { mountPeriodMenu } from './PeriodMenu.js';
 import { renderQuickActions } from './QuickActions.js';
@@ -57,6 +63,8 @@ export interface ChainDocumentHandlers {
   onAddChainImages?: (files: File[]) => void;
   onAddChainAudio?: () => void;
   onDeleteNoteAttachment?: (noteId: string, attachment: AttachmentDTO) => void;
+  onAddNoteTag?: (noteId: string, tagName: string) => Promise<boolean>;
+  onRemoveNoteTag?: (noteId: string, tag: TagDTO) => void;
   onCreateNote: () => void;
   onSelectNote: (noteTabId: string) => void;
   onCloseNote: (noteTabId: string) => void;
@@ -86,6 +94,7 @@ interface NoteRenderHandlers {
   onAddImages?: (noteId: string, files: File[]) => void;
   onAddAudio?: (noteId: string) => void;
   onDeleteAttachment?: (noteId: string, attachment: AttachmentDTO) => void;
+  showTags?: boolean;
 }
 
 function hasImageFiles(dataTransfer: DataTransfer | null): boolean {
@@ -179,6 +188,17 @@ function renderNote(
 
   actions.append(edit, addImage, addAudio);
   meta.appendChild(actions);
+
+  const noteTags = note.tags ?? [];
+  let tagsRow: HTMLElement | null = null;
+  if (noteTags.length > 0 || handlers.showTags) {
+    tagsRow = el('div', 'chain-note__tags');
+    tagsRow.setAttribute('role', 'group');
+    tagsRow.setAttribute('aria-label', 'Tags da nota');
+    tagsRow.dataset['noteTagsHost'] = 'true';
+    tagsRow.dataset['noteId'] = note.id;
+    meta.insertBefore(tagsRow, actions);
+  }
 
   const text = el(
     isMarkdown ? 'div' : 'p',
@@ -365,6 +385,7 @@ export function mountChainDocument(
   const actionFooter = root.querySelector<HTMLElement>('.chain-document__footer')!;
 
   let currentTab = tab;
+  const noteTagEditors = new Map<string, InlineTagEditorView>();
   let autoEditAttempted = false;
   let autoEditFrame: number | null = null;
   let lastPreviewClick: { noteId: string; at: number } | null = null;
@@ -640,6 +661,54 @@ export function mountChainDocument(
     tagEditor.update(summary?.tags ?? [], appState.get().allTags);
   };
 
+  const destroyNoteTagEditors = (): void => {
+    noteTagEditors.forEach((editor) => editor.destroy());
+    noteTagEditors.clear();
+  };
+
+  const syncNoteTagEditors = (): void => {
+    noteTagEditors.forEach((editor, noteId) => {
+      const note = currentTab.notes.find((item) => item.id === noteId);
+      if (!note) {
+        editor.destroy();
+        noteTagEditors.delete(noteId);
+        return;
+      }
+      editor.update(note.tags ?? [], appState.get().allTags);
+    });
+  };
+
+  const mountNoteTagEditors = (): void => {
+    destroyNoteTagEditors();
+    history
+      .querySelectorAll<HTMLElement>('[data-note-tags-host="true"]')
+      .forEach((host) => {
+        const noteId = host.dataset['noteId'];
+        if (!noteId) return;
+        const note = currentTab.notes.find((item) => item.id === noteId);
+        if (!note) return;
+
+        const editor = mountInlineTagEditor(
+          host,
+          {
+            onAdd: (tagName) =>
+              handlers.onAddNoteTag?.(noteId, tagName) ?? Promise.resolve(false),
+            onRemove: (tag) => handlers.onRemoveNoteTag?.(noteId, tag),
+          },
+          {
+            addButtonClassName: 'chain-note__tag-add',
+            addButtonAriaLabel: 'Adicionar tag \u00e0 nota',
+            addButtonTitle: 'Adicionar tag',
+            addButtonHaspopup: 'dialog',
+            addButtonText: '',
+            removeAriaLabel: (tag) => `Remover tag ${tag.name} desta nota`,
+          }
+        );
+        editor.update(note.tags ?? [], appState.get().allTags);
+        noteTagEditors.set(noteId, editor);
+      });
+  };
+
   const renderNotes = (): void => {
     const editingNoteIds = new Set(
       currentTab.noteTabs
@@ -700,6 +769,7 @@ export function mountChainDocument(
       (currentTab.status === 'loading' || currentTab.status === 'idle') &&
       currentTab.notes.length === 0
     ) {
+      destroyNoteTagEditors();
       history.innerHTML = '';
       history.appendChild(renderLoadingState());
       renderedNotesSignature = signature;
@@ -707,6 +777,7 @@ export function mountChainDocument(
     }
 
     if (currentTab.status === 'error') {
+      destroyNoteTagEditors();
       history.innerHTML = '';
       const error = renderEmptyDetail(
         'error',
@@ -726,9 +797,11 @@ export function mountChainDocument(
     }
 
     if (signature === renderedNotesSignature && currentTab.status === previousStatus) {
+      syncNoteTagEditors();
       return;
     }
 
+    destroyNoteTagEditors();
     const previousScroll = scroll.scrollTop;
     history.innerHTML = '';
 
@@ -773,6 +846,9 @@ export function mountChainDocument(
                 ...(handlers.onDeleteNoteAttachment
                   ? { onDeleteAttachment: handlers.onDeleteNoteAttachment }
                   : {}),
+                showTags: Boolean(
+                  handlers.onAddNoteTag || handlers.onRemoveNoteTag
+                ),
               }
             )
           );
@@ -782,6 +858,7 @@ export function mountChainDocument(
       });
     }
 
+    mountNoteTagEditors();
     syncPeriodSelection(activeMonth?.noteIds ?? []);
     renderedNotesSignature = signature;
     scroll.scrollTop = previousScroll;
@@ -1232,6 +1309,7 @@ export function mountChainDocument(
     periodMenu.destroy();
     activeLine.destroy();
     tagEditor.destroy();
+    destroyNoteTagEditors();
   };
 
   update(tab);

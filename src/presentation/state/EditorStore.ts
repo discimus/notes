@@ -611,6 +611,9 @@ export class EditorStore {
         ...(note.attachments === undefined && existing?.attachments
           ? { attachments: existing.attachments }
           : {}),
+        ...(note.tags === undefined && existing?.tags
+          ? { tags: existing.tags }
+          : {}),
       });
       changed = true;
     });

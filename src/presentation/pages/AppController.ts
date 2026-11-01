@@ -36,6 +36,8 @@ import {
   UpdateChainTitle,
   AssignTagToChain,
   RemoveTagFromChain,
+  AssignTagToNote,
+  RemoveTagFromNote,
   GetChainDetails,
   SearchNotes,
   GetTimelinePage,
@@ -66,10 +68,12 @@ const createEmptyChain = new CreateChain(chainRepo);
 const createChainWithHeader = new CreateChainWithHeader(chainRepo, tagRepo);
 const createChainWithNoteUseCase = new CreateChainWithNote(chainRepo);
 const appendNote = new AppendNoteToChain(chainRepo);
-const updateNote = new UpdateNoteContent(chainRepo);
+const updateNote = new UpdateNoteContent(chainRepo, tagRepo);
 const updateTitle = new UpdateChainTitle(chainRepo);
 const assignTag = new AssignTagToChain(chainRepo, tagRepo);
 const removeTag = new RemoveTagFromChain(chainRepo, tagRepo);
+const assignNoteTag = new AssignTagToNote(chainRepo, tagRepo);
+const removeNoteTag = new RemoveTagFromNote(chainRepo, tagRepo);
 const getChainDetails = new GetChainDetails(chainRepo, tagRepo, attachmentRepo);
 const searchNotes = new SearchNotes(chainRepo, tagRepo);
 const getTimelinePage = new GetTimelinePage(chainRepo, tagRepo);
@@ -783,6 +787,44 @@ export const AppController = {
     }
   },
 
+  async assignNoteTag(
+    chainId: string,
+    noteId: string,
+    tagName: string
+  ): Promise<boolean> {
+    try {
+      await assignNoteTag.execute({ chainId, noteId, tagName });
+      await Promise.allSettled([loadTags(), loadChains()]);
+      if (appState.get().view === 'editor') {
+        await refreshEditorChainTab(chainId);
+      } else {
+        await openChain(chainId, false);
+      }
+      return true;
+    } catch (e: unknown) {
+      snackbar.error((e as Error).message);
+      return false;
+    }
+  },
+
+  async removeNoteTag(
+    chainId: string,
+    noteId: string,
+    tagId: string
+  ): Promise<void> {
+    try {
+      await removeNoteTag.execute({ chainId, noteId, tagId });
+      await Promise.allSettled([loadTags(), loadChains()]);
+      if (appState.get().view === 'editor') {
+        await refreshEditorChainTab(chainId);
+      } else {
+        await openChain(chainId, false);
+      }
+    } catch (e: unknown) {
+      snackbar.error((e as Error).message);
+    }
+  },
+
   async archiveChain(chainId: string): Promise<void> {
     const confirmed = await showConfirmDialog({
       title: 'Arquivar cadeia?',
@@ -949,7 +991,7 @@ export const AppController = {
   async deleteTagById(tagId: string): Promise<void> {
     const confirmed = await showConfirmDialog({
       title: 'Remover tag?',
-      body: 'A tag será removida de todas as cadeias, mas as cadeias não serão excluídas.',
+      body: 'A tag será removida de todas as cadeias e notas, mas as cadeias não serão excluídas.',
       icon: 'label_off',
       confirmLabel: 'Remover',
       destructive: true,

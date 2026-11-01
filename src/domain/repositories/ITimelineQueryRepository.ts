@@ -6,6 +6,8 @@ export interface TimelinePageQuery {
   from?: ISODateString | undefined;
   to?: ISODateString | undefined;
   text?: string | undefined;
+  tagChainIds?: UUID[] | undefined;
+  tagNoteIds?: UUID[] | undefined;
   offset: number;
   limit: number;
 }

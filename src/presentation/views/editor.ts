@@ -342,6 +342,11 @@ export function mountEditorView(
         onDeleteNoteAttachment: (_noteId, attachment) => {
           void deleteAttachmentFromNote(tab.chainId, attachment);
         },
+        onAddNoteTag: (noteId, tagName) =>
+          AppController.assignNoteTag(tab.chainId, noteId, tagName),
+        onRemoveNoteTag: (noteId, tag) => {
+          void AppController.removeNoteTag(tab.chainId, noteId, tag.id);
+        },
         onCreateNote: () => {
         createChainNoteTab(tab.id);
       },

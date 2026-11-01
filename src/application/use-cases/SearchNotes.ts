@@ -22,7 +22,16 @@ export class SearchNotes {
       tagsByChainId.set(chain.id, tags);
     }
 
-    const results = this.searchService.search(command.query, chains, tagsByChainId);
+    const tagsByNoteId = await this.tagRepo.findByNoteIds(
+      chains.flatMap((chain) => chain.notes.map((note) => note.id))
+    );
+
+    const results = this.searchService.search(
+      command.query,
+      chains,
+      tagsByChainId,
+      tagsByNoteId
+    );
 
     return results.map((r) => ({
       noteId: r.noteId,

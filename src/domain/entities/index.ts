@@ -6,6 +6,8 @@ export { Tag } from './Tag.js';
 export type { TagData, TagOrigin } from './Tag.js';
 export { ChainTag } from './ChainTag.js';
 export type { ChainTagData } from './ChainTag.js';
+export { NoteTag } from './NoteTag.js';
+export type { NoteTagData } from './NoteTag.js';
 export { TimelineView } from './TimelineView.js';
 export type { TimelineEntry, TimelineFilter } from './TimelineView.js';
 export { Attachment } from './Attachment.js';

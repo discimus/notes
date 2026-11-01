@@ -4,10 +4,11 @@ import type { NoteData } from '@domain/entities/index.js';
 import type { ChainData } from '@domain/entities/index.js';
 import type { TagData } from '@domain/entities/index.js';
 import type { ChainTagData } from '@domain/entities/index.js';
+import type { NoteTagData } from '@domain/entities/index.js';
 import type { AttachmentData } from '@domain/entities/index.js';
 
 export const DB_NAME = 'thread-notes-db';
-export const DB_VERSION = 5;
+export const DB_VERSION = 6;
 
 export interface ThreadNotesDB {
   chains: {
@@ -40,6 +41,15 @@ export interface ThreadNotesDB {
     key: [string, string];
     value: ChainTagData;
     indexes: {
+      'by-chainId': string;
+      'by-tagId': string;
+    };
+  };
+  noteTags: {
+    key: [string, string];
+    value: NoteTagData;
+    indexes: {
+      'by-noteId': string;
       'by-chainId': string;
       'by-tagId': string;
     };
@@ -93,6 +103,49 @@ function hasAttachmentSchema(db: IDBPDatabase<ThreadNotesDB>): boolean {
     return complete;
   } catch {
     return false;
+  }
+}
+
+function hasNoteTagSchema(db: IDBPDatabase<ThreadNotesDB>): boolean {
+  if (!db.objectStoreNames.contains('noteTags')) return false;
+
+  try {
+    const tx = db.transaction('noteTags', 'readonly');
+    const store = tx.objectStore('noteTags');
+    const complete =
+      store.indexNames.contains('by-noteId') &&
+      store.indexNames.contains('by-chainId') &&
+      store.indexNames.contains('by-tagId');
+    void tx.done.catch(() => undefined);
+    return complete;
+  } catch {
+    return false;
+  }
+}
+
+function ensureNoteTagStore(
+  db: IDBPDatabase<ThreadNotesDB>,
+  transaction: UpgradeTransaction
+): void {
+  if (!db.objectStoreNames.contains('noteTags')) {
+    const noteTagsStore = db.createObjectStore('noteTags', {
+      keyPath: ['noteId', 'tagId'],
+    });
+    noteTagsStore.createIndex('by-noteId', 'noteId');
+    noteTagsStore.createIndex('by-chainId', 'chainId');
+    noteTagsStore.createIndex('by-tagId', 'tagId');
+    return;
+  }
+
+  const noteTagsStore = transaction.objectStore('noteTags');
+  if (!noteTagsStore.indexNames.contains('by-noteId')) {
+    noteTagsStore.createIndex('by-noteId', 'noteId');
+  }
+  if (!noteTagsStore.indexNames.contains('by-chainId')) {
+    noteTagsStore.createIndex('by-chainId', 'chainId');
+  }
+  if (!noteTagsStore.indexNames.contains('by-tagId')) {
+    noteTagsStore.createIndex('by-tagId', 'tagId');
   }
 }
 
@@ -154,6 +207,7 @@ function upgradeSchema(
     }
   }
 
+  ensureNoteTagStore(db, transaction);
   ensureAttachmentStores(db, transaction);
 }
 
@@ -186,7 +240,7 @@ export async function getDatabase(): Promise<IDBPDatabase<ThreadNotesDB>> {
     db = await openDatabase();
   }
 
-  if (!hasAttachmentSchema(db)) {
+  if (!hasAttachmentSchema(db) || !hasNoteTagSchema(db)) {
     const nextVersion = db.version + 1;
     db.close();
     db = await openDatabase(nextVersion);
@@ -196,6 +250,9 @@ export async function getDatabase(): Promise<IDBPDatabase<ThreadNotesDB>> {
   if (!hasAttachmentSchema(db)) {
     throw new Error('Banco de dados sem os stores de anexos.');
   }
+  if (!hasNoteTagSchema(db)) {
+    throw new Error('Banco de dados sem o store de tags de notas.');
+  }
   return db;
 }
 
@@ -203,7 +260,15 @@ export async function getDatabase(): Promise<IDBPDatabase<ThreadNotesDB>> {
 export async function clearDatabase(): Promise<void> {
   const db = await getDatabase();
   const tx = db.transaction(
-    ['chains', 'notes', 'tags', 'chainTags', 'attachments', 'attachmentBlobs'],
+    [
+      'chains',
+      'notes',
+      'tags',
+      'chainTags',
+      'noteTags',
+      'attachments',
+      'attachmentBlobs',
+    ],
     'readwrite'
   );
   await Promise.all([
@@ -211,6 +276,7 @@ export async function clearDatabase(): Promise<void> {
     tx.objectStore('notes').clear(),
     tx.objectStore('tags').clear(),
     tx.objectStore('chainTags').clear(),
+    tx.objectStore('noteTags').clear(),
     tx.objectStore('attachments').clear(),
     tx.objectStore('attachmentBlobs').clear(),
   ]);

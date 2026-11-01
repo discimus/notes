@@ -94,6 +94,9 @@ export class InMemoryChainRepository implements IChainRepository, ITimelineQuery
     const normalizedText = query.text ? normalizeText(query.text) : '';
     const fromTs = query.from ? new Date(query.from).getTime() : null;
     const toTs = query.to ? new Date(query.to).getTime() : null;
+    const tagChainIds = new Set(query.tagChainIds ?? []);
+    const tagNoteIds = new Set(query.tagNoteIds ?? []);
+    const hasTagFilter = tagChainIds.size > 0 || tagNoteIds.size > 0;
     const offset = Math.max(0, query.offset);
     const limit = Math.max(1, query.limit);
 
@@ -112,7 +115,11 @@ export class InMemoryChainRepository implements IChainRepository, ITimelineQuery
               normalizeText(`${note.content} ${note.title ?? ''} ${chain.displayTitle}`).includes(
                 normalizedText
               );
-            return inRange && matchesText;
+            const matchesTag =
+              !hasTagFilter ||
+              tagChainIds.has(note.chainId) ||
+              tagNoteIds.has(note.id);
+            return inRange && matchesText && matchesTag;
           })
           .map((note) => ({
             note,

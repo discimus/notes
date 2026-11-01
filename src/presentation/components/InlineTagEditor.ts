@@ -8,9 +8,20 @@ export interface InlineTagEditorHandlers {
   onRemove: (tag: TagDTO) => void;
 }
 
+export interface InlineTagEditorOptions {
+  inputClassName?: string;
+  addButtonClassName?: string;
+  addButtonAriaLabel?: string;
+  addButtonTitle?: string;
+  addButtonHaspopup?: 'dialog' | 'listbox' | 'menu' | 'tree' | 'grid';
+  addButtonText?: string;
+  removeAriaLabel?: (tag: TagDTO) => string;
+}
+
 export interface InlineTagEditorView {
   element: HTMLElement;
   update: (tags: TagDTO[], availableTags?: TagDTO[]) => void;
+  startEditing: () => void;
   destroy: () => void;
 }
 
@@ -18,7 +29,8 @@ let editorSequence = 0;
 
 export function mountInlineTagEditor(
   container: HTMLElement,
-  handlers: InlineTagEditorHandlers
+  handlers: InlineTagEditorHandlers,
+  options: InlineTagEditorOptions = {}
 ): InlineTagEditorView {
   const sequence = ++editorSequence;
   const errorId = `tag-editor-error-${sequence}`;
@@ -167,6 +179,7 @@ export function mountInlineTagEditor(
     tags.forEach((tag) => {
       const chip = el('span', 'chip chip--selected');
       chip.setAttribute('aria-label', `Tag: ${tag.name}`);
+      chip.title = tag.name;
 
       const label = document.createElement('span');
       label.textContent = tag.name;
@@ -174,7 +187,10 @@ export function mountInlineTagEditor(
 
       const remove = el('button', 'chip__remove');
       remove.type = 'button';
-      remove.setAttribute('aria-label', `Remover tag ${tag.name}`);
+      remove.setAttribute(
+        'aria-label',
+        options.removeAriaLabel?.(tag) ?? `Remover tag ${tag.name}`
+      );
       remove.innerHTML =
         '<span class="material-symbols-rounded" aria-hidden="true">close</span>';
       remove.addEventListener('click', (event) => {
@@ -188,11 +204,23 @@ export function mountInlineTagEditor(
   };
 
   const renderAddButton = (): void => {
-    const add = el('button', 'chip tag-add');
+    const className = options.addButtonClassName
+      ? `chip tag-add ${options.addButtonClassName}`
+      : 'chip tag-add';
+    const add = el('button', className);
     add.type = 'button';
-    add.setAttribute('aria-label', 'Adicionar tag');
+    add.setAttribute(
+      'aria-label',
+      options.addButtonAriaLabel ?? 'Adicionar tag'
+    );
+    if (options.addButtonTitle) add.title = options.addButtonTitle;
+    if (options.addButtonHaspopup) {
+      add.setAttribute('aria-haspopup', options.addButtonHaspopup);
+    }
     add.innerHTML =
-      '<span class="material-symbols-rounded icon-md" aria-hidden="true">add</span> Tag';
+      '<span class="material-symbols-rounded icon-md" aria-hidden="true">add</span>';
+    const label = options.addButtonText ?? 'Tag';
+    if (label.trim()) add.append(document.createTextNode(` ${label}`));
     add.addEventListener('click', startEditing);
     controlHost.replaceChildren(add);
   };
@@ -284,6 +312,7 @@ export function mountInlineTagEditor(
     input = document.createElement('input');
     input.type = 'text';
     input.className = 'tag-add__input';
+    if (options.inputClassName) input.classList.add(options.inputClassName);
     input.placeholder = 'Nova tag';
     input.setAttribute('role', 'combobox');
     input.setAttribute('aria-label', 'Nova tag');
@@ -361,9 +390,13 @@ export function mountInlineTagEditor(
       if (editing && input?.value.trim()) renderSuggestions();
       else closeSuggestions();
     },
+    startEditing,
     destroy: () => {
       window.removeEventListener('resize', closeOnResize);
       closeSuggestions();
+      editing = false;
+      pending = false;
+      input = null;
       listbox.remove();
       root.remove();
     },

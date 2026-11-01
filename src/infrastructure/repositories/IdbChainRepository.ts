@@ -129,22 +129,25 @@ export class IdbChainRepository implements IChainRepository, ITimelineQueryRepos
     const db = await this.db();
     const hasAttachments = db.objectStoreNames.contains('attachments');
     const hasAttachmentBlobs = db.objectStoreNames.contains('attachmentBlobs');
-    const stores = ['chains', 'notes', 'chainTags'];
+    const stores = ['chains', 'notes', 'chainTags', 'noteTags'];
     if (hasAttachments) stores.push('attachments');
     if (hasAttachmentBlobs) stores.push('attachmentBlobs');
     const tx = db.transaction(stores, 'readwrite');
     await tx.objectStore('chains').delete(id);
 
-    // Remove notas
     const notes = await tx.objectStore('notes').index('by-chainId').getAllKeys(id);
     for (const key of notes) {
       await tx.objectStore('notes').delete(key);
     }
 
-    // Remove chainTags
     const chainTags = await tx.objectStore('chainTags').index('by-chainId').getAll(id);
     for (const ct of chainTags) {
       await tx.objectStore('chainTags').delete([ct.chainId, ct.tagId]);
+    }
+
+    const noteTags = await tx.objectStore('noteTags').index('by-chainId').getAll(id);
+    for (const nt of noteTags) {
+      await tx.objectStore('noteTags').delete([nt.noteId, nt.tagId]);
     }
 
     // Remove attachments e blobs
@@ -188,6 +191,9 @@ export class IdbChainRepository implements IChainRepository, ITimelineQueryRepos
     const normalizedText = query.text ? normalizeText(query.text) : '';
     const fromTs = query.from ? new Date(query.from).getTime() : null;
     const toTs = query.to ? new Date(query.to).getTime() : null;
+    const tagChainIds = new Set(query.tagChainIds ?? []);
+    const tagNoteIds = new Set(query.tagNoteIds ?? []);
+    const hasTagFilter = tagChainIds.size > 0 || tagNoteIds.size > 0;
     const offset = Math.max(0, query.offset);
     const limit = Math.max(1, query.limit);
     const entries: TimelineEntry[] = [];
@@ -206,8 +212,12 @@ export class IdbChainRepository implements IChainRepository, ITimelineQueryRepos
         const matchesText =
           !normalizedText ||
           normalizeText(`${note.content} ${note.title ?? ''} ${chainTitle}`).includes(normalizedText);
+        const matchesTag =
+          !hasTagFilter ||
+          tagChainIds.has(note.chainId) ||
+          tagNoteIds.has(note.id);
 
-        if (inRange && matchesText) {
+        if (inRange && matchesText && matchesTag) {
           if (total >= offset && entries.length < limit) {
             entries.push({
               note,

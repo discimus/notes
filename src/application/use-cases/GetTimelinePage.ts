@@ -25,14 +25,23 @@ export class GetTimelinePage {
   async execute(command: GetTimelinePageCommand): Promise<TimelinePageDTO> {
     const offset = Math.max(0, command.offset);
     const limit = Math.max(1, command.limit);
-    let chainIds = command.chainIds;
+    const chainIds = [...new Set(command.chainIds)];
+    let tagChainIds: string[] | undefined;
+    let tagNoteIds: string[] | undefined;
 
     if (command.tagIds && command.tagIds.length > 0) {
-      const tagChainIds = await Promise.all(
+      const chainTags = await Promise.all(
         command.tagIds.map((tagId) => this.tagRepo.findChainIdsByTag(tagId))
       );
-      const allowed = new Set(tagChainIds.flat());
-      chainIds = chainIds.filter((chainId) => allowed.has(chainId));
+      const noteIds = await Promise.all(
+        command.tagIds.map((tagId) => this.tagRepo.findNoteIdsByTag(tagId))
+      );
+      tagChainIds = [...new Set(chainTags.flat())];
+      tagNoteIds = [...new Set(noteIds.flat())];
+
+      if (tagChainIds.length === 0 && tagNoteIds.length === 0) {
+        return { entries: [], total: 0, offset, limit, hasMore: false };
+      }
     }
 
     if (chainIds.length === 0) {
@@ -44,6 +53,8 @@ export class GetTimelinePage {
       ...(command.from ? { from: command.from } : {}),
       ...(command.to ? { to: command.to } : {}),
       ...(command.text?.trim() ? { text: command.text.trim() } : {}),
+      ...(tagChainIds ? { tagChainIds } : {}),
+      ...(tagNoteIds ? { tagNoteIds } : {}),
       offset,
       limit,
     });

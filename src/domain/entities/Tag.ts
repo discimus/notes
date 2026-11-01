@@ -16,8 +16,8 @@ export interface TagData {
 
 /**
  * Entidade: Tag.
- * Tags são associadas a headers de cadeias, não diretamente às tails.
- * Suporta rastreio de origem para futuras integrações com classificadores.
+ * Tags podem ser associadas a cadeias e a notas individuais.
+ * Suporta rastreio de origem para futuras integraAA�es com classificadores.
  */
 export class Tag {
   private readonly _id: UUID;
