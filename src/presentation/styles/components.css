@@ -1,8 +1,8 @@
-﻿/* ============================================================
-   ThreadNotes â€” Componentes MD3
+/* ============================================================
+   ThreadNotes — Componentes MD3
    ============================================================ */
 
-/* â”€â”€ Ripple state layer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Ripple state layer ─────────────────────────────────── */
 .state-layer {
   position: relative;
   overflow: hidden;
@@ -23,7 +23,7 @@
 .state-layer:focus-visible::before { opacity: 0.12; }
 .state-layer:active::before { opacity: 0.16; }
 
-/* â”€â”€ Buttons â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Buttons ────────────────────────────────────────────── */
 .btn {
   display: inline-flex;
   align-items: center;
@@ -140,7 +140,7 @@
   padding: var(--spacing-4) var(--spacing-6);
 }
 
-/* â”€â”€ Text Fields â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Text Fields ────────────────────────────────────────── */
 .text-field {
   display: flex;
   flex-direction: column;
@@ -247,7 +247,7 @@
   transform: translateY(-50%);
 }
 
-/* â”€â”€ Chips â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Chips ──────────────────────────────────────────────── */
 .chip {
   display: inline-flex;
   align-items: center;
@@ -285,7 +285,7 @@
 }
 .chip__remove:hover { opacity: 1; background-color: color-mix(in srgb, currentColor 12%, transparent); }
 
-/* â”€â”€ Cards â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Cards ──────────────────────────────────────────────── */
 .card {
   background-color: var(--md-sys-color-surface-container-low);
   border-radius: var(--md-sys-shape-corner-medium);
@@ -333,7 +333,7 @@
   border-left: 3px solid var(--md-sys-color-primary);
 }
 
-/* â”€â”€ Dialog â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Dialog ─────────────────────────────────────────────── */
 .dialog-backdrop {
   position: fixed;
   inset: 0;
@@ -723,7 +723,7 @@
   }
 }
 
-/* â”€â”€ Snackbar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Snackbar ────────────────────────────────────────────── */
 .snackbar-container {
   position: fixed;
   bottom: var(--spacing-4);
@@ -777,7 +777,7 @@
   to { opacity: 0; transform: translateY(20px); }
 }
 
-/* â”€â”€ Navigation Drawer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Navigation Drawer ──────────────────────────────────── */
 .nav-drawer {
   width: var(--nav-drawer-width);
   height: 100%;
@@ -932,7 +932,7 @@
   to { opacity: 1; }
 }
 
-/* â”€â”€ Progress Indicator â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Progress Indicator ─────────────────────────────────── */
 .linear-progress {
   width: 100%;
   height: 4px;
@@ -952,7 +952,7 @@
   100% { width: 0%; margin-left: 100%; }
 }
 
-/* â”€â”€ Empty state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Empty state ────────────────────────────────────────── */
 .empty-state {
   display: flex;
   flex-direction: column;
@@ -979,7 +979,7 @@
   line-height: 1.6;
 }
 
-/* â”€â”€ Search field â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Search field ────────────────────────────────────────── */
 .search-bar {
   display: flex;
   align-items: center;
@@ -1007,14 +1007,14 @@
 .search-bar__input::placeholder { color: var(--md-sys-color-on-surface-variant); }
 .search-bar__clear { color: var(--md-sys-color-on-surface-variant); }
 
-/* â”€â”€ Dividers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Dividers ────────────────────────────────────────────── */
 .divider {
   height: 1px;
   background-color: var(--md-sys-color-outline-variant);
   border: none;
 }
 
-/* â”€â”€ Badge â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Badge ───────────────────────────────────────────────── */
 .badge {
   display: inline-flex;
   align-items: center;
@@ -1029,7 +1029,7 @@
   padding: 0 4px;
 }
 
-/* â”€â”€ Componentes de apoio â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Componentes de apoio ───────────────────────────────── */
 .btn--destructive {
   background-color: var(--md-sys-color-error);
   color: var(--md-sys-color-on-error);
@@ -2829,6 +2829,16 @@
   height: auto;
   border-radius: var(--md-sys-shape-corner-small);
 }
+@container (min-width: 640px) {
+  .chain-note__body--markdown .note-markdown {
+    max-height: 4.95em;
+    overflow: hidden;
+  }
+}
+.app-shell--full-note-content .chain-note__body--markdown .note-markdown {
+  max-height: none;
+  overflow: visible;
+}
 .chain-note--drop-target .chain-note__body {
   outline: 2px dashed var(--md-sys-color-primary);
   outline-offset: 2px;
@@ -2922,6 +2932,88 @@
 }
 .chain-attachment__action--delete {
   color: var(--md-sys-color-error);
+}
+.chain-note__attachment-images {
+  position: relative;
+}
+.chain-note__attachment-more {
+  display: none;
+  position: absolute;
+  right: var(--spacing-2);
+  bottom: var(--spacing-2);
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  height: 28px;
+  padding: 0 var(--spacing-2);
+  border-radius: var(--md-sys-shape-corner-full);
+  background-color: var(--md-sys-color-inverse-surface);
+  color: var(--md-sys-color-inverse-on-surface);
+  box-shadow: var(--md-sys-elevation-1);
+  font-size: var(--md-sys-typescale-label-medium-size);
+  font-weight: var(--md-sys-typescale-label-medium-weight);
+  pointer-events: none;
+}
+@container (min-width: 640px) {
+  .chain-note .chain-note__attachment-grid {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: var(--spacing-2);
+    overflow: hidden;
+  }
+  .chain-note .chain-note__attachment-grid .chain-attachment--image {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+  .chain-note .chain-note__attachment-grid .chain-attachment__image {
+    height: 96px;
+    object-fit: cover;
+  }
+  .chain-note
+    .chain-note__attachment-grid
+    .chain-attachment--preview-hidden {
+    display: none;
+  }
+  .chain-note__attachment-more {
+    display: inline-flex;
+  }
+}
+.app-shell--full-note-content .chain-note .chain-note__attachment-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(128px, 1fr));
+  grid-auto-rows: auto;
+  gap: var(--spacing-2);
+  overflow: visible;
+}
+.app-shell--full-note-content
+  .chain-note
+  .chain-note__attachment-grid
+  .chain-attachment--preview-hidden {
+  display: block;
+}
+.app-shell--full-note-content
+  .chain-note
+  .chain-note__attachment-grid
+  .chain-attachment__image {
+  height: 140px;
+  object-fit: cover;
+}
+.app-shell--image-column.app-shell--full-note-content
+  .chain-note
+  .chain-note__attachment-grid {
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--spacing-3);
+}
+.app-shell--image-column.app-shell--full-note-content
+  .chain-note
+  .chain-note__attachment-grid
+  .chain-attachment__image {
+  height: auto;
+  max-height: none;
+  object-fit: contain;
+}
+.app-shell--full-note-content .chain-note__attachment-more {
+  display: none;
 }
 .chain-note__audio-list {
   display: flex;
@@ -3155,7 +3247,7 @@
   font-variant-ligatures: none;
 }
 
-/* Importaï¿½ï¿½o de documentos */
+/* Importação de documentos */
 .chain-document--drop-target {
   box-shadow: inset 0 0 0 2px var(--md-sys-color-primary);
 }
@@ -3345,7 +3437,7 @@
   }
 }
 
-/* Importaï¿½ï¿½o em lote */
+/* Importação em lote */
 .import-batch-summary {
   display: flex;
   flex-wrap: wrap;
@@ -3479,7 +3571,7 @@
   }
 }
 
-/* Criar cadeia no diï¿½logo de salvamento */
+/* Criar cadeia no diálogo de salvamento */
 .save-chain-create {
   display: flex;
   align-items: center;
@@ -3541,7 +3633,7 @@
   box-shadow: inset 0 0 0 1px var(--md-sys-color-error);
 }
 
-/* AÃ§Ãµes rÃ¡pidas da cadeia */
+/* Ações rápidas da cadeia */
 .chain-document__footer {
   position: absolute;
   left: 50%;

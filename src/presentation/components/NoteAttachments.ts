@@ -13,6 +13,10 @@ export interface NoteAttachmentHandlers {
   onDelete: (attachment: AttachmentDTO) => void;
 }
 
+export interface NoteAttachmentRenderOptions {
+  previewImageLimit?: number;
+}
+
 function icon(name: string): string {
   return `<span class="material-symbols-rounded" aria-hidden="true">${name}</span>`;
 }
@@ -101,7 +105,7 @@ function renderImage(
   container: HTMLElement,
   attachment: AttachmentDTO,
   handlers: NoteAttachmentHandlers
-): void {
+): HTMLElement {
   const item = el('div', 'chain-attachment chain-attachment--image');
   item.dataset['attachmentId'] = attachment.id;
 
@@ -136,26 +140,36 @@ function renderImage(
   });
   copy.addEventListener('click', () => void copyImage(attachment));
   remove.addEventListener('click', () => handlers.onDelete(attachment));
+
+  return item;
 }
 
 export function renderNoteAttachments(
   host: HTMLElement,
   attachments: AttachmentDTO[],
-  handlers: NoteAttachmentHandlers
+  handlers: NoteAttachmentHandlers,
+  options: NoteAttachmentRenderOptions = {}
 ): void {
   if (attachments.length === 0) return;
 
+  const previewImageLimit = Math.max(1, options.previewImageLimit ?? 3);
   const container = el('div', 'chain-note__attachments');
   container.addEventListener('click', (event) => event.stopPropagation());
   const images = el('div', 'chain-note__attachment-grid');
   const audios = el('div', 'chain-note__audio-list');
+  const imageAttachments = attachments.filter(
+    (attachment) => attachment.kind === 'image'
+  );
   const audioAttachments = attachments.filter(
     (attachment) => attachment.kind === 'audio'
   );
 
-  for (const attachment of attachments) {
-    if (attachment.kind === 'image') renderImage(images, attachment, handlers);
-  }
+  imageAttachments.forEach((attachment, index) => {
+    const item = renderImage(images, attachment, handlers);
+    if (index >= previewImageLimit) {
+      item.classList.add('chain-attachment--preview-hidden');
+    }
+  });
 
   if (audioAttachments.length > 0) {
     renderAudioList(audios, audioAttachments, {
@@ -165,7 +179,26 @@ export function renderNoteAttachments(
     });
   }
 
-  if (images.childElementCount > 0) container.appendChild(images);
+  if (imageAttachments.length > 0) {
+    const imageGroup = el('div', 'chain-note__attachment-images');
+    imageGroup.appendChild(images);
+
+    const hiddenCount = Math.max(0, imageAttachments.length - previewImageLimit);
+    if (hiddenCount > 0) {
+      const more = el('span', 'chain-note__attachment-more');
+      const visual = el('span', 'chain-note__attachment-more-count');
+      visual.setAttribute('aria-hidden', 'true');
+      visual.textContent = `+${hiddenCount}`;
+      const accessible = el('span', 'sr-only');
+      accessible.textContent = `${hiddenCount} ${
+        hiddenCount === 1 ? 'imagem adicional' : 'imagens adicionais'
+      }`;
+      more.append(visual, accessible);
+      imageGroup.appendChild(more);
+    }
+
+    container.appendChild(imageGroup);
+  }
   if (audios.childElementCount > 0) container.appendChild(audios);
   host.appendChild(container);
 }

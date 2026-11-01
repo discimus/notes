@@ -254,9 +254,15 @@ function renderNote(
 
   body.appendChild(text);
   if (note.attachments && note.attachments.length > 0) {
-    renderNoteAttachments(body, note.attachments, {
-      onDelete: (attachment) => handlers.onDeleteAttachment?.(note.id, attachment),
-    });
+    renderNoteAttachments(
+      body,
+      note.attachments,
+      {
+        onDelete: (attachment) =>
+          handlers.onDeleteAttachment?.(note.id, attachment),
+      },
+      { previewImageLimit: 3 }
+    );
   }
   article.append(meta, body);
   return article;
