@@ -7,13 +7,19 @@ import {
 } from '../state/EditorStore.js';
 import { appState } from '../state/AppState.js';
 import { AppController } from '../pages/AppController.js';
-import { groupNotesByDate } from '../app/editorGrouping.js';
+import {
+  buildNotePeriods,
+  groupNotesByDate,
+  type NotePeriodMonth,
+  type NotePeriodYear,
+} from '../app/editorGrouping.js';
 import { renderEmptyDetail, renderLoadingState } from './states.js';
 import { showChainMenu } from '../views/menus.js';
 import { renderTabList } from './EditorTabs.js';
 import { mountActiveLineHighlight } from './ActiveLineHighlight.js';
 import { mountInlineTagEditor } from './InlineTagEditor.js';
 import { mountContentTypeMenu } from './ContentTypeMenu.js';
+import { mountPeriodMenu } from './PeriodMenu.js';
 import { renderQuickActions } from './QuickActions.js';
 import { renderNoteContent } from './NoteContent.js';
 import { stopAttachmentAudio, renderNoteAttachments } from './NoteAttachments.js';
@@ -29,6 +35,7 @@ const EXPAND_DELTA_MIN = 8;
 const EXPAND_DELAY_MS = 120;
 const SCROLL_IGNORE_MS = 100;
 const PREVIEW_DOUBLE_CLICK_MS = 500;
+const PERIOD_FLASH_MS = 1200;
 
 export interface ChainDocumentHandlers {
   onNoteInput: (noteTabId: string, value: string) => void;
@@ -96,6 +103,8 @@ function renderNote(
 ): HTMLElement {
   const article = el('article', 'chain-note');
   article.setAttribute('data-note-id', note.id);
+  article.setAttribute('aria-label', `Nota de ${formatDateFull(note.createdAt)}`);
+  article.tabIndex = -1;
   article.classList.toggle('chain-note--selected', selected);
   article.setAttribute('aria-current', selected ? 'true' : 'false');
 
@@ -290,6 +299,8 @@ export function mountChainDocument(
       </div>
     </div>
 
+    <p class="sr-only" id="chain-period-status" role="status" aria-live="polite"></p>
+
     <footer class="chain-document__footer">
       ${renderQuickActions({
         documentId: 'chain-action-document',
@@ -322,6 +333,7 @@ export function mountChainDocument(
   const count = root.querySelector<HTMLElement>('#chain-note-count')!;
   const scroll = root.querySelector<HTMLElement>('#chain-document-scroll')!;
   const history = root.querySelector<HTMLElement>('#chain-history')!;
+  const periodStatus = root.querySelector<HTMLElement>('#chain-period-status')!;
   const noteTabs = root.querySelector<HTMLElement>('#chain-note-tabs')!;
   const newNote = root.querySelector<HTMLButtonElement>('#chain-note-new')!;
   const emptyNewNote = root.querySelector<HTMLButtonElement>('#chain-note-empty-new')!;
@@ -342,6 +354,109 @@ export function mountChainDocument(
   let autoEditFrame: number | null = null;
   let lastPreviewClick: { noteId: string; at: number } | null = null;
   let actionSpaceObserver: ResizeObserver | null = null;
+  let activePeriodKey: string | null = null;
+  let periodFlashTimer: ReturnType<typeof setTimeout> | null = null;
+  let periodFocusFrame: number | null = null;
+
+  const findPeriodMonth = (
+    periods: NotePeriodYear[],
+    key: string | null
+  ): NotePeriodMonth | null => {
+    if (key === null) return null;
+    for (const year of periods) {
+      const month = year.months.find((item) => item.key === key);
+      if (month) return month;
+    }
+    return null;
+  };
+
+  const syncPeriodSelection = (noteIds: string[]): void => {
+    const selected = new Set(noteIds);
+    history.querySelectorAll<HTMLElement>('.chain-note').forEach((note) => {
+      note.classList.toggle(
+        'chain-note--period-selected',
+        selected.has(note.dataset['noteId'] ?? '')
+      );
+    });
+  };
+
+  const clearPeriodFlash = (): void => {
+    if (periodFlashTimer !== null) {
+      clearTimeout(periodFlashTimer);
+      periodFlashTimer = null;
+    }
+    history
+      .querySelectorAll<HTMLElement>('.chain-note--period-flash')
+      .forEach((note) => note.classList.remove('chain-note--period-flash'));
+  };
+
+  const flashPeriodNotes = (noteIds: string[]): void => {
+    clearPeriodFlash();
+    const ids = new Set(noteIds);
+    const targets = [...history.querySelectorAll<HTMLElement>('.chain-note')].filter(
+      (note) => ids.has(note.dataset['noteId'] ?? '')
+    );
+    if (targets.length === 0) return;
+
+    targets.forEach((note) => {
+      void note.offsetWidth;
+      note.classList.add('chain-note--period-flash');
+    });
+
+    periodFlashTimer = setTimeout(() => {
+      periodFlashTimer = null;
+      targets.forEach((note) => note.classList.remove('chain-note--period-flash'));
+    }, PERIOD_FLASH_MS);
+  };
+
+  const focusFirstNoteOfPeriod = (noteIds: string[]): void => {
+    const selected = new Set(noteIds);
+    const target =
+      [...history.querySelectorAll<HTMLElement>('.chain-note')].find((note) =>
+        selected.has(note.dataset['noteId'] ?? '')
+      ) ?? null;
+    if (!target) return;
+
+    target.focus({ preventScroll: true });
+
+    const group = target.closest('.chain-date-group');
+    const heading = group?.querySelector<HTMLElement>(
+      '.chain-date-group__heading'
+    );
+    const listRect = scroll.getBoundingClientRect();
+    const targetRect = target.getBoundingClientRect();
+    const top =
+      scroll.scrollTop +
+      targetRect.top -
+      listRect.top -
+      (heading?.offsetHeight ?? 0) -
+      8;
+    const maxTop = Math.max(0, scroll.scrollHeight - scroll.clientHeight);
+    scroll.scrollTop = Math.min(Math.max(0, top), maxTop);
+  };
+
+  const schedulePeriodFocus = (noteIds: string[]): void => {
+    if (periodFocusFrame !== null) cancelAnimationFrame(periodFocusFrame);
+    periodFocusFrame = requestAnimationFrame(() => {
+      periodFocusFrame = null;
+      focusFirstNoteOfPeriod(noteIds);
+    });
+  };
+
+  const periodMenu = mountPeriodMenu({
+    onSelect: (month) => {
+      activePeriodKey = month.key;
+      periodMenu.update(buildNotePeriods(currentTab.notes), activePeriodKey);
+      syncPeriodSelection(month.noteIds);
+      flashPeriodNotes(month.noteIds);
+      schedulePeriodFocus(month.noteIds);
+      periodStatus.textContent = `${month.monthLabel} de ${
+        month.year
+      } selecionado. ${month.count} ${
+        month.count === 1 ? 'nota' : 'notas'
+      } em destaque.`;
+    },
+  });
 
   const cancelAutoEdit = (): void => {
     if (autoEditFrame !== null) cancelAnimationFrame(autoEditFrame);
@@ -466,6 +581,10 @@ export function mountChainDocument(
       activeEditNoteId ?? ''
     }`;
 
+    const periods = buildNotePeriods(currentTab.notes);
+    const activeMonth = findPeriodMonth(periods, activePeriodKey);
+    periodMenu.update(periods, activePeriodKey);
+
     const hasPendingDraft = currentTab.noteTabs.some(
       (noteTab) => !noteTab.editingNoteId && noteTab.content.trim().length > 0
     );
@@ -545,9 +664,15 @@ export function mountChainDocument(
         const section = el('section', 'chain-date-group');
         section.setAttribute('aria-label', group.fullLabel);
 
-        const heading = el('h3', 'chain-date-group__label');
-        heading.textContent = group.label;
-        heading.title = group.fullLabel;
+        const heading = el('h3', 'chain-date-group__heading');
+        const headingButton = el('button', 'chain-date-group__label');
+        headingButton.type = 'button';
+        headingButton.setAttribute('aria-haspopup', 'menu');
+        headingButton.setAttribute('aria-expanded', 'false');
+        headingButton.setAttribute('aria-label', `${group.label} — ir para período`);
+        headingButton.title = `${group.fullLabel} — ir para período`;
+        headingButton.textContent = group.label;
+        heading.appendChild(headingButton);
         section.appendChild(heading);
 
         group.notes.forEach((note) => {
@@ -576,6 +701,7 @@ export function mountChainDocument(
       });
     }
 
+    syncPeriodSelection(activeMonth?.noteIds ?? []);
     renderedNotesSignature = signature;
     scroll.scrollTop = previousScroll;
   };
@@ -615,6 +741,12 @@ export function mountChainDocument(
   const onHistoryClick = (event: MouseEvent): void => {
     const target = event.target as Element | null;
     if (!target) return;
+    const periodTrigger =
+      target.closest<HTMLButtonElement>('.chain-date-group__label');
+    if (periodTrigger) {
+      periodMenu.open(periodTrigger);
+      return;
+    }
     if (target.closest('.chain-note__body')) return;
     if (target.closest('button, a, input, textarea, select, [contenteditable="true"]')) {
       return;
@@ -627,16 +759,31 @@ export function mountChainDocument(
   };
   scroll.addEventListener('click', onHistoryClick);
 
+  const onHistoryKeyDown = (event: KeyboardEvent): void => {
+    if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return;
+    const target = event.target as Element | null;
+    const periodTrigger =
+      target?.closest<HTMLButtonElement>('.chain-date-group__label') ?? null;
+    if (!periodTrigger) return;
+    event.preventDefault();
+    periodMenu.open(periodTrigger, event.key === 'ArrowUp');
+  };
+  history.addEventListener('keydown', onHistoryKeyDown);
+
   const isEscapeHandledByChild = (event: KeyboardEvent): boolean =>
     event.composedPath().some(
       (node) =>
         node instanceof Element &&
-        node.matches('.tag-add__input, .content-type-menu, .editor-tab__rename-input')
+        node.matches(
+          '.tag-add__input, .content-type-menu, .period-menu, .chain-date-group__label, .editor-tab__rename-input'
+        )
     );
 
   const onEditorKeyDown = (event: KeyboardEvent): void => {
     if (event.key !== 'Escape') return;
-    if (document.querySelector('.dialog-backdrop, .content-type-menu')) return;
+    if (document.querySelector('.dialog-backdrop, .content-type-menu, .period-menu')) {
+      return;
+    }
     if (isEscapeHandledByChild(event)) return;
     if (currentTab.composerCollapsed) return;
 
@@ -896,16 +1043,20 @@ export function mountChainDocument(
   const update = (tabValue: ChainTab): void => {
     const justLoaded =
       previousStatus === 'loading' && tabValue.status === 'loaded';
+    if (tabValue.chainId !== currentTab.chainId) {
+      activePeriodKey = null;
+      periodStatus.textContent = '';
+    }
     currentTab = tabValue;
     root.setAttribute('aria-label', `Cadeia ${tabValue.title}`);
     root.dataset['chainId'] = tabValue.chainId;
 
-      syncComposerState(tabValue);
-      renderTags();
-      renderNotes();
-      syncQuickActions();
-      renderNoteTabs();
-      syncNoteEditor();
+    syncComposerState(tabValue);
+    renderTags();
+    renderNotes();
+    syncQuickActions();
+    renderNoteTabs();
+    syncNoteEditor();
 
     if (justLoaded) {
       requestAnimationFrame(scrollToBottom);
@@ -987,6 +1138,7 @@ export function mountChainDocument(
     window.removeEventListener('blur', clearLinkModifier);
     scroll.removeEventListener('scroll', onScroll);
     scroll.removeEventListener('click', onHistoryClick);
+    history.removeEventListener('keydown', onHistoryKeyDown);
     root.removeEventListener('keydown', onEditorKeyDown);
     window.removeEventListener('resize', onActionSpaceResize);
     actionSpaceObserver?.disconnect();
@@ -997,10 +1149,14 @@ export function mountChainDocument(
     cancelExpand();
     if (compactFrame !== null) cancelAnimationFrame(compactFrame);
     compactFrame = null;
+    if (periodFocusFrame !== null) cancelAnimationFrame(periodFocusFrame);
+    periodFocusFrame = null;
+    clearPeriodFlash();
     window.removeEventListener('dragend', resetFileDrag);
     window.removeEventListener('drop', resetFileDrag, true);
     window.removeEventListener('dragleave', resetWhenLeavingWindow);
     contentTypeMenu.destroy();
+    periodMenu.destroy();
     activeLine.destroy();
     tagEditor.destroy();
   };
