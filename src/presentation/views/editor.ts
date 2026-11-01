@@ -9,6 +9,7 @@ import {
   isEditorTabDirty,
 } from '../state/EditorStore.js';
 import {
+  beginTabRename,
   focusEditorTab,
   renderEditorTabs,
   updateTabDirtyState,
@@ -293,6 +294,9 @@ export function mountEditorView(
       onImportFiles: (files) => {
         void importFilesToChain(tab.chainId, files);
       },
+      onRename: () => {
+        beginTabRename(tabsElement, tab.id);
+      },
     });
     activeDocument = { id: tab.id, kind: 'chain', view };
     documentHost.replaceChildren(view.element);
@@ -561,6 +565,12 @@ export function mountEditorView(
         void requestCloseTab(id);
       },
       onCreate: createDraftTab,
+      onRename: (id, title) => {
+        const tab = store.getTab(id);
+        if (tab?.kind === 'chain') {
+          void AppController.updateChainTitle(tab.chainId, title);
+        }
+      },
     });
 
     const active = store.getActiveTab();

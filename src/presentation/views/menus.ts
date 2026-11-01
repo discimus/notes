@@ -3,7 +3,15 @@ import { mountDialog } from '../components/Dialog.js';
 import { el, qs } from '../dom.js';
 import { escapeHtml } from '@shared/utilities/index.js';
 
-export function showChainMenu(e: MouseEvent, chainId: string): void {
+export interface ChainMenuOptions {
+  onRename?: () => void;
+}
+
+export function showChainMenu(
+  e: MouseEvent,
+  chainId: string,
+  options: ChainMenuOptions = {}
+): void {
   const existing = qs('#chain-menu');
   existing?.remove();
 
@@ -16,7 +24,17 @@ export function showChainMenu(e: MouseEvent, chainId: string): void {
   menu.style.top = `${rect.bottom + 4}px`;
   menu.style.right = `${window.innerWidth - rect.right}px`;
 
-  const items: Array<{ icon: string; label: string; action: () => void; danger?: boolean }> = [
+  const items: Array<{ icon: string; label: string; action: () => void; danger?: boolean }> = [];
+
+  if (options.onRename) {
+    items.push({
+      icon: 'edit',
+      label: 'Renomear',
+      action: options.onRename,
+    });
+  }
+
+  items.push(
     {
       icon: 'archive',
       label: 'Arquivar',
@@ -27,8 +45,8 @@ export function showChainMenu(e: MouseEvent, chainId: string): void {
       label: 'Mover para lixeira',
       action: () => AppController.deleteChain(chainId),
       danger: true,
-    },
-  ];
+    }
+  );
 
   items.forEach(({ icon, label, action, danger }) => {
     const item = el('button', `chain-menu__item${danger ? ' chain-menu__item--danger' : ''}`);

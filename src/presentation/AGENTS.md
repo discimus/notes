@@ -25,7 +25,7 @@ styles/             → tokens, base, layout, components
 
 ```typescript
 // ✅ correto — toda ação da UI passa pelo controller
-await AppController.createChain(content, title, tagNames);
+await AppController.createChain(title);
 
 // ❌ errado — nunca instanciar use cases diretamente em componentes ou render.ts
 const uc = new CreateChainWithHeader(repo, tagRepo);
@@ -228,6 +228,9 @@ Ações destrutivas **sempre** pedem confirmação via `showConfirmDialog` antes
 - Documento e histórico da cadeia são full-bleed: sem `max-width` centralizado, margem automática, borda ou raio de card. A sidebar de cadeias permanece fixa como Explorer.
 - Abas usam `role="tablist"`; o documento ativo é `role="tabpanel"`. O compositor da cadeia é o único ponto que cria novas tails na view principal.
 - `renderTabList`: duplo clique no espaço vazio cria nova aba (`onCreate`); clique com botão do scroll fecha a aba (`auxclick`, botão 1). Esses atalhos complementam, não substituem, os botões e o teclado.
+- Abas de cadeia são renomeáveis: duplo clique no label ou item “Renomear” do menu. O título vira input inline; Enter salva, Escape/blur cancelam.
+- O header do `ChainDocument` não repete o título; exibe tags, contador, Importar e Mais.
+- Cobertura: `editorTabRename`, `chainMenuRename` e `editorChainRename`.
 - O rodapé de notas da cadeia é colapsável. `ChainTab.composerCollapsed` é persistido por aba; `aria-expanded`, `aria-controls` e `hidden` controlam a acessibilidade. Quando recolhido, o histórico ocupa o espaço liberado.
 
 ## Renderização DOM — sem framework

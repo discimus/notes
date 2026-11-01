@@ -26,6 +26,7 @@ export interface ChainDocumentHandlers {
   onCloseNote: (noteTabId: string) => void;
   onToggleComposer: () => void;
   onImportFiles?: (files: File[]) => void;
+  onRename?: () => void;
 }
 
 export interface ChainDocumentView {
@@ -188,22 +189,19 @@ export function mountChainDocument(
 
   root.innerHTML = `
     <header class="chain-document__header">
-      <div class="chain-document__title-row">
-        <h2 class="chain-document__title" contenteditable="true" role="textbox" aria-label="Título da cadeia" spellcheck="true"></h2>
+      <div class="chain-document__meta">
+        <div class="chain-document__tags" id="chain-tags" aria-label="Tags da cadeia"></div>
+        <span class="chain-document__count" id="chain-note-count"></span>
         <div class="chain-document__actions">
           <button class="btn-icon" id="chain-import-file" type="button"
             aria-label="Importar documento para esta cadeia" title="Importar documento">
             <span class="material-symbols-rounded" aria-hidden="true">upload_file</span>
           </button>
           <input id="chain-file-input" type="file" multiple hidden />
-          <button class="btn-icon" id="chain-more" type="button" aria-label="Mais op�oes" title="Mais op�oes">
+          <button class="btn-icon" id="chain-more" type="button" aria-label="Mais opções" title="Mais opções">
             <span class="material-symbols-rounded" aria-hidden="true">more_vert</span>
           </button>
         </div>
-      </div>
-      <div class="chain-document__meta">
-        <div class="chain-document__tags" id="chain-tags" aria-label="Tags da cadeia"></div>
-        <span class="chain-document__count" id="chain-note-count"></span>
       </div>
     </header>
 
@@ -266,7 +264,6 @@ export function mountChainDocument(
     </div>
   `;
 
-  const title = root.querySelector<HTMLElement>('.chain-document__title')!;
   const more = root.querySelector<HTMLButtonElement>('#chain-more')!;
   const importButton = root.querySelector<HTMLButtonElement>('#chain-import-file')!;
   const fileInput = root.querySelector<HTMLInputElement>('#chain-file-input')!;
@@ -299,44 +296,17 @@ export function mountChainDocument(
       void AppController.removeTag(currentTab.chainId, tag.id);
     },
   });
-  let titleTimer: ReturnType<typeof setTimeout> | null = null;
   let previousStatus = tab.status;
   let renderedNotesSignature = '__initial__';
   let renderedNoteTabId: string | null = null;
   let savingState = false;
 
-  title.textContent = tab.title;
-
-  title.addEventListener('input', () => {
-    if (titleTimer) clearTimeout(titleTimer);
-    titleTimer = setTimeout(() => {
-      const next = title.textContent?.trim() ?? '';
-      if (!next || next === currentTab.title) return;
-      void AppController.updateChainTitle(currentTab.chainId, next);
-    }, 800);
-  });
-  title.addEventListener('keydown', (event) => {
-    if (event.key !== 'Enter') return;
-    event.preventDefault();
-    title.blur();
-  });
-  title.addEventListener('blur', () => {
-    if (titleTimer) {
-      clearTimeout(titleTimer);
-      titleTimer = null;
-    }
-    const next = title.textContent?.trim() ?? '';
-    if (!next) {
-      title.textContent = currentTab.title;
-      return;
-    }
-    if (next !== currentTab.title) {
-      void AppController.updateChainTitle(currentTab.chainId, next);
-    }
-  });
-
   more.addEventListener('click', (event) => {
-    showChainMenu(event, currentTab.chainId);
+    showChainMenu(
+      event,
+      currentTab.chainId,
+      handlers.onRename ? { onRename: handlers.onRename } : {}
+    );
   });
   composerToggle.addEventListener('click', handlers.onToggleComposer);
 
@@ -568,10 +538,6 @@ export function mountChainDocument(
     const justLoaded =
       previousStatus === 'loading' && tabValue.status === 'loaded';
     currentTab = tabValue;
-
-    if (title !== document.activeElement) {
-      title.textContent = tabValue.title;
-    }
     root.setAttribute('aria-label', `Cadeia ${tabValue.title}`);
     root.dataset['chainId'] = tabValue.chainId;
 
@@ -659,7 +625,6 @@ export function mountChainDocument(
   window.addEventListener('dragleave', resetWhenLeavingWindow);
 
   const destroy = (): void => {
-    if (titleTimer) clearTimeout(titleTimer);
     window.removeEventListener('dragend', resetFileDrag);
     window.removeEventListener('drop', resetFileDrag, true);
     window.removeEventListener('dragleave', resetWhenLeavingWindow);

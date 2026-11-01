@@ -65,9 +65,7 @@ describe('ChainDocument', () => {
   it('renderiza histÃ³rico agrupado por data e aba inicial de novo documento', () => {
     const view = mountChainDocument(makeTab(), makeHandlers());
 
-    expect(view.element.querySelector('.chain-document__title')?.textContent).toBe(
-      'Projeto principal'
-    );
+    expect(view.element.querySelector('.chain-document__title')).toBeNull();
     expect(view.element.querySelectorAll('.chain-date-group')).toHaveLength(1);
     expect(view.element.querySelector('.chain-note__text')?.textContent).toBe(
       'ConteÃºdo da nota'

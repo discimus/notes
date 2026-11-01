@@ -6,6 +6,7 @@ export interface EditorTabsHandlers {
   onSelect: (id: string) => void;
   onClose: (id: string) => void;
   onCreate?: () => void;
+  onRename?: (id: string, title: string) => void;
 }
 
 export interface TabListItem {
@@ -13,6 +14,16 @@ export interface TabListItem {
   label: string;
   icon: string;
   dirty: boolean;
+  renamable?: boolean;
+}
+
+const renameStarters = new WeakMap<HTMLElement, Map<string, () => void>>();
+
+export function beginTabRename(container: HTMLElement, tabId: string): boolean {
+  const starter = renameStarters.get(container)?.get(tabId);
+  if (!starter) return false;
+  starter();
+  return true;
 }
 
 export interface TabListOptions {
@@ -41,17 +52,31 @@ export function renderTabList(
 ): void {
   const panelId = options.panelId ?? 'editor-panel';
   const ariaLabel = options.ariaLabel ?? 'Documentos abertos';
+  const starters = new Map<string, () => void>();
+  renameStarters.set(container, starters);
 
   container.innerHTML = '';
   container.setAttribute('role', 'tablist');
   container.setAttribute('aria-label', ariaLabel);
   container.setAttribute('aria-orientation', 'horizontal');
-  container.ondblclick = handlers.onCreate
-    ? (event) => {
-        if (event.target !== container) return;
-        handlers.onCreate?.();
-      }
-    : null;
+  container.ondblclick = (event) => {
+    if (event.target === container) {
+      handlers.onCreate?.();
+      return;
+    }
+
+    const target = event.target as HTMLElement;
+    if (target.closest('.editor-tab__close')) return;
+    const label = target.closest('.editor-tab__label');
+    const tab = label?.closest<HTMLElement>('.editor-tab');
+    const tabId = tab?.dataset['tabId'];
+    if (!tabId) return;
+
+    const startRename = starters.get(tabId);
+    if (!startRename) return;
+    event.preventDefault();
+    startRename();
+  };
 
   items.forEach((item, index) => {
     const wrapper = el('div', 'editor-tab');
@@ -86,6 +111,67 @@ export function renderTabList(
     close.setAttribute('aria-label', `Fechar ${item.label}`);
     close.title = `Fechar ${item.label}`;
     close.innerHTML = '<span class="material-symbols-rounded" aria-hidden="true">close</span>';
+
+    const startRename = (): void => {
+      if (!item.renamable || !handlers.onRename || wrapper.classList.contains('editor-tab--renaming')) {
+        return;
+      }
+
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.className = 'editor-tab__rename-input';
+      input.value = item.label;
+      input.setAttribute('aria-label', 'Renomear cadeia');
+      input.autocomplete = 'off';
+
+      wrapper.classList.add('editor-tab--renaming');
+      button.hidden = true;
+      wrapper.insertBefore(input, close);
+
+      let finished = false;
+      const restore = (focusTab: boolean): void => {
+        input.remove();
+        button.hidden = false;
+        wrapper.classList.remove('editor-tab--renaming');
+        if (focusTab) button.focus();
+      };
+      const cancel = (focusTab: boolean): void => {
+        if (finished) return;
+        finished = true;
+        restore(focusTab);
+      };
+      const save = (): void => {
+        if (finished) return;
+        const title = input.value.trim();
+        if (!title) {
+          input.setAttribute('aria-invalid', 'true');
+          input.focus();
+          return;
+        }
+        finished = true;
+        restore(true);
+        if (title !== item.label.trim()) handlers.onRename?.(item.id, title);
+      };
+
+      input.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') {
+          event.preventDefault();
+          save();
+        } else if (event.key === 'Escape') {
+          event.preventDefault();
+          cancel(true);
+        }
+      });
+      input.addEventListener('blur', () => cancel(false));
+      input.addEventListener('input', () => input.removeAttribute('aria-invalid'));
+
+      input.focus();
+      input.select();
+    };
+
+    if (item.renamable && handlers.onRename) {
+      starters.set(item.id, startRename);
+    }
 
     button.addEventListener('click', () => handlers.onSelect(item.id));
     button.addEventListener('keydown', (event) => {
@@ -135,6 +221,7 @@ export function renderEditorTabs(
     label: tabLabel(tab),
     icon: tab.kind === 'chain' ? 'account_tree' : 'edit_note',
     dirty: isEditorTabDirty(tab),
+    renamable: tab.kind === 'chain',
   }));
 
   renderTabList(container, items, snapshot.activeTabId, handlers, {
