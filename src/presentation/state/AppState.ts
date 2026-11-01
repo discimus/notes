@@ -1,4 +1,5 @@
 ﻿import type { ChainSummaryDTO, ChainDetailDTO, TagDTO, SearchResultDTO, TimelineEntryDTO } from '@application/dto/index.js';
+import type { NoteImageLayout } from '../app/noteImageLayout.js';
 
 /**
  * Estado global da aplicaÃ§Ã£o.
@@ -38,6 +39,7 @@ export interface AppState {
   chainsPanelVisible: boolean;
   compactMode: boolean;
   fullNoteContent: boolean;
+  noteImageLayout: NoteImageLayout;
   pinnedChainIds: string[];
 }
 
@@ -68,6 +70,7 @@ class AppStateStore {
     chainsPanelVisible: true,
     compactMode: false,
     fullNoteContent: false,
+    noteImageLayout: 'thumbnails',
     pinnedChainIds: [],
   };
 

@@ -409,6 +409,21 @@
   font-weight: 500;
   color: var(--md-sys-color-on-surface);
 }
+.settings-choice {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.settings-choice__legend {
+  padding: 0 var(--spacing-3);
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: var(--md-sys-typescale-label-medium-size);
+  font-weight: var(--md-sys-typescale-label-medium-weight);
+}
 .settings-row {
   display: flex;
   align-items: flex-start;
@@ -2496,6 +2511,19 @@
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(128px, 1fr));
   gap: var(--spacing-2);
+}
+.app-shell--image-column .chain-note__attachment-grid {
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--spacing-3);
+}
+.app-shell--image-column .chain-attachment--image {
+  width: 100%;
+}
+.app-shell--image-column .chain-attachment__image {
+  width: 100%;
+  height: auto;
+  max-height: none;
+  object-fit: contain;
 }
 .chain-attachment--image {
   position: relative;

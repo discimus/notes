@@ -4,6 +4,7 @@ import { el } from '../dom.js';
 import { initTheme } from './theme.js';
 import { initCompactMode } from './compactMode.js';
 import { initNoteContentDisplay } from './noteContentDisplay.js';
+import { initNoteImageLayout } from './noteImageLayout.js';
 import { initPinnedChains } from './pinnedChains.js';
 import { initNavigationHistory } from './navigation.js';
 import { AppController } from '../pages/AppController.js';
@@ -19,6 +20,7 @@ export function renderApp(root: HTMLElement): void {
   initTheme();
   initCompactMode();
   initNoteContentDisplay();
+  initNoteImageLayout();
   initPinnedChains();
   initEditorSession();
   root.innerHTML = '';
@@ -59,6 +61,10 @@ export function renderApp(root: HTMLElement): void {
   const applyState = (state: AppState) => {
     shell.classList.toggle('app-shell--compact', state.compactMode);
     shell.classList.toggle('app-shell--full-note-content', state.fullNoteContent);
+    shell.classList.toggle(
+      'app-shell--image-column',
+      state.noteImageLayout === 'column'
+    );
     updateViewTitle(viewTitle, state);
     contentCleanup = updateContent(content, state, contentCleanup);
     updateNavDrawer(state);

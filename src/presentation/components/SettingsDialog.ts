@@ -4,6 +4,11 @@ import {
   getFullNoteContent,
   setFullNoteContent,
 } from '../app/noteContentDisplay.js';
+import {
+  getNoteImageLayout,
+  setNoteImageLayout,
+  type NoteImageLayout,
+} from '../app/noteImageLayout.js';
 import { mountDialog } from './Dialog.js';
 
 const DIALOG_ID = 'settings-dialog';
@@ -68,6 +73,41 @@ export function showSettingsDialog(): void {
         </span>
       </label>
     </section>
+    <section class="settings-section" aria-labelledby="settings-images-title">
+      <h3 id="settings-images-title" class="settings-section__title">Imagens</h3>
+      <fieldset class="settings-choice" aria-describedby="settings-image-layout-support">
+        <legend class="settings-choice__legend">Layout das imagens</legend>
+        <label class="settings-row" for="settings-image-layout-thumbnails">
+          <input
+            type="radio"
+            id="settings-image-layout-thumbnails"
+            name="settings-image-layout"
+            value="thumbnails"
+            class="settings-checkbox"
+          />
+          <span class="settings-row__text">
+            <span class="settings-row__label">Miniaturas</span>
+            <span class="settings-row__support">Miniaturas em grade, com dimensões fixas.</span>
+          </span>
+        </label>
+        <label class="settings-row" for="settings-image-layout-column">
+          <input
+            type="radio"
+            id="settings-image-layout-column"
+            name="settings-image-layout"
+            value="column"
+            class="settings-checkbox"
+          />
+          <span class="settings-row__text">
+            <span class="settings-row__label">Largura da nota</span>
+            <span class="settings-row__support">Uma imagem por linha, até a largura da coluna.</span>
+          </span>
+        </label>
+      </fieldset>
+      <p id="settings-image-layout-support" class="settings-row__support">
+        Miniaturas preservam o layout atual. A largura da nota exibe imagens maiores, sem recorte.
+      </p>
+    </section>
     <p class="settings-status" id="settings-status" aria-live="polite"></p>
     <div class="dialog__actions">
       <button class="btn btn-text" id="settings-done" type="button">Fechar</button>
@@ -78,9 +118,18 @@ export function showSettingsDialog(): void {
   const fullNoteContent = dialog.querySelector<HTMLInputElement>(
     '#settings-full-note-content'
   )!;
+  const imageLayoutInputs = [
+    ...dialog.querySelectorAll<HTMLInputElement>(
+      'input[name="settings-image-layout"]'
+    ),
+  ];
   const status = dialog.querySelector<HTMLParagraphElement>('#settings-status')!;
   checkbox.checked = settings.confirmBeforeTrash;
   fullNoteContent.checked = getFullNoteContent();
+  const imageLayout = getNoteImageLayout();
+  imageLayoutInputs.forEach((input) => {
+    input.checked = input.value === imageLayout;
+  });
 
   checkbox.addEventListener('change', () => {
     setSettings({ confirmBeforeTrash: checkbox.checked });
@@ -94,6 +143,19 @@ export function showSettingsDialog(): void {
     status.textContent = fullNoteContent.checked
       ? 'Conteúdo completo ativado.'
       : 'Conteúdo completo desativado.';
+  });
+
+  imageLayoutInputs.forEach((input) => {
+    input.addEventListener('change', () => {
+      if (!input.checked) return;
+      const layout: NoteImageLayout =
+        input.value === 'column' ? 'column' : 'thumbnails';
+      setNoteImageLayout(layout);
+      status.textContent =
+        layout === 'column'
+          ? 'Imagens na largura da nota ativadas.'
+          : 'Miniaturas de imagens ativadas.';
+    });
   });
 
   backdrop.appendChild(dialog);
