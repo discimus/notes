@@ -372,7 +372,14 @@ export function mountEditorView(
 
   const removeChainNoteTabAndEnsure = (chainTabId: string, noteTabId: string): void => {
     store.removeChainNoteTab(chainTabId, noteTabId);
-    store.ensureChainNoteTab(chainTabId);
+
+    const chainTab = store.getTab(chainTabId);
+    if (chainTab?.kind === 'chain' && chainTab.noteTabs.length === 0) {
+      store.setChainComposerCollapsed(chainTabId, true);
+    } else {
+      store.ensureChainNoteTab(chainTabId);
+    }
+
     focusChainNoteEditor(chainTabId);
   };
 

@@ -380,6 +380,10 @@ export class EditorStore {
     const tab = this.tabs.find((item) => item.id === chainTabId);
     if (!tab || tab.kind !== 'chain') return null;
 
+    tab.noteTabs = tab.noteTabs.filter(
+      (item) => item.editingNoteId !== undefined || item.content.trim().length > 0
+    );
+
     const existing = tab.noteTabs.find((item) => item.editingNoteId === note.id);
     if (existing) {
       tab.composerCollapsed = false;

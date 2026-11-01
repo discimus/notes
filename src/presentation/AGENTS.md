@@ -104,14 +104,15 @@ editorStore.flush()
 ## Edição de nota existente
 
 - O botão `Editar nota` do histórico não abre mais editor inline; ele cria/seleciona uma aba de edição no compositor de novo documento.
-- `openChainNoteEditTab` impede duplicata por `note.id`, expande o compositor e carrega conteúdo e `contentType` da nota.
+- `openChainNoteEditTab` impede duplicata por `note.id`, remove abas novas vazias, expande o compositor e carrega conteúdo e `contentType` da nota.
 - Abas de edição convivem com abas novas pendentes no mesmo tab bar e usam ícone `edit`.
 - O compositor mostra placeholder e status de edição, botão `Salvar` e ícone `save`; notas novas continuam com `Adicionar`.
 - Ao salvar, `AppController.updateNoteContent` atualiza a nota original. Se retornar sucesso, a aba de edição é removida, uma aba vazia é garantida e o compositor permanece aberto.
 - Abas de edição persistem em `sessionStorage` e entram no dirty state/badge; fechar com alterações reutiliza `showCloseTabDialog`.
+- Ao abrir uma edição, abas novas vazias ("Novo documento") são removidas do tab bar. Ao fechar a última aba de notas (edição ou novo documento), o compositor inteiro é recolhido em vez de recriar uma aba vazia; salvar mantém o compositor aberto com uma aba nova.
 - `saveAllChainNoteTabs` atualiza abas de edição e anexa apenas abas novas.
 - A nota em edição recebe o chip `Em edição` no histórico.
-- Cobertura: `editorStoreEditNote`, `editorEditNote`, `chainDocumentContentType` e `chainNoteBody`.
+- Cobertura: `editorStoreEditNote`, `editorEditNote`, `editorEditNoteClose`, `chainDocumentContentType` e `chainNoteBody`.
 
 ## Cadastro de cadeia
 
@@ -329,4 +330,4 @@ Testes de apresentação ficam em `tests/unit/presentation/` e usam jsdom. Não 
 - QA visual ou interação real com a aplicação só quando o usuário solicitar explicitamente.
 - Novas features de UI devem vir com teste de comportamento; não considerar inspeção visual manual como validação suficiente.
 
-Exceção autorizada: `nav.test.ts` valida a busca e os 5 destinos com Editor como view inicial. Testes do editor: `navToggle`, `mobileNavEntries`, `editorStore`, `editorStoreEditNote`, `editorTabs`, `editorSidebar`, `editorGrouping`, `chainDocument`, `chainNoteBody`, `chainNoteReadingFlow`, `chainHeaderVisibility`, `editorEditNote`, `noteLinks`, `linkModifier`, `appendToChainDialog`, `activeLineHighlight`, `inlineTagEditor`, `tagSuggestions`, `pinnedChains`, `editorView` e `timelineView`.
+Exceção autorizada: `nav.test.ts` valida a busca e os 5 destinos com Editor como view inicial. Testes do editor: `navToggle`, `mobileNavEntries`, `editorStore`, `editorStoreEditNote`, `editorTabs`, `editorSidebar`, `editorGrouping`, `chainDocument`, `chainNoteBody`, `chainNoteReadingFlow`, `chainHeaderVisibility`, `editorEditNote`, `editorEditNoteClose`, `noteLinks`, `linkModifier`, `appendToChainDialog`, `activeLineHighlight`, `inlineTagEditor`, `tagSuggestions`, `pinnedChains`, `editorView` e `timelineView`.
