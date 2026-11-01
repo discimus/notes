@@ -22,9 +22,13 @@ export function initCompactMode(): void {
   appState.set({ compactMode: getCompactMode() });
 }
 
+export function updateCompactMode(value: boolean): void {
+  setCompactMode(value);
+  appState.set({ compactMode: value });
+}
+
 export function toggleCompactMode(): boolean {
   const next = !appState.get().compactMode;
-  setCompactMode(next);
-  appState.set({ compactMode: next });
+  updateCompactMode(next);
   return next;
 }

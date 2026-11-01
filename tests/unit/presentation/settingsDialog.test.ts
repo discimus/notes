@@ -13,39 +13,55 @@ describe('diálogo de configurações', () => {
     document.body.innerHTML = '';
   });
 
-  it('mostra o checkbox à esquerda com label e descrição', () => {
+  it('abre com as seções e a primeira aba ativa', () => {
     showSettingsDialog();
 
     const dialog = document.querySelector('#settings-dialog');
-    const row = dialog?.querySelector('.settings-row');
-    const checkbox = dialog?.querySelector<HTMLInputElement>('#settings-confirm-trash');
+    const tabs = [...document.querySelectorAll<HTMLElement>('[role="tab"]')];
 
     expect(dialog).not.toBeNull();
-    expect(row?.firstElementChild).toBe(checkbox);
-    expect(checkbox?.checked).toBe(true);
-    expect(checkbox?.getAttribute('aria-describedby')).toBe(
-      'settings-confirm-trash-support'
-    );
-    expect(dialog?.querySelector('.settings-row__label')?.textContent).toBe(
-      'Confirmar antes de excluir'
-    );
-    expect(dialog?.querySelector('.settings-row__support')?.textContent).toContain(
-      'A exclusão permanente continua exigindo confirmação.'
-    );
+    expect(tabs).toHaveLength(3);
+    expect(tabs[0]?.getAttribute('aria-selected')).toBe('true');
+    expect(tabs[0]?.textContent).toContain('Aparência');
+    expect(tabs[1]?.textContent).toContain('Notas');
+    expect(tabs[2]?.textContent).toContain('Comportamento');
+    expect(
+      document.querySelector('#settings-panel-appearance')?.getAttribute(
+        'aria-labelledby'
+      )
+    ).toBe('settings-tab-appearance');
   });
 
-  it('persiste a alteração imediatamente', () => {
+  it('aplica e persiste a confirmação da lixeira na aba Comportamento', () => {
     showSettingsDialog();
 
-    const checkbox = document.querySelector<HTMLInputElement>('#settings-confirm-trash');
-    if (!checkbox) throw new Error('Checkbox não encontrado');
+    document.querySelector<HTMLButtonElement>('#settings-tab-behavior')?.click();
+
+    const checkbox = document.querySelector<HTMLInputElement>(
+      '#settings-confirm-trash'
+    );
+    if (!checkbox) throw new Error('Switch não encontrado');
+
+    expect(checkbox.checked).toBe(true);
+    expect(checkbox.getAttribute('role')).toBe('switch');
+    expect(checkbox.getAttribute('aria-describedby')).toBe(
+      'settings-confirm-trash-description'
+    );
+    expect(
+      checkbox
+        .closest('.settings-item')
+        ?.querySelector('.settings-item__title')?.textContent
+    ).toBe('Confirmar antes de excluir');
 
     checkbox.checked = false;
     checkbox.dispatchEvent(new Event('change', { bubbles: true }));
 
     expect(getSettings().confirmBeforeTrash).toBe(false);
+    expect(localStorage.getItem('threadnotes.settings')).toContain(
+      '"confirmBeforeTrash":false'
+    );
     expect(document.querySelector('#settings-status')?.textContent).toBe(
-      'Confirmação desativada.'
+      'Confirmar antes de excluir desativado.'
     );
   });
 });

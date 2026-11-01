@@ -177,9 +177,22 @@ editorStore.flush()
 ## Configurações
 
 - A engrenagem `#settings-toggle` fica no rodapé do rail/drawer, acima do tema.
-- `threadnotes.settings.confirmBeforeTrash` persiste em `localStorage`; default `true`.
-- A preferência controla apenas mover cadeias para a lixeira. Exclusão permanente, remoção de tags e arquivamento continuam sempre confirmando.
-- `showSettingsDialog()` usa `mountDialog`; a alteração é aplicada imediatamente.
+- A modal usa `mountDialog`, aplica alterações imediatamente e mantém `#settings-dialog`, `#settings-status` e `#settings-done`.
+- A UI é gerada a partir de `src/presentation/settings/registry.ts` e das definições em `src/presentation/settings/definitions/`.
+- Seções atuais: Aparência, Notas e Comportamento. Novas seções/definições devem ser adicionadas ao registry, sem editar o HTML da modal.
+- A navegação usa `role="tablist"` com roving tabindex; vertical no desktop e horizontal no mobile.
+- Controles reutilizáveis ficam em `src/presentation/components/settings/SettingsControls.ts`: switch MD3 para toggles e fieldset/radio para escolhas.
+- Cada definição deve declarar `id`, seção, label, descrição, controle, valor padrão, `get`/`set` e `keywords` para busca futura.
+- Persistência continua nas chaves legadas:
+  - `threadnotes.theme`
+  - `threadnotes.compact-mode`
+  - `threadnotes.notes.full-content`
+  - `threadnotes.notes.image-layout`
+  - `threadnotes.settings` para `confirmBeforeTrash`
+- O registry usa adapters sobre os módulos atuais; não há storage v2 nesta etapa.
+- Tema e modo compacto continuam com atalhos no rodapé da navegação, usando os mesmos setters da modal.
+- `threadnotes.settings.confirmBeforeTrash` controla apenas mover cadeias para a lixeira. Exclusão permanente, remoção de tags e arquivamento continuam sempre confirmando.
+- Cobertura: `settingsRegistry`, `settingsNavigation`, `settingsDialog`, `settingsAppearance`, `settingsNoteContent` e `settingsImageLayout`.
 
 ## Realce da linha ativa
 

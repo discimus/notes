@@ -17,37 +17,35 @@ describe('configuração de conteúdo completo das notas', () => {
 
   it('exibe a opção desmarcada com label e texto de apoio', () => {
     showSettingsDialog();
+    document.querySelector<HTMLButtonElement>('#settings-tab-notes')?.click();
 
     const dialog = document.querySelector('#settings-dialog');
     const checkbox = dialog?.querySelector<HTMLInputElement>(
       '#settings-full-note-content'
     );
     const sectionLabel = dialog?.querySelector('#settings-notes-title')?.textContent;
-    const label = checkbox?.closest('.settings-row')?.querySelector(
-      '.settings-row__label'
-    )?.textContent;
-    const support = checkbox?.closest('.settings-row')?.querySelector(
-      '.settings-row__support'
-    )?.textContent;
+    const row = checkbox?.closest('.settings-item');
+    const label = row?.querySelector('.settings-item__title')?.textContent;
+    const support = row?.querySelector('.settings-item__description')?.textContent;
 
     expect(sectionLabel).toBe('Notas');
     expect(checkbox).not.toBeNull();
     expect(checkbox?.checked).toBe(false);
     expect(checkbox?.getAttribute('aria-describedby')).toBe(
-      'settings-full-note-content-support'
+      'settings-full-note-content-description'
     );
-    expect(label).toBe('Mostrar conteúdo completo das notas');
-    expect(support).toContain('3 linhas');
-    expect(support).toContain('4 linhas');
+    expect(label).toBe('Conteúdo completo das notas');
+    expect(support).toContain('sem limite de linhas');
   });
 
   it('aplica e persiste a preferência imediatamente', () => {
     showSettingsDialog();
+    document.querySelector<HTMLButtonElement>('#settings-tab-notes')?.click();
 
     const checkbox = document.querySelector<HTMLInputElement>(
       '#settings-full-note-content'
     );
-    if (!checkbox) throw new Error('Checkbox não encontrado');
+    if (!checkbox) throw new Error('Switch não encontrado');
 
     checkbox.checked = true;
     checkbox.dispatchEvent(new Event('change', { bubbles: true }));
@@ -56,7 +54,7 @@ describe('configuração de conteúdo completo das notas', () => {
     expect(appState.get().fullNoteContent).toBe(true);
     expect(localStorage.getItem('threadnotes.notes.full-content')).toBe('true');
     expect(document.querySelector('#settings-status')?.textContent).toBe(
-      'Conteúdo completo ativado.'
+      'Conteúdo completo das notas ativado.'
     );
 
     checkbox.checked = false;
@@ -65,7 +63,7 @@ describe('configuração de conteúdo completo das notas', () => {
     expect(getFullNoteContent()).toBe(false);
     expect(appState.get().fullNoteContent).toBe(false);
     expect(document.querySelector('#settings-status')?.textContent).toBe(
-      'Conteúdo completo desativado.'
+      'Conteúdo completo das notas desativado.'
     );
   });
 });

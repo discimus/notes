@@ -3,8 +3,6 @@ import { showSettingsDialog } from '@presentation/components/SettingsDialog.js';
 import { getNoteImageLayout } from '@presentation/app/noteImageLayout.js';
 import { appState } from '@presentation/state/AppState.js';
 
-const STORAGE_KEY = 'threadnotes.notes.image-layout';
-
 describe('configuração de layout das imagens', () => {
   beforeEach(() => {
     localStorage.clear();
@@ -20,6 +18,7 @@ describe('configuração de layout das imagens', () => {
 
   it('exibe miniaturas como padrão e permite escolher largura da nota', () => {
     showSettingsDialog();
+    document.querySelector<HTMLButtonElement>('#settings-tab-notes')?.click();
 
     const thumbnails = document.querySelector<HTMLInputElement>(
       '#settings-image-layout-thumbnails'
@@ -28,13 +27,13 @@ describe('configuração de layout das imagens', () => {
       '#settings-image-layout-column'
     );
 
-    expect(document.querySelector('#settings-images-title')?.textContent).toBe(
-      'Imagens'
+    expect(document.querySelector('#settings-notes-title')?.textContent).toBe(
+      'Notas'
     );
     expect(thumbnails?.checked).toBe(true);
     expect(column?.checked).toBe(false);
     expect(
-      column?.closest('.settings-row')?.querySelector('.settings-row__label')
+      column?.closest('.settings-radio')?.querySelector('.settings-radio__label')
         ?.textContent
     ).toBe('Largura da nota');
 
@@ -43,9 +42,9 @@ describe('configuração de layout das imagens', () => {
 
     expect(getNoteImageLayout()).toBe('column');
     expect(appState.get().noteImageLayout).toBe('column');
-    expect(localStorage.getItem(STORAGE_KEY)).toBe('column');
+    expect(localStorage.getItem('threadnotes.notes.image-layout')).toBe('column');
     expect(document.querySelector('#settings-status')?.textContent).toBe(
-      'Imagens na largura da nota ativadas.'
+      'Layout das imagens: Largura da nota.'
     );
 
     thumbnails!.checked = true;
@@ -53,7 +52,7 @@ describe('configuração de layout das imagens', () => {
 
     expect(getNoteImageLayout()).toBe('thumbnails');
     expect(document.querySelector('#settings-status')?.textContent).toBe(
-      'Miniaturas de imagens ativadas.'
+      'Layout das imagens: Miniaturas.'
     );
   });
 });
