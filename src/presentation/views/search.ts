@@ -39,7 +39,10 @@ export function renderSearchLayout(state: AppState): HTMLElement {
     if (input.value.trim()) AppController.search(input.value);
   }, 350);
   input.addEventListener('input', debouncedSearch as EventListener);
-  input.focus();
+
+  queueMicrotask(() => {
+    if (input.isConnected) input.focus({ preventScroll: true });
+  });
 
   const clearBtn = searchBar.querySelector('#search-clear');
   clearBtn?.addEventListener('click', () => {
