@@ -1,5 +1,6 @@
 import type { ChainDetailDTO, NoteContentType, NoteDTO } from '@application/dto/index.js';
 import { generateId } from '@shared/utilities/index.js';
+import { PendingDraftsCache } from './PendingDraftsCache.js';
 
 export interface EditorTarget {
   chainId: string;
@@ -48,7 +49,7 @@ type Listener = (snapshot: EditorSnapshot) => void;
 
 export const EDITOR_STORAGE_KEY = 'threadnotes.editor.tabs';
 
-const PERSIST_DELAY_MS = 250;
+const PERSIST_DELAY_MS = 150;
 
 export function normalizeContentType(value: unknown): NoteContentType {
   return value === 'code' ? 'code' : 'text';
@@ -164,7 +165,10 @@ export class EditorStore {
   private listeners = new Set<Listener>();
   private persistTimer: ReturnType<typeof setTimeout> | null = null;
 
-  constructor(private readonly storage: Storage | null = getSessionStorage()) {
+  constructor(
+    private readonly storage: Storage | null = getSessionStorage(),
+    private readonly pendingCache: PendingDraftsCache | null = null
+  ) {
     this.restore();
   }
 
@@ -543,14 +547,20 @@ export class EditorStore {
   }
 
   private restore(): void {
-    if (!this.storage) return;
+    const sessionRaw = this.storage?.getItem(EDITOR_STORAGE_KEY) ?? null;
+    const restored = this.restoreFromRaw(sessionRaw)
+      ? true
+      : this.restoreFromRaw(this.pendingCache?.read() ?? null);
+
+    if (restored) this.pendingCache?.write(this.getSnapshot());
+  }
+
+  private restoreFromRaw(raw: string | null): boolean {
+    if (!raw) return false;
 
     try {
-      const raw = this.storage.getItem(EDITOR_STORAGE_KEY);
-      if (!raw) return;
-
       const parsed: unknown = JSON.parse(raw);
-      if (!isRecord(parsed) || !Array.isArray(parsed['tabs'])) return;
+      if (!isRecord(parsed) || !Array.isArray(parsed['tabs'])) return false;
 
       const restored: EditorTab[] = [];
 
@@ -572,16 +582,17 @@ export class EditorStore {
         }
       }
 
-      if (restored.length === 0) return;
+      if (restored.length === 0) return false;
 
       this.tabs = restored;
-      const savedActiveId = typeof parsed['activeTabId'] === 'string' ? parsed['activeTabId'] : null;
+      const savedActiveId =
+        typeof parsed['activeTabId'] === 'string' ? parsed['activeTabId'] : null;
       this.activeTabId = restored.some((tab) => tab.id === savedActiveId)
         ? savedActiveId
         : restored[0]!.id;
+      return true;
     } catch {
-      this.tabs = [];
-      this.activeTabId = null;
+      return false;
     }
   }
 
@@ -631,15 +642,21 @@ export class EditorStore {
   }
 
   private write(): void {
+    const snapshot = this.getSnapshot();
+    this.writeSession(snapshot);
+    this.pendingCache?.write(snapshot);
+  }
+
+  private writeSession(snapshot: EditorSnapshot): void {
     if (!this.storage) return;
 
     try {
-      if (this.tabs.length === 0) {
+      if (snapshot.tabs.length === 0) {
         this.storage.removeItem(EDITOR_STORAGE_KEY);
         return;
       }
 
-      const tabs = this.tabs.map((tab) =>
+      const tabs = snapshot.tabs.map((tab) =>
         tab.kind === 'draft'
           ? tab
           : {
@@ -657,7 +674,7 @@ export class EditorStore {
         EDITOR_STORAGE_KEY,
         JSON.stringify({
           tabs,
-          activeTabId: this.activeTabId,
+          activeTabId: snapshot.activeTabId,
         })
       );
     } catch {
@@ -671,4 +688,4 @@ export class EditorStore {
   }
 }
 
-export const editorStore = new EditorStore();
+export const editorStore = new EditorStore(getSessionStorage(), new PendingDraftsCache());

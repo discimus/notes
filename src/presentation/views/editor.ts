@@ -38,11 +38,17 @@ export function initEditorSession(store: EditorStore = editorStore): void {
   if (sessionInitialized) return;
   sessionInitialized = true;
 
+  const flush = (): void => store.flush();
+
   window.addEventListener('beforeunload', (event) => {
-    store.flush();
+    flush();
     if (!store.hasDirtyTabs()) return;
     event.preventDefault();
     event.returnValue = '';
+  });
+  window.addEventListener('pagehide', flush);
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') flush();
   });
 }
 

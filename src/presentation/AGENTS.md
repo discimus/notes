@@ -125,6 +125,16 @@ editorStore.flush()
 - Ao entrar na timeline com cadeias selecionadas, o controller recarrega a primeira página para refletir notas novas.
 - Cobertura: `tests/unit/presentation/timelineView.test.ts` e `tests/integration/use-cases/GetTimelinePage.test.ts`.
 
+## Cache de rascunhos pendentes
+
+- `sessionStorage` (`threadnotes.editor.tabs`) mantém o workspace completo para reload imediato.
+- `localStorage` (`threadnotes.editor.pending.v1`) mantém apenas rascunhos e notas pendentes para sobreviver ao fechamento do navegador.
+- O snapshot persistente usa `PendingDraftsCache`, com `version` e `savedAt`, e filtra abas vazias ou já salvas.
+- Ao iniciar, a sessão atual tem prioridade; o cache persistente é usado apenas quando não há sessão válida.
+- `pagehide`, `visibilitychange` e `beforeunload` executam `flush()`.
+- O cache persistente compartilha a instalação; múltiplas janelas seguem last-writer-wins.
+- Cobertura: `pendingDraftsCache`, `editorStorePendingCache`, `editorPendingRestoreView` e `editorSessionPersistence`.
+
 ## Configurações
 
 - A engrenagem `#settings-toggle` fica no rodapé do rail/drawer, acima do tema.
