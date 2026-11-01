@@ -120,6 +120,24 @@ function renderSearchResults(container: HTMLElement, state: AppState): void {
     loading.textContent = 'Carregando mais…';
     container.appendChild(loading);
   }
+
+  schedulePaginationCheck(container, state);
+}
+
+function schedulePaginationCheck(
+  container: HTMLElement,
+  state: AppState
+): void {
+  if (!state.searchHasMore || state.searchIsLoadingMore) return;
+
+  queueMicrotask(() => {
+    if (!container.isConnected || container.clientHeight === 0) return;
+    const distance =
+      container.scrollHeight - container.scrollTop - container.clientHeight;
+    if (distance < SEARCH_PAGE_MARGIN) {
+      void AppController.loadMoreSearch();
+    }
+  });
 }
 
 function renderSearchResult(

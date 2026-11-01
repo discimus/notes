@@ -595,6 +595,7 @@
   gap: var(--spacing-2);
 }
 .search-result {
+  flex-shrink: 0;
   padding: var(--spacing-3) var(--spacing-4);
   border-radius: var(--md-sys-shape-corner-medium);
   cursor: pointer;
@@ -626,6 +627,7 @@
   margin-top: var(--spacing-1);
 }
 .search-results__loading {
+  flex-shrink: 0;
   padding: var(--spacing-4);
   color: var(--md-sys-color-on-surface-variant);
   font-size: var(--md-sys-typescale-body-small-size);
