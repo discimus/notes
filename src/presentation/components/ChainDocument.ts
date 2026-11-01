@@ -24,12 +24,16 @@ const COMPACT_DELTA_MIN = 4;
 const EXPAND_DELTA_MIN = 8;
 const EXPAND_DELAY_MS = 120;
 const SCROLL_IGNORE_MS = 100;
+const PREVIEW_DOUBLE_CLICK_MS = 500;
 
 export interface ChainDocumentHandlers {
   onNoteInput: (noteTabId: string, value: string) => void;
   onContentTypeChange?: (noteTabId: string, contentType: NoteContentType) => void;
   onSaveNote: (noteTabId: string) => void;
-  onEditNote?: (noteId: string, options?: { focus?: boolean }) => void;
+  onEditNote?: (
+    noteId: string,
+    options?: { focus?: boolean; preview?: boolean }
+  ) => void;
   onCreateNote: () => void;
   onSelectNote: (noteTabId: string) => void;
   onCloseNote: (noteTabId: string) => void;
@@ -58,7 +62,9 @@ function renderNote(
   note: NoteDTO,
   editing: boolean,
   selected: boolean,
-  onEdit: ((noteId: string) => void) | undefined
+  onEdit:
+    | ((noteId: string, options?: { focus?: boolean; preview?: boolean }) => void)
+    | undefined
 ): HTMLElement {
   const article = el('article', 'chain-note');
   article.setAttribute('data-note-id', note.id);
@@ -119,10 +125,11 @@ function renderNote(
     'div',
     `chain-note__body${isCode ? ' chain-note__body--code' : ''}`
   );
+  body.title = 'Clique para abrir; clique duas vezes para manter a aba aberta.';
   body.addEventListener('click', (event) => {
     const target = event.target as Element | null;
     if (target?.closest('a, button')) return;
-    onEdit?.(note.id);
+    onEdit?.(note.id, { preview: event.detail < 2 });
   });
   body.appendChild(text);
   article.append(meta, body);
@@ -245,14 +252,29 @@ export function mountChainDocument(
   let currentTab = tab;
   let autoEditAttempted = false;
   let autoEditFrame: number | null = null;
+  let lastPreviewClick: { noteId: string; at: number } | null = null;
 
   const cancelAutoEdit = (): void => {
     if (autoEditFrame !== null) cancelAnimationFrame(autoEditFrame);
     autoEditFrame = null;
   };
 
-  const requestEdit = (noteId: string, options?: { focus?: boolean }): void => {
+  const requestEdit = (
+    noteId: string,
+    options?: { focus?: boolean; preview?: boolean }
+  ): void => {
     cancelAutoEdit();
+    if (options?.preview === true) {
+      const now = Date.now();
+      const isDoubleClick =
+        lastPreviewClick?.noteId === noteId &&
+        now - lastPreviewClick.at <= PREVIEW_DOUBLE_CLICK_MS;
+      lastPreviewClick = { noteId, at: now };
+      if (isDoubleClick) {
+        handlers.onEditNote?.(noteId, { ...options, preview: false });
+        return;
+      }
+    }
     if (options) handlers.onEditNote?.(noteId, options);
     else handlers.onEditNote?.(noteId);
   };
@@ -348,7 +370,7 @@ export function mountChainDocument(
           autoEditFrame = null;
           if (currentTab.noteTabs.some((noteTab) => noteTab.editingNoteId)) return;
           if (currentTab.status !== 'loaded') return;
-          handlers.onEditNote?.(latestNote.id, { focus: false });
+          handlers.onEditNote?.(latestNote.id, { focus: false, preview: true });
         });
       }
     }
@@ -536,6 +558,7 @@ export function mountChainDocument(
         icon: editing ? 'edit' : contentTypeOf(noteTab) === 'code' ? 'code' : 'edit_note',
         dirty: isChainNoteTabDirty(noteTab),
         editing,
+        preview: noteTab.preview === true,
       };
     });
 

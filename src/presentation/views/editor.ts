@@ -302,7 +302,7 @@ export function mountEditorView(
         if (!current || current.kind !== 'chain') return;
         const note = current.notes.find((item) => item.id === noteId);
         if (!note) return;
-        store.openChainNoteEditTab(tab.id, note);
+        store.openChainNoteEditTab(tab.id, note, options);
         if (options.focus !== false) focusChainNoteEditor(tab.id);
       },
       onCreateNote: () => {

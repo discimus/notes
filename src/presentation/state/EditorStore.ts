@@ -27,6 +27,7 @@ export interface ChainNoteTab {
   editingNoteId?: string | undefined;
   baseContent?: string | undefined;
   baseContentType?: NoteContentType | undefined;
+  preview?: boolean | undefined;
 }
 
 export interface ChainTab {
@@ -115,7 +116,8 @@ function isChainNoteTab(value: unknown): value is ChainNoteTab {
     (value['baseContent'] === undefined || typeof value['baseContent'] === 'string') &&
     (value['baseContentType'] === undefined ||
       value['baseContentType'] === 'text' ||
-      value['baseContentType'] === 'code')
+      value['baseContentType'] === 'code') &&
+    (value['preview'] === undefined || typeof value['preview'] === 'boolean')
   );
 }
 
@@ -376,7 +378,11 @@ export class EditorStore {
     return cloneNoteTab(noteTab);
   }
 
-  openChainNoteEditTab(chainTabId: string, note: NoteDTO): ChainNoteTab | null {
+  openChainNoteEditTab(
+    chainTabId: string,
+    note: NoteDTO,
+    options: { preview?: boolean } = {}
+  ): ChainNoteTab | null {
     const tab = this.tabs.find((item) => item.id === chainTabId);
     if (!tab || tab.kind !== 'chain') return null;
 
@@ -384,13 +390,34 @@ export class EditorStore {
       (item) => item.editingNoteId !== undefined || item.content.trim().length > 0
     );
 
+    const preview = options.preview === true;
     const existing = tab.noteTabs.find((item) => item.editingNoteId === note.id);
     if (existing) {
+      if (existing.preview === true && (!preview || isChainNoteTabDirty(existing))) {
+        existing.preview = false;
+      }
       tab.composerCollapsed = false;
       tab.activeNoteTabId = existing.id;
       this.persist();
       this.notify();
       return cloneNoteTab(existing);
+    }
+
+    let insertIndex = -1;
+    if (preview) {
+      const previewIndex = tab.noteTabs.findIndex((item) => item.preview === true);
+      if (previewIndex >= 0) {
+        const previewTab = tab.noteTabs[previewIndex];
+        if (previewTab && isChainNoteTabDirty(previewTab)) {
+          previewTab.preview = false;
+        } else {
+          const removed = tab.noteTabs.splice(previewIndex, 1)[0];
+          insertIndex = previewIndex;
+          if (removed && tab.activeNoteTabId === removed.id) {
+            tab.activeNoteTabId = null;
+          }
+        }
+      }
     }
 
     const baseType = contentTypeOf({ contentType: note.contentType });
@@ -401,9 +428,11 @@ export class EditorStore {
       editingNoteId: note.id,
       baseContent: note.content,
       baseContentType: baseType,
+      preview,
     };
 
-    tab.noteTabs.push(noteTab);
+    if (insertIndex >= 0) tab.noteTabs.splice(insertIndex, 0, noteTab);
+    else tab.noteTabs.push(noteTab);
     tab.activeNoteTabId = noteTab.id;
     tab.composerCollapsed = false;
     this.persist();
@@ -432,16 +461,21 @@ export class EditorStore {
     const wasDirty = isChainNoteTabDirty(noteTab);
     const previousTitle = deriveEditorTitle(noteTab.content);
     const wasPreview = tab.preview === true;
+    const wasNotePreview = noteTab.preview === true;
     noteTab.content = content;
 
     if (wasPreview && isChainNoteTabDirty(noteTab)) {
       tab.preview = false;
     }
+    if (wasNotePreview && isChainNoteTabDirty(noteTab)) {
+      noteTab.preview = false;
+    }
 
     if (
       wasDirty !== isChainNoteTabDirty(noteTab) ||
       previousTitle !== deriveEditorTitle(noteTab.content) ||
-      (wasPreview && tab.preview === false)
+      (wasPreview && tab.preview === false) ||
+      (wasNotePreview && noteTab.preview === false)
     ) {
       this.notify();
     }
@@ -460,6 +494,7 @@ export class EditorStore {
     if (!noteTab || contentTypeOf(noteTab) === contentType) return;
 
     noteTab.contentType = contentType;
+    if (noteTab.preview === true) noteTab.preview = false;
     this.persist();
     this.notify();
   }

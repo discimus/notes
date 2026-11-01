@@ -99,12 +99,17 @@ export function renderTabList(
     button.title = `${item.label}${item.editing ? ' · editando' : ''}${
       item.preview ? ' · prévia substituível' : ''
     }${item.dirty ? ' · alterações não salvas' : ''}`;
-    if (item.editing) {
+    if (item.editing && item.preview) {
+      button.setAttribute(
+        'aria-description',
+        'Aba de prévia substituível em edição. Dê dois cliques na nota para manter aberta.'
+      );
+    } else if (item.editing) {
       button.setAttribute('aria-description', 'Editando nota existente');
     } else if (item.preview) {
       button.setAttribute(
         'aria-description',
-        'Aba de prévia substituível. Clique duas vezes na cadeia para manter aberta.'
+        'Aba de prévia substituível. Dê dois cliques para manter aberta.'
       );
     }
 
@@ -278,7 +283,7 @@ export function updateTabDirtyStateById(
     if (preview) {
       button.setAttribute(
         'aria-description',
-        'Aba de prévia substituível. Clique duas vezes na cadeia para manter aberta.'
+        'Aba de prévia substituível. Dê dois cliques para manter aberta.'
       );
     } else {
       button.removeAttribute('aria-description');
