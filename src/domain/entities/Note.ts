@@ -4,7 +4,7 @@ import { NotePosition } from '../value-objects/index.js';
 import { generateId, now } from '@shared/utilities/index.js';
 
 export type NoteRole = 'header' | 'tail';
-export type NoteContentType = 'text' | 'code';
+export type NoteContentType = 'text' | 'code' | 'markdown';
 
 export interface NoteData {
   id: UUID;
@@ -19,7 +19,7 @@ export interface NoteData {
 }
 
 function normalizedContent(content: string, contentType: NoteContentType): string {
-  return contentType === 'code' ? content : content.trim();
+  return contentType === 'text' ? content.trim() : content;
 }
 
 /**

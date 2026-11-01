@@ -1,5 +1,9 @@
 import type { ChainDetailDTO, NoteContentType, NoteDTO } from '@application/dto/index.js';
 import { generateId } from '@shared/utilities/index.js';
+import {
+  isNoteContentType,
+  normalizeNoteContentType,
+} from '../app/noteContentTypes.js';
 import { PendingDraftsCache } from './PendingDraftsCache.js';
 
 export interface EditorTarget {
@@ -57,7 +61,7 @@ export const EDITOR_STORAGE_KEY = 'threadnotes.editor.tabs';
 const PERSIST_DELAY_MS = 150;
 
 export function normalizeContentType(value: unknown): NoteContentType {
-  return value === 'code' ? 'code' : 'text';
+  return normalizeNoteContentType(value);
 }
 
 export function contentTypeOf(tab: { contentType?: NoteContentType | undefined }): NoteContentType {
@@ -95,11 +99,9 @@ function isDraftTab(value: unknown): value is DraftTab {
     typeof value['content'] === 'string' &&
     typeof value['savedContent'] === 'string' &&
     (value['contentType'] === undefined ||
-      value['contentType'] === 'text' ||
-      value['contentType'] === 'code') &&
+      isNoteContentType(value['contentType'])) &&
     (value['savedContentType'] === undefined ||
-      value['savedContentType'] === 'text' ||
-      value['savedContentType'] === 'code') &&
+      isNoteContentType(value['savedContentType'])) &&
     (value['target'] === null || isTarget(value['target']))
   );
 }
@@ -110,13 +112,11 @@ function isChainNoteTab(value: unknown): value is ChainNoteTab {
     typeof value['id'] === 'string' &&
     typeof value['content'] === 'string' &&
     (value['contentType'] === undefined ||
-      value['contentType'] === 'text' ||
-      value['contentType'] === 'code') &&
+      isNoteContentType(value['contentType'])) &&
     (value['editingNoteId'] === undefined || typeof value['editingNoteId'] === 'string') &&
     (value['baseContent'] === undefined || typeof value['baseContent'] === 'string') &&
     (value['baseContentType'] === undefined ||
-      value['baseContentType'] === 'text' ||
-      value['baseContentType'] === 'code') &&
+      isNoteContentType(value['baseContentType'])) &&
     (value['preview'] === undefined || typeof value['preview'] === 'boolean')
   );
 }

@@ -563,9 +563,16 @@ export function mountEditorView(
 
     const contentType = contentTypeOf(noteTab);
     const result =
-      contentType === 'code'
-        ? await AppController.appendToEditorChainTab(chainTab.chainId, noteTab.content, contentType)
-        : await AppController.appendToEditorChainTab(chainTab.chainId, noteTab.content);
+      contentType === 'text'
+        ? await AppController.appendToEditorChainTab(
+            chainTab.chainId,
+            noteTab.content
+          )
+        : await AppController.appendToEditorChainTab(
+            chainTab.chainId,
+            noteTab.content,
+            contentType
+          );
     if (!result.ok) return false;
 
     store.appendNoteToChainTab(chainTabId, result.note);
@@ -748,9 +755,13 @@ export function mountEditorView(
             content,
             contentType
           )
-        : contentType === 'code'
-          ? await AppController.saveEditorToChain(choice.chainId, content, contentType)
-          : await AppController.saveEditorToChain(choice.chainId, content);
+        : contentType === 'text'
+          ? await AppController.saveEditorToChain(choice.chainId, content)
+          : await AppController.saveEditorToChain(
+              choice.chainId,
+              content,
+              contentType
+            );
       if (!result.ok) return false;
 
       store.markDraftSaved(id, result.target, content);

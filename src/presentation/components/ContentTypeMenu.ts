@@ -1,4 +1,9 @@
 import type { NoteContentType } from '@application/dto/index.js';
+import {
+  isNoteContentType,
+  NOTE_CONTENT_TYPE_META,
+  NOTE_CONTENT_TYPE_OPTIONS,
+} from '../app/noteContentTypes.js';
 import { el } from '../dom.js';
 
 export interface ContentTypeMenuOptions {
@@ -11,16 +16,6 @@ export interface ContentTypeMenuView {
   update: (value: NoteContentType) => void;
   destroy: () => void;
 }
-
-const LABELS: Record<NoteContentType, string> = {
-  text: 'Texto',
-  code: 'Código',
-};
-
-const ICONS: Record<NoteContentType, string> = {
-  text: 'notes',
-  code: 'code',
-};
 
 const WHEEL_COOLDOWN_MS = 300;
 
@@ -51,10 +46,11 @@ export function mountContentTypeMenu(
   let wheelTimer: ReturnType<typeof setTimeout> | null = null;
 
   const syncButton = (): void => {
-    icon.textContent = ICONS[value];
-    label.textContent = LABELS[value];
-    button.setAttribute('aria-label', `Tipo de conteúdo: ${LABELS[value]}`);
-    button.title = `Tipo de conteúdo: ${LABELS[value]} — role o scroll para alternar`;
+    const meta = NOTE_CONTENT_TYPE_META[value];
+    icon.textContent = meta.icon;
+    label.textContent = meta.label;
+    button.setAttribute('aria-label', `Tipo de conteúdo: ${meta.label}`);
+    button.title = `Tipo de conteúdo: ${meta.label} — role o scroll para alternar`;
   };
 
   const removeOutside = (): void => {
@@ -126,7 +122,8 @@ export function mountContentTypeMenu(
     heading.textContent = 'Tipo de conteúdo';
     menu.appendChild(heading);
 
-    (['text', 'code'] as const).forEach((type) => {
+    NOTE_CONTENT_TYPE_OPTIONS.forEach((type) => {
+      const meta = NOTE_CONTENT_TYPE_META[type];
       const item = el('button', 'content-type-menu__item');
       item.type = 'button';
       item.setAttribute('role', 'menuitemradio');
@@ -135,9 +132,9 @@ export function mountContentTypeMenu(
 
       const itemIcon = el('span', 'material-symbols-rounded content-type-menu__icon');
       itemIcon.setAttribute('aria-hidden', 'true');
-      itemIcon.textContent = ICONS[type];
+      itemIcon.textContent = meta.icon;
       const text = el('span', 'content-type-menu__label');
-      text.textContent = LABELS[type];
+      text.textContent = meta.label;
       const check = el('span', 'material-symbols-rounded content-type-menu__check');
       check.setAttribute('aria-hidden', 'true');
       check.textContent = value === type ? 'check' : '';
@@ -183,7 +180,7 @@ export function mountContentTypeMenu(
       event.preventDefault();
       const current = items[index];
       const type = current?.dataset['contentType'];
-      if (type === 'text' || type === 'code') select(type);
+      if (isNoteContentType(type)) select(type);
       return;
     }
 
@@ -216,7 +213,11 @@ export function mountContentTypeMenu(
       wheelLocked = false;
     }, WHEEL_COOLDOWN_MS);
 
-    select(value === 'text' ? 'code' : 'text');
+    const currentIndex = NOTE_CONTENT_TYPE_OPTIONS.indexOf(value);
+    const next = NOTE_CONTENT_TYPE_OPTIONS[
+      (currentIndex + 1) % NOTE_CONTENT_TYPE_OPTIONS.length
+    ];
+    if (next) select(next);
   };
 
   button.addEventListener('click', () => {

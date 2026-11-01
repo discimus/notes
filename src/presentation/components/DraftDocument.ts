@@ -1,6 +1,10 @@
 import type { NoteContentType } from '@application/dto/index.js';
 import type { DraftTab } from '../state/EditorStore.js';
 import { contentTypeOf, isEditorTabDirty } from '../state/EditorStore.js';
+import {
+  isVerbatimContentType,
+  NOTE_CONTENT_TYPE_META,
+} from '../app/noteContentTypes.js';
 import { el } from '../dom.js';
 import { mountActiveLineHighlight } from './ActiveLineHighlight.js';
 import { mountContentTypeMenu } from './ContentTypeMenu.js';
@@ -77,12 +81,22 @@ export function mountDraftDocument(
 
   const syncSurface = (): void => {
     panel.setAttribute('aria-labelledby', `editor-tab-${currentTab.id}`);
-    const isCode = contentTypeOf(currentTab) === 'code';
+    const type = contentTypeOf(currentTab);
+    const meta = NOTE_CONTENT_TYPE_META[type];
+    const isCode = type === 'code';
+    const verbatim = isVerbatimContentType(type);
     root.classList.toggle('draft-document--code', isCode);
+    root.classList.toggle('draft-document--verbatim', verbatim);
     textarea.classList.toggle('editor-textarea--code', isCode);
-    textarea.spellcheck = !isCode;
-    textarea.placeholder = isCode ? 'Escreva um trecho de código...' : 'Comece a escrever...';
-    contentTypeMenu.update(isCode ? 'code' : 'text');
+    textarea.classList.toggle('editor-textarea--verbatim', verbatim);
+    textarea.spellcheck = meta.spellcheck;
+    textarea.placeholder =
+      type === 'code'
+        ? 'Escreva um trecho de código...'
+        : type === 'markdown'
+          ? 'Escreva em Markdown...'
+          : 'Comece a escrever...';
+    contentTypeMenu.update(type);
 
     target.hidden = !currentTab.target;
     targetText.textContent = currentTab.target

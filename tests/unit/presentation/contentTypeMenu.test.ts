@@ -30,14 +30,15 @@ describe('ContentTypeMenu', () => {
     const menu = document.querySelector('[role="menu"]');
     const options = [...document.querySelectorAll<HTMLElement>('[role="menuitemradio"]')];
     expect(menu).not.toBeNull();
-    expect(options).toHaveLength(2);
+    expect(options).toHaveLength(3);
     expect(options[0]?.getAttribute('aria-checked')).toBe('true');
     expect(options[1]?.getAttribute('aria-checked')).toBe('false');
+    expect(options[2]?.textContent).toContain('Markdown');
 
-    options[1]?.click();
+    options[2]?.click();
 
-    expect(onChange).toHaveBeenCalledWith('code');
-    expect(button.textContent).toContain('Código');
+    expect(onChange).toHaveBeenCalledWith('markdown');
+    expect(button.textContent).toContain('Markdown');
     expect(document.querySelector('[role="menu"]')).toBeNull();
   });
 
@@ -93,6 +94,13 @@ describe('ContentTypeMenu', () => {
       new WheelEvent('wheel', { deltaY: -100, bubbles: true, cancelable: true })
     );
     expect(onChange).toHaveBeenCalledTimes(2);
+    expect(onChange).toHaveBeenLastCalledWith('markdown');
+
+    vi.advanceTimersByTime(300);
+    button.dispatchEvent(
+      new WheelEvent('wheel', { deltaY: -100, bubbles: true, cancelable: true })
+    );
+    expect(onChange).toHaveBeenCalledTimes(3);
     expect(onChange).toHaveBeenLastCalledWith('text');
     expect(document.querySelector('[role="menu"]')).toBeNull();
   });

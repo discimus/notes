@@ -9,6 +9,10 @@ import { el } from '../dom.js';
 import { renderChainListItem } from '../components/ChainListItem.js';
 import { renderEmptyDetail, renderLoadingState } from '../components/states.js';
 import { filterChains } from '../filters.js';
+import {
+  isVerbatimContentType,
+  NOTE_CONTENT_TYPE_META,
+} from '../app/noteContentTypes.js';
 import { showChainMenu, showComposerModal } from './menus.js';
 import { renderNavToggle } from '../components/NavToggle.js';
 
@@ -270,10 +274,14 @@ function renderNoteThread(note: NoteDTO, idx: number, total: number, chainId: st
 
   const contentDiv = el('div', 'note-thread__content');
 
-  const isCode = note.contentType === 'code';
+  const type = note.contentType ?? 'text';
+  const isCode = type === 'code';
+  const verbatim = isVerbatimContentType(type);
   const textEl = el(
     'p',
-    `note-thread__text note-thread__text--${note.role}${isCode ? ' note-thread__text--code' : ''}`
+    `note-thread__text note-thread__text--${note.role}${
+      isCode ? ' note-thread__text--code' : ''
+    }${verbatim ? ' note-thread__text--verbatim' : ''}`
   );
   textEl.textContent = note.content;
   contentDiv.appendChild(textEl);
@@ -293,20 +301,26 @@ function renderNoteThread(note: NoteDTO, idx: number, total: number, chainId: st
   wrapper.appendChild(contentDiv);
 
   (meta.querySelector('[data-action="edit"]') as HTMLElement).addEventListener('click', () => {
-    if (isCode) startCodeNoteEdit(textEl, note, chainId);
+    if (verbatim) startVerbatimNoteEdit(textEl, note, chainId, type);
     else startNoteEdit(textEl, note, chainId);
   });
 
   return wrapper;
 }
 
-function startCodeNoteEdit(textEl: HTMLElement, note: NoteDTO, chainId: string): void {
+function startVerbatimNoteEdit(
+  textEl: HTMLElement,
+  note: NoteDTO,
+  chainId: string,
+  contentType: NonNullable<NoteDTO['contentType']>
+): void {
   const original = note.content;
+  const meta = NOTE_CONTENT_TYPE_META[contentType];
   const editor = el('textarea', 'chain-note__code-editor') as HTMLTextAreaElement;
   editor.value = original;
   editor.rows = Math.min(24, Math.max(4, original.split(/\r?\n/).length + 1));
-  editor.spellcheck = false;
-  editor.setAttribute('aria-label', 'Editar código da nota');
+  editor.spellcheck = meta.spellcheck;
+  editor.setAttribute('aria-label', `Editar ${meta.label} da nota`);
 
   let finished = false;
   const restore = (): void => {
@@ -322,7 +336,7 @@ function startCodeNoteEdit(textEl: HTMLElement, note: NoteDTO, chainId: string):
       return;
     }
     if (content !== original) {
-      await AppController.updateNoteContent(chainId, note.id, content, 'code');
+      await AppController.updateNoteContent(chainId, note.id, content, contentType);
     }
     restore();
   };

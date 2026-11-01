@@ -1,3 +1,4 @@
+import type { NoteContentType } from '@application/dto/index.js';
 import type {
   ChainNoteTab,
   ChainTab,
@@ -5,6 +6,7 @@ import type {
   EditorSnapshot,
   EditorTab,
 } from './EditorStore.js';
+import { normalizeNoteContentType } from '../app/noteContentTypes.js';
 import { now } from '@shared/utilities/index.js';
 
 export const PENDING_DRAFTS_STORAGE_KEY = 'threadnotes.editor.pending.v1';
@@ -14,8 +16,8 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
 }
 
-function normalizeType(value: unknown): 'text' | 'code' {
-  return value === 'code' ? 'code' : 'text';
+function normalizeType(value: unknown): NoteContentType {
+  return normalizeNoteContentType(value);
 }
 
 function pendingDraft(tab: DraftTab): DraftTab | null {

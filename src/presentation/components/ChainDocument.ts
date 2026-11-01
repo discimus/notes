@@ -8,6 +8,10 @@ import {
 import { appState } from '../state/AppState.js';
 import { AppController } from '../pages/AppController.js';
 import {
+  isVerbatimContentType,
+  NOTE_CONTENT_TYPE_META,
+} from '../app/noteContentTypes.js';
+import {
   buildNotePeriods,
   groupNotesByDate,
   type NotePeriodMonth,
@@ -22,6 +26,7 @@ import { mountContentTypeMenu } from './ContentTypeMenu.js';
 import { mountPeriodMenu } from './PeriodMenu.js';
 import { renderQuickActions } from './QuickActions.js';
 import { renderNoteContent } from './NoteContent.js';
+import { renderMarkdownContent } from './MarkdownContent.js';
 import { stopAttachmentAudio, renderNoteAttachments } from './NoteAttachments.js';
 import { stopAllAudioCascades } from './audioList.js';
 import { releaseAllAttachmentUrls } from './attachmentUrls.js';
@@ -128,10 +133,14 @@ function renderNote(
     meta.appendChild(edited);
   }
 
-  const isCode = note.contentType === 'code';
-  if (isCode) {
+  const type = contentTypeOf(note);
+  const metaInfo = NOTE_CONTENT_TYPE_META[type];
+  const isCode = type === 'code';
+  const isMarkdown = type === 'markdown';
+  const verbatim = isVerbatimContentType(type);
+  if (verbatim) {
     const format = el('span', 'chain-note__format');
-    format.textContent = 'Código';
+    format.textContent = metaInfo.label;
     meta.appendChild(format);
   }
 
@@ -172,15 +181,20 @@ function renderNote(
   meta.appendChild(actions);
 
   const text = el(
-    'p',
-    `chain-note__text chain-note__text--${note.role}${isCode ? ' chain-note__text--code' : ''}`
+    isMarkdown ? 'div' : 'p',
+    `chain-note__text chain-note__text--${note.role}${
+      isCode ? ' chain-note__text--code chain-note__text--verbatim' : ''
+    }${isMarkdown ? ' chain-note__text--markdown' : ''}`
   );
-  if (isCode) text.textContent = note.content;
+  if (isMarkdown) renderMarkdownContent(text, note.content);
+  else if (isCode) text.textContent = note.content;
   else renderNoteContent(text, note.content);
 
   const body = el(
     'div',
-    `chain-note__body${isCode ? ' chain-note__body--code' : ''}`
+    `chain-note__body${
+      isCode ? ' chain-note__body--code chain-note__body--verbatim' : ''
+    }${isMarkdown ? ' chain-note__body--markdown' : ''}`
   );
   body.title = 'Clique para abrir; clique duas vezes para manter a aba aberta.';
   body.addEventListener('click', (event) => {
@@ -918,21 +932,29 @@ export function mountChainDocument(
       return;
     }
 
-    const isCode = contentTypeOf(noteTab) === 'code';
+    const type = contentTypeOf(noteTab);
+    const metaInfo = NOTE_CONTENT_TYPE_META[type];
+    const isCode = type === 'code';
+    const verbatim = isVerbatimContentType(type);
     const editing = Boolean(noteTab.editingNoteId);
     composer.hidden = false;
     emptyNote.hidden = true;
     contentTypeMenu.element.hidden = false;
-    contentTypeMenu.update(isCode ? 'code' : 'text');
+    contentTypeMenu.update(type);
     composer.classList.toggle('chain-composer__input--code', isCode);
-    composer.spellcheck = !isCode;
+    composer.classList.toggle('chain-composer__input--verbatim', verbatim);
+    composer.spellcheck = metaInfo.spellcheck;
     composer.placeholder = isCode
       ? editing
         ? 'Edite o trecho de código...'
         : 'Escreva um trecho de código...'
-      : editing
-        ? 'Edite a nota...'
-        : 'Escreva uma nova nota para esta cadeia...';
+      : type === 'markdown'
+        ? editing
+          ? 'Edite a nota em Markdown...'
+          : 'Escreva uma nota em Markdown...'
+        : editing
+          ? 'Edite a nota...'
+          : 'Escreva uma nova nota para esta cadeia...';
     panel.setAttribute('aria-labelledby', `editor-tab-${noteTab.id}`);
     save.disabled = savingState;
     composer.disabled = savingState;
@@ -960,10 +982,15 @@ export function mountChainDocument(
   const renderNoteTabs = (): void => {
     const items = currentTab.noteTabs.map((noteTab) => {
       const editing = Boolean(noteTab.editingNoteId);
+      const type = contentTypeOf(noteTab);
       return {
         id: noteTab.id,
         label: noteTabLabel(noteTab),
-        icon: editing ? 'edit' : contentTypeOf(noteTab) === 'code' ? 'code' : 'edit_note',
+        icon: editing
+          ? 'edit'
+          : type === 'text'
+            ? 'edit_note'
+            : NOTE_CONTENT_TYPE_META[type].icon,
         dirty: isChainNoteTabDirty(noteTab),
         editing,
         preview: noteTab.preview === true,

@@ -9,6 +9,7 @@ import {
   formatTime,
 } from '@shared/utilities/index.js';
 import type { ChainSummaryDTO, TagDTO, TimelineEntryDTO } from '@application/dto/index.js';
+import { isVerbatimContentType } from '../app/noteContentTypes.js';
 import { renderEmptyDetail, renderLoadingState } from '../components/states.js';
 import { renderNavToggle } from '../components/NavToggle.js';
 
@@ -352,9 +353,14 @@ function renderEntries(container: HTMLElement, entries: TimelineEntryDTO[]): voi
     timeEl.textContent = formatTime(entry.note.createdAt);
 
     const body = el('div', 'timeline-entry__body');
+    const type = entry.note.contentType ?? 'text';
+    const isCode = type === 'code';
+    const verbatim = isVerbatimContentType(type);
     const textEl = el(
       'p',
-      `timeline-entry__text${entry.note.contentType === 'code' ? ' timeline-entry__text--code' : ''}`
+      `timeline-entry__text${isCode ? ' timeline-entry__text--code' : ''}${
+        verbatim ? ' timeline-entry__text--verbatim' : ''
+      }`
     );
     textEl.textContent = entry.note.content;
 
