@@ -142,6 +142,7 @@ editorStore.flush()
 ## Ações rápidas da cadeia
 
 - O `ChainDocument` usa um footer absoluto, centralizado no fundo e fora da área de scroll. No modo leitura (`chain-document--notes-collapsed`), o documento não reserva faixa inferior: o scroll ocupa a altura toda e o conteúdo passa atrás do footer transparente, com `--chain-actions-overlay-space` no padding inferior do scroll. Com o compositor aberto, `--chain-fab-clearance` continua reservando espaço para não cobrir o compositor.
+- A row do header (tags, contador, importar e mais) colapsa com `chain-document--header-hidden` usando o mesmo estado de direção do scroll: `grid-template-rows` de `1fr` para `0fr`, padding e borda zerados, `opacity`/`visibility` com atraso e `pointer-events: none`. A guarda de foco impede o colapso enquanto o foco está dentro do header.
 - As ações são FABs MD3 com 56×56, raio de 16dp, elevação `level-1`, `surface-container-high` e state layer de 8%/12%; apenas `Documento` é funcional.
 - O FAB principal usa `primary-container`/`on-primary-container`; ícone e descrição ficam empilhados, com a descrição abaixo.
 - Imagem, áudio e link ficam `disabled` com indicação `Em breve`.
@@ -154,8 +155,9 @@ editorStore.flush()
 - Ao rolar para baixo (`scrollTop > 24` e delta > 4), o footer recebe `chain-document--actions-compact`: os FABs diminuem, as descrições são ocultadas e `--chain-fab-clearance` encolhe para 64px quando o compositor está aberto. No modo leitura, a reserva do scroll permanece fixa em `--chain-actions-overlay-space`.
 - Ao rolar para cima pelo menos 8 px, a expansão ocorre depois de 120 ms; no topo (`scrollTop <= 8`) a expansão é imediata.
 - Rolagem programática inicial até a última nota é ignorada pela lógica de compactação.
+- O mesmo estado de direção do scroll controla os rótulos de data: `chain-document--date-hidden` oculta os rótulos ao descer, com transição de opacidade/translate e `pointer-events: none`, e os reexibe ao subir ou no topo.
 - O estado vazio do Editor ("Nenhum documento aberto") reutiliza o mesmo grupo de ações via `QuickActions`, sem badge, `aria-controls` ou `aria-expanded`; `Documento` cria um rascunho.
-- Cobertura: `chainQuickActions`, `editorQuickActions`, `editorEmptyQuickActions` e `editorStoreComposerOption`.
+- Cobertura: `chainQuickActions`, `chainDateVisibility`, `chainHeaderVisibility`, `editorQuickActions`, `editorEmptyQuickActions` e `editorStoreComposerOption`.
 
 ## Configurações
 
@@ -297,4 +299,4 @@ Testes de apresentação ficam em `tests/unit/presentation/` e usam jsdom. Não 
 - QA visual ou interação real com a aplicação só quando o usuário solicitar explicitamente.
 - Novas features de UI devem vir com teste de comportamento; não considerar inspeção visual manual como validação suficiente.
 
-Exceção autorizada: `nav.test.ts` valida a busca e os 5 destinos com Editor como view inicial. Testes do editor: `navToggle`, `mobileNavEntries`, `editorStore`, `editorTabs`, `editorSidebar`, `editorGrouping`, `chainDocument`, `chainNoteBody`, `chainNoteReadingFlow`, `appendToChainDialog`, `activeLineHighlight`, `inlineTagEditor`, `tagSuggestions`, `pinnedChains`, `editorView` e `timelineView`.
+Exceção autorizada: `nav.test.ts` valida a busca e os 5 destinos com Editor como view inicial. Testes do editor: `navToggle`, `mobileNavEntries`, `editorStore`, `editorTabs`, `editorSidebar`, `editorGrouping`, `chainDocument`, `chainNoteBody`, `chainNoteReadingFlow`, `chainDateVisibility`, `chainHeaderVisibility`, `appendToChainDialog`, `activeLineHighlight`, `inlineTagEditor`, `tagSuggestions`, `pinnedChains`, `editorView` e `timelineView`.

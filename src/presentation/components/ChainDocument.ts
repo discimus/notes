@@ -283,6 +283,7 @@ export function mountChainDocument(
   const importButton = root.querySelector<HTMLButtonElement>('#chain-import-file')!;
   const fileInput = root.querySelector<HTMLInputElement>('#chain-file-input')!;
   const dropOverlay = root.querySelector<HTMLElement>('#chain-drop-overlay')!;
+  const header = root.querySelector<HTMLElement>('.chain-document__header')!;
   const documentAction = root.querySelector<HTMLButtonElement>('#chain-action-document')!;
   const unsavedBadge = root.querySelector<HTMLElement>('#chain-unsaved-badge')!;
   const tags = root.querySelector<HTMLElement>('#chain-tags')!;
@@ -577,9 +578,14 @@ export function mountChainDocument(
   };
 
   const setActionsCompact = (value: boolean): void => {
-    if (actionsCompact === value) return;
+    const changed = actionsCompact !== value;
     actionsCompact = value;
-    root.classList.toggle('chain-document--actions-compact', value);
+    if (changed) {
+      root.classList.toggle('chain-document--actions-compact', value);
+      root.classList.toggle('chain-document--date-hidden', value);
+    }
+    const headerFocused = header.contains(document.activeElement);
+    root.classList.toggle('chain-document--header-hidden', value && !headerFocused);
   };
 
   const scrollToBottom = (): void => {

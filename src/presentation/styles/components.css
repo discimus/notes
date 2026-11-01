@@ -1547,14 +1547,41 @@
 }
 .chain-document__header {
   flex-shrink: 0;
+  display: grid;
+  grid-template-rows: 1fr;
+  overflow: hidden;
   padding: var(--spacing-3) var(--spacing-6);
   border-bottom: 1px solid var(--md-sys-color-outline-variant);
+  opacity: 1;
+  transition:
+    grid-template-rows var(--md-sys-motion-duration-short4) var(--md-sys-motion-easing-standard),
+    padding var(--md-sys-motion-duration-short4) var(--md-sys-motion-easing-standard),
+    border-color var(--md-sys-motion-duration-short4) var(--md-sys-motion-easing-standard),
+    opacity var(--md-sys-motion-duration-short3) var(--md-sys-motion-easing-standard),
+    visibility 0s linear 0s;
+}
+.chain-document.chain-document--header-hidden > .chain-document__header {
+  grid-template-rows: 0fr;
+  padding-top: 0;
+  padding-bottom: 0;
+  border-bottom-color: transparent;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition:
+    grid-template-rows var(--md-sys-motion-duration-short4) var(--md-sys-motion-easing-standard),
+    padding var(--md-sys-motion-duration-short4) var(--md-sys-motion-easing-standard),
+    border-color var(--md-sys-motion-duration-short4) var(--md-sys-motion-easing-standard),
+    opacity var(--md-sys-motion-duration-short3) var(--md-sys-motion-easing-standard),
+    visibility 0s linear var(--md-sys-motion-duration-short4);
 }
 .chain-document__meta {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--spacing-3);
+  min-height: 0;
+  overflow: hidden;
 }
 .chain-document__tags {
   min-width: 0;
@@ -1598,10 +1625,19 @@
   padding: var(--spacing-2) 0;
   margin-bottom: var(--spacing-1);
   background-color: var(--md-sys-color-surface-container-lowest);
-  color: var(--md-sys-color-on-surface-variant);
+  color: var(--md-sys-color-on-surface);
   font-size: var(--md-sys-typescale-label-medium-size);
   font-weight: var(--md-sys-typescale-label-medium-weight);
   letter-spacing: 0.01em;
+  opacity: 1;
+  transition:
+    opacity var(--md-sys-motion-duration-short3) var(--md-sys-motion-easing-standard),
+    transform var(--md-sys-motion-duration-short3) var(--md-sys-motion-easing-standard);
+}
+.chain-document--date-hidden .chain-date-group__label {
+  opacity: 0;
+  transform: translateY(calc(-100% - var(--spacing-2)));
+  pointer-events: none;
 }
 .chain-note {
   padding: var(--spacing-2) 0 var(--spacing-6);
@@ -2677,7 +2713,9 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .chain-quick-action__icon-wrap,
-  .chain-quick-action__label {
+  .chain-quick-action__label,
+  .chain-date-group__label,
+  .chain-document__header {
     transition: none;
   }
 }
