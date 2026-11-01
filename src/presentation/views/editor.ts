@@ -818,6 +818,27 @@ export function mountEditorView(
     closeTab(id);
   };
 
+  const applyEditorFocusRequest = (): void => {
+    const request = appState.get().editorFocusRequest;
+    if (!request) return;
+
+    const active = store.getActiveTab();
+    if (!active || active.kind !== 'chain' || active.composerCollapsed) return;
+
+    const noteTab = store.getActiveChainNoteTab(active.id);
+    if (!noteTab || noteTab.editingNoteId !== request.noteId) return;
+    if (!activeDocument || activeDocument.kind !== 'chain') return;
+    if (activeDocument.id !== active.id) return;
+
+    const documentView = activeDocument.view;
+    appState.set({ editorFocusRequest: null });
+    requestAnimationFrame(() => {
+      const current = store.getActiveTab();
+      if (!current || current.id !== active.id) return;
+      documentView.focusSearchMatch(request.query);
+    });
+  };
+
   const renderSnapshot = (): void => {
     const snapshot = store.getSnapshot();
 
@@ -873,6 +894,7 @@ export function mountEditorView(
     }
 
     sidebarView.update(appState.get(), activeChainId(active));
+    applyEditorFocusRequest();
   };
 
   newButton.addEventListener('click', createDraftTab);
@@ -945,6 +967,7 @@ export function mountEditorView(
     if (activeDocument?.kind === 'chain' && active?.kind === 'chain') {
       activeDocument.view.update(active);
     }
+    applyEditorFocusRequest();
   });
 
   renderSnapshot();

@@ -602,6 +602,13 @@
   transition: background-color var(--md-sys-motion-duration-short3);
 }
 .search-result:hover { background-color: var(--md-sys-color-surface-container); }
+.search-result.search-result--selected {
+  background-color: var(--md-sys-color-primary-container);
+  box-shadow: inset 3px 0 0 var(--md-sys-color-primary);
+}
+.search-result.search-result--selected:hover {
+  background-color: var(--md-sys-color-primary-container);
+}
 .search-result__chain {
   font-size: var(--md-sys-typescale-label-small-size);
   color: var(--md-sys-color-primary);

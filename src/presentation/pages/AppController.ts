@@ -751,6 +751,32 @@ export const AppController = {
     return tab.id;
   },
 
+  async openSearchResult(chainId: string, noteId: string): Promise<void> {
+    try {
+      const detail = await getChainDetails.execute(chainId);
+      const note = detail.notes.find((item) => item.id === noteId);
+      if (!note) throw new Error('Nota não encontrada.');
+
+      const tab = editorStore.openChainTab(chainId, detail.displayTitle, {
+        composerCollapsed: true,
+        preview: false,
+      });
+      editorStore.setChainTabNotes(tab.id, detail);
+      editorStore.openChainNoteEditTab(tab.id, note);
+
+      appState.set({
+        editorFocusRequest: {
+          noteId,
+          query: appState.get().searchQuery,
+        },
+      });
+      await AppController.openChainInEditor(chainId, detail);
+    } catch (e: unknown) {
+      appState.set({ editorFocusRequest: null });
+      snackbar.error((e as Error).message);
+    }
+  },
+
   async updateChainTitle(chainId: string, title: string | undefined): Promise<void> {
     try {
       await updateTitle.execute({ chainId, ...(title ? { title } : {}) });
@@ -940,6 +966,7 @@ export const AppController = {
     appState.set({
       searchQuery: '',
       searchResults: [],
+      searchSelectedNoteId: null,
       searchLoadedOffset: 0,
       searchHasMore: false,
       searchIsLoadingMore: false,
@@ -955,6 +982,7 @@ export const AppController = {
       view: 'search',
       isLoading: true,
       searchResults: [],
+      searchSelectedNoteId: null,
       searchLoadedOffset: 0,
       searchHasMore: false,
       searchIsLoadingMore: false,

@@ -38,6 +38,11 @@ interface NormalizedTextMap {
   ends: number[];
 }
 
+export interface TextMatchRange {
+  start: number;
+  end: number;
+}
+
 function foldCharacter(character: string): string {
   return character
     .toLowerCase()
@@ -89,6 +94,23 @@ function normalizeWithMap(input: string): NormalizedTextMap {
     starts: starts.slice(from, to),
     ends: ends.slice(from, to),
   };
+}
+
+export function findMatchRange(
+  text: string,
+  query: string
+): TextMatchRange | null {
+  const normalized = normalizeText(query);
+  if (!normalized) return null;
+
+  const mapped = normalizeWithMap(text);
+  const index = mapped.text.indexOf(normalized);
+  if (index < 0) return null;
+
+  const start = mapped.starts[index];
+  const end = mapped.ends[index + normalized.length - 1];
+  if (start === undefined || end === undefined) return null;
+  return { start, end };
 }
 
 /** Destaca ocorrências de um termo em um texto (retorna HTML seguro) */

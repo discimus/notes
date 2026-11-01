@@ -34,6 +34,8 @@ export interface AppState {
   chainFilterQuery: string;
   searchQuery: string;
   searchResults: SearchResultDTO[];
+  searchSelectedNoteId: string | null;
+  editorFocusRequest: { noteId: string; query: string } | null;
   searchLoadedOffset: number;
   searchPageSize: number;
   searchHasMore: boolean;
@@ -70,6 +72,8 @@ class AppStateStore {
     chainFilterQuery: '',
     searchQuery: '',
     searchResults: [],
+    searchSelectedNoteId: null,
+    editorFocusRequest: null,
     searchLoadedOffset: 0,
     searchPageSize: 10,
     searchHasMore: false,

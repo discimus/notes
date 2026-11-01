@@ -1,3 +1,4 @@
+import { appState } from '../state/AppState.js';
 import type { AppState } from '../state/AppState.js';
 import { AppController } from '../pages/AppController.js';
 import { el, qs } from '../dom.js';
@@ -46,7 +47,11 @@ export function renderSearchLayout(state: AppState): HTMLElement {
   input.addEventListener('input', debouncedSearch as EventListener);
 
   queueMicrotask(() => {
-    if (input.isConnected) input.focus({ preventScroll: true });
+    if (!input.isConnected) return;
+    input.focus({ preventScroll: true });
+    if (state.searchSelectedNoteId) {
+      scrollSelectedResultToTop(results, state.searchSelectedNoteId);
+    }
   });
 
   const clearBtn = searchBar.querySelector('#search-clear');
@@ -114,6 +119,16 @@ function renderSearchResults(container: HTMLElement, state: AppState): void {
   }
   container.dataset.renderedCount = String(state.searchResults.length);
 
+  container.querySelectorAll<HTMLElement>('.search-result').forEach((item) => {
+    const selected = item.dataset['noteId'] === state.searchSelectedNoteId;
+    item.classList.toggle('search-result--selected', selected);
+    if (selected) {
+      item.setAttribute('aria-current', 'true');
+    } else {
+      item.removeAttribute('aria-current');
+    }
+  });
+
   if (state.searchIsLoadingMore) {
     const loading = el('div', 'search-results__loading');
     loading.setAttribute('role', 'status');
@@ -145,6 +160,7 @@ function renderSearchResult(
   query: string
 ): HTMLElement {
   const item = el('div', 'search-result card card--interactive');
+  item.dataset['noteId'] = result.noteId;
   item.setAttribute('role', 'listitem');
   item.setAttribute('tabindex', '0');
   item.setAttribute('aria-label', `Resultado em ${result.chainTitle}`);
@@ -161,7 +177,20 @@ function renderSearchResult(
   `;
 
   const open = () => {
-    void AppController.navigateTo('editor', result.chainId);
+    appState.set({ searchSelectedNoteId: result.noteId });
+    const container = item.parentElement;
+    if (container) {
+      container
+        .querySelectorAll('.search-result--selected')
+        .forEach((selected) => {
+          selected.classList.remove('search-result--selected');
+          selected.removeAttribute('aria-current');
+        });
+      item.classList.add('search-result--selected');
+      item.setAttribute('aria-current', 'true');
+      scrollResultToTop(container, item);
+    }
+    void AppController.openSearchResult(result.chainId, result.noteId);
   };
   item.addEventListener('click', open);
   item.addEventListener('keydown', (e) => {
@@ -169,6 +198,25 @@ function renderSearchResult(
   });
 
   return item;
+}
+
+function scrollSelectedResultToTop(
+  container: HTMLElement,
+  noteId: string
+): void {
+  const item = container.querySelector<HTMLElement>(
+    `.search-result[data-note-id="${noteId}"]`
+  );
+  if (item) scrollResultToTop(container, item);
+}
+
+function scrollResultToTop(
+  container: HTMLElement,
+  item: HTMLElement
+): void {
+  const containerRect = container.getBoundingClientRect();
+  const itemRect = item.getBoundingClientRect();
+  container.scrollTop += itemRect.top - containerRect.top;
 }
 
 function clearSearchResults(container: HTMLElement): void {

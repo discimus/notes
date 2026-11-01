@@ -33,12 +33,17 @@ import { mountPeriodMenu } from './PeriodMenu.js';
 import { renderQuickActions } from './QuickActions.js';
 import { renderLinkedText } from './LinkedText.js';
 import { renderMarkdownContent } from './MarkdownContent.js';
+import { highlightTextInElement } from './SearchHighlight.js';
 import { stopAttachmentAudio, renderNoteAttachments } from './NoteAttachments.js';
 import { stopAllAudioCascades } from './audioList.js';
 import { releaseAllAttachmentUrls } from './attachmentUrls.js';
 import { pickImagesWithClipboardFallback } from './imageAttachmentInput.js';
 import { el } from '../dom.js';
-import { formatDateFull, formatTime } from '@shared/utilities/index.js';
+import {
+  findMatchRange,
+  formatDateFull,
+  formatTime,
+} from '@shared/utilities/index.js';
 
 const COMPACT_SCROLL_MIN = 24;
 const COMPACT_DELTA_MIN = 4;
@@ -78,6 +83,7 @@ export interface ChainDocumentView {
   update: (tab: ChainTab) => void;
   setSaving: (saving: boolean) => void;
   focusNoteEditor: () => void;
+  focusSearchMatch: (query: string) => void;
   destroy: () => void;
 }
 
@@ -397,7 +403,7 @@ export function mountChainDocument(
   let lastPreviewClick: { noteId: string; at: number } | null = null;
   let actionSpaceObserver: ResizeObserver | null = null;
   let activePeriodKey: string | null = null;
-  let periodFlashTimer: ReturnType<typeof setTimeout> | null = null;
+  const flashTimers = new Map<string, ReturnType<typeof setTimeout>>();
   let periodHighlightTimer: ReturnType<typeof setTimeout> | null = null;
   let periodHighlightFadeTimer: ReturnType<typeof setTimeout> | null = null;
   let periodFocusFrame: number | null = null;
@@ -449,34 +455,42 @@ export function mountChainDocument(
     });
   };
 
-  const clearPeriodFlash = (): void => {
-    if (periodFlashTimer !== null) {
-      clearTimeout(periodFlashTimer);
-      periodFlashTimer = null;
+  const clearFlash = (className: string): void => {
+    const timer = flashTimers.get(className);
+    if (timer !== undefined) {
+      clearTimeout(timer);
+      flashTimers.delete(className);
     }
     history
-      .querySelectorAll<HTMLElement>('.chain-note--period-flash')
-      .forEach((note) => note.classList.remove('chain-note--period-flash'));
+      .querySelectorAll<HTMLElement>(`.${className}`)
+      .forEach((note) => note.classList.remove(className));
   };
 
-  const flashPeriodNotes = (noteIds: string[]): void => {
-    clearPeriodFlash();
+  const flashNotes = (noteIds: string[], className: string): void => {
+    clearFlash(className);
     const ids = new Set(noteIds);
-    const targets = [...history.querySelectorAll<HTMLElement>('.chain-note')].filter(
-      (note) => ids.has(note.dataset['noteId'] ?? '')
-    );
+    const targets = [
+      ...history.querySelectorAll<HTMLElement>('.chain-note'),
+    ].filter((note) => ids.has(note.dataset['noteId'] ?? ''));
     if (targets.length === 0) return;
 
     targets.forEach((note) => {
       void note.offsetWidth;
-      note.classList.add('chain-note--period-flash');
+      note.classList.add(className);
     });
 
-    periodFlashTimer = setTimeout(() => {
-      periodFlashTimer = null;
-      targets.forEach((note) => note.classList.remove('chain-note--period-flash'));
+    const timer = setTimeout(() => {
+      flashTimers.delete(className);
+      targets.forEach((note) => note.classList.remove(className));
     }, PERIOD_FLASH_MS);
+    flashTimers.set(className, timer);
   };
+
+  const clearPeriodFlash = (): void =>
+    clearFlash('chain-note--period-flash');
+
+  const flashPeriodNotes = (noteIds: string[]): void =>
+    flashNotes(noteIds, 'chain-note--period-flash');
 
   const focusFirstNoteOfPeriod = (noteIds: string[]): void => {
     const selected = new Set(noteIds);
@@ -1130,6 +1144,7 @@ export function mountChainDocument(
   let expandTimer: ReturnType<typeof setTimeout> | null = null;
   let compactFrame: number | null = null;
   let ignoreCompactUntil = 0;
+  let searchTargetNoteId: string | null = null;
 
   const cancelExpand = (): void => {
     if (expandTimer !== null) clearTimeout(expandTimer);
@@ -1147,6 +1162,23 @@ export function mountChainDocument(
   const scrollToBottom = (): void => {
     ignoreCompactUntil = Date.now() + SCROLL_IGNORE_MS;
     scroll.scrollTop = scroll.scrollHeight;
+    lastScrollTop = scroll.scrollTop;
+  };
+
+  const scrollToSearchTarget = (noteId: string): void => {
+    const target = history.querySelector<HTMLElement>(
+      `.chain-note[data-note-id="${noteId}"]`
+    );
+    if (!target) return;
+
+    const scrollRect = scroll.getBoundingClientRect();
+    const targetRect = target.getBoundingClientRect();
+    ignoreCompactUntil = Date.now() + SCROLL_IGNORE_MS;
+    scroll.scrollTop +=
+      targetRect.top -
+      scrollRect.top -
+      scroll.clientHeight / 2 +
+      targetRect.height / 2;
     lastScrollTop = scroll.scrollTop;
   };
 
@@ -1217,7 +1249,10 @@ export function mountChainDocument(
     syncNoteEditor();
 
     if (justLoaded) {
-      requestAnimationFrame(scrollToBottom);
+      requestAnimationFrame(() => {
+        if (searchTargetNoteId) scrollToSearchTarget(searchTargetNoteId);
+        else scrollToBottom();
+      });
     }
 
     previousStatus = tabValue.status;
@@ -1308,6 +1343,7 @@ export function mountChainDocument(
     clearPeriodHighlightTimers();
     clearPeriodHighlightClasses();
     clearPeriodFlash();
+    clearFlash('chain-note--search-flash');
     window.removeEventListener('dragend', resetFileDrag);
     window.removeEventListener('drop', resetFileDrag, true);
     window.removeEventListener('dragleave', resetWhenLeavingWindow);
@@ -1321,7 +1357,8 @@ export function mountChainDocument(
   update(tab);
 
   requestAnimationFrame(() => {
-    if (tab.status === 'loaded') scrollToBottom();
+    if (searchTargetNoteId) scrollToSearchTarget(searchTargetNoteId);
+    else if (tab.status === 'loaded') scrollToBottom();
     syncActionOverlaySpace();
   });
 
@@ -1337,6 +1374,51 @@ export function mountChainDocument(
       const noteTab = activeNoteTab();
       if (noteTab) composer.focus();
       else newNote.focus();
+    },
+    focusSearchMatch: (query) => {
+      const noteTab = activeNoteTab();
+      if (currentTab.composerCollapsed || !noteTab) {
+        documentAction.focus();
+        return;
+      }
+      if (composer.value !== noteTab.content) {
+        composer.value = noteTab.content;
+      }
+
+      const editingNoteId = noteTab.editingNoteId;
+      if (editingNoteId) {
+        searchTargetNoteId = editingNoteId;
+        history
+          .querySelectorAll('.chain-note--search-target')
+          .forEach((note) => note.classList.remove('chain-note--search-target'));
+
+        const target = history.querySelector<HTMLElement>(
+          `.chain-note[data-note-id="${editingNoteId}"]`
+        );
+        if (target) {
+          target.classList.add('chain-note--search-target');
+          const body = target.querySelector<HTMLElement>('.chain-note__body');
+          if (body) highlightTextInElement(body, query);
+          flashNotes([editingNoteId], 'chain-note--search-flash');
+        }
+        scrollToSearchTarget(editingNoteId);
+        requestAnimationFrame(() => {
+          if (searchTargetNoteId === editingNoteId) {
+            scrollToSearchTarget(editingNoteId);
+          }
+        });
+      }
+
+      composer.focus({ preventScroll: true });
+      const range = findMatchRange(composer.value, query);
+      if (range) {
+        composer.setSelectionRange(range.start, range.end);
+        const lineHeight =
+          parseFloat(getComputedStyle(composer).lineHeight) || 24;
+        const line = composer.value.slice(0, range.start).split('\n').length;
+        composer.scrollTop = Math.max(0, (line - 3) * lineHeight);
+      }
+      activeLine.refresh();
     },
     destroy,
   };
