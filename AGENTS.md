@@ -17,7 +17,7 @@ SPA vanilla TS + DDD + Clean Architecture. Build: Vite 5, tsc strict. Persist: I
 
 - A fonte principal de saúde do projeto são os **testes automatizados**: `npm run test`.
 - Definição de pronto:
-  1. Testes novos ou atualizados cobrem o comportamento alterado.
+  1. Testes novos cobrem o comportamento alterado (testes existentes só podem ser atualizados com autorização explícita).
   2. `npm run test` passa com timeout de **120000 ms**.
   3. `npm run build` passa com timeout de **180000 ms**.
 - Use `npm run typecheck` apenas para diagnóstico focal de TypeScript, com timeout de **120000 ms**.
@@ -26,6 +26,13 @@ SPA vanilla TS + DDD + Clean Architecture. Build: Vite 5, tsc strict. Persist: I
 - Não executar `npm run dev`, `npm run preview`, Chrome/Playwright, screenshots ou automação de navegador para validar mudanças.
 - QA visual ou interação real com a aplicação só quando o usuário solicitar explicitamente.
 - Prefira testes com jsdom/DOM para validar UI, estado, abas, diálogos, foco, teclado e atributos ARIA.
+
+## Documentação
+
+- **NUNCA** editar `AGENTS.md` ou qualquer outro `.md` sem pedido explícito do usuário.
+- Se uma regra documentada ficar obsoleta por uma mudança solicitada, proponha a atualização ao usuário em vez de aplicá-la automaticamente.
+- Não criar novos arquivos `.md` espontaneamente.
+- Quando autorizado, mantenha a documentação mínima e restrita ao comportamento alterado.
 
 ## Aliases de path (tsconfig + vite)
 
@@ -51,6 +58,9 @@ Use os aliases. Nunca use caminhos relativos que cruzem camadas (ex: `../../doma
 ## Política de testes
 
 - **NUNCA** modificar testes existentes. Se quebrar, a implementação está errada.
+- Criar novos arquivos de teste é obrigatório para comportamento novo.
+- Editar, remover ou reescrever testes existentes exige autorização explícita.
+- Se um teste existente falhar, corrija a implementação, nunca o teste.
 - Toda feature ou correção deve incluir testes proporcionais ao comportamento alterado.
 - A validação de UI deve ocorrer por testes jsdom/DOM, não por interação manual com a aplicação.
 - Testes unitários de domínio ficam em `tests/unit/domain/` — cobrem entidades e value objects.
