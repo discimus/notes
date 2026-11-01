@@ -8,6 +8,7 @@ export interface PeriodMenuOptions {
 export interface PeriodMenuView {
   open: (anchor: HTMLElement, focusLast?: boolean) => void;
   update: (years: NotePeriodYear[], activeKey?: string | null) => void;
+  setActive: (activeKey: string | null) => void;
   destroy: () => void;
 }
 
@@ -104,13 +105,13 @@ export function mountPeriodMenu(
     item.type = 'button';
     item.setAttribute('role', 'menuitem');
     if (selected) item.setAttribute('aria-current', 'true');
+    const baseLabel = `${month.monthLabel}, ${noteCountLabel(month.count)}`;
     item.setAttribute(
       'aria-label',
-      `${month.monthLabel}, ${noteCountLabel(month.count)}${
-        selected ? ', selecionado' : ''
-      }`
+      `${baseLabel}${selected ? ', selecionado' : ''}`
     );
     item.dataset['periodKey'] = month.key;
+    item.dataset['baseLabel'] = baseLabel;
 
     const text = el('span', 'period-menu__label');
     text.textContent = month.monthLabel;
@@ -272,11 +273,31 @@ export function mountPeriodMenu(
     activeKey = nextActiveKey;
   };
 
+  const setActive = (nextActiveKey: string | null): void => {
+    activeKey = nextActiveKey;
+    if (!menu) return;
+
+    menuItems().forEach((item) => {
+      const selected = item.dataset['periodKey'] === nextActiveKey;
+      if (selected) item.setAttribute('aria-current', 'true');
+      else item.removeAttribute('aria-current');
+
+      const baseLabel = item.dataset['baseLabel'] ?? '';
+      item.setAttribute(
+        'aria-label',
+        `${baseLabel}${selected ? ', selecionado' : ''}`
+      );
+
+      const check = item.querySelector<HTMLElement>('.period-menu__check');
+      if (check) check.textContent = selected ? 'check' : '';
+    });
+  };
+
   const destroy = (): void => {
     close(false);
     document.removeEventListener('click', onDocumentClick);
     document.removeEventListener('keydown', onDocumentKeyDown);
   };
 
-  return { open: openMenu, update, destroy };
+  return { open: openMenu, update, setActive, destroy };
 }

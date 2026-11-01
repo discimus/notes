@@ -1779,6 +1779,22 @@
   );
   pointer-events: none;
 }
+.chain-note--period-selected-expiring .chain-note__body::before {
+  animation: chain-note-period-fade-out var(--md-sys-motion-duration-medium2)
+    ease-out forwards;
+}
+@keyframes chain-note-period-fade-out {
+  from {
+    background-color: color-mix(
+      in srgb,
+      var(--md-sys-color-primary-container) 40%,
+      transparent
+    );
+  }
+  to {
+    background-color: transparent;
+  }
+}
 .chain-note--period-flash .chain-note__body::after {
   content: '';
   position: absolute;

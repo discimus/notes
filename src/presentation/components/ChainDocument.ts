@@ -36,6 +36,8 @@ const EXPAND_DELAY_MS = 120;
 const SCROLL_IGNORE_MS = 100;
 const PREVIEW_DOUBLE_CLICK_MS = 500;
 const PERIOD_FLASH_MS = 1200;
+const PERIOD_HIGHLIGHT_MS = 5000;
+const PERIOD_HIGHLIGHT_FADE_MS = 300;
 
 export interface ChainDocumentHandlers {
   onNoteInput: (noteTabId: string, value: string) => void;
@@ -356,6 +358,8 @@ export function mountChainDocument(
   let actionSpaceObserver: ResizeObserver | null = null;
   let activePeriodKey: string | null = null;
   let periodFlashTimer: ReturnType<typeof setTimeout> | null = null;
+  let periodHighlightTimer: ReturnType<typeof setTimeout> | null = null;
+  let periodHighlightFadeTimer: ReturnType<typeof setTimeout> | null = null;
   let periodFocusFrame: number | null = null;
 
   const findPeriodMonth = (
@@ -370,9 +374,34 @@ export function mountChainDocument(
     return null;
   };
 
+  const clearPeriodHighlightTimers = (): void => {
+    if (periodHighlightTimer !== null) {
+      clearTimeout(periodHighlightTimer);
+      periodHighlightTimer = null;
+    }
+    if (periodHighlightFadeTimer !== null) {
+      clearTimeout(periodHighlightFadeTimer);
+      periodHighlightFadeTimer = null;
+    }
+  };
+
+  const clearPeriodHighlightClasses = (): void => {
+    history
+      .querySelectorAll<HTMLElement>(
+        '.chain-note--period-selected, .chain-note--period-selected-expiring'
+      )
+      .forEach((note) => {
+        note.classList.remove(
+          'chain-note--period-selected',
+          'chain-note--period-selected-expiring'
+        );
+      });
+  };
+
   const syncPeriodSelection = (noteIds: string[]): void => {
     const selected = new Set(noteIds);
     history.querySelectorAll<HTMLElement>('.chain-note').forEach((note) => {
+      note.classList.remove('chain-note--period-selected-expiring');
       note.classList.toggle(
         'chain-note--period-selected',
         selected.has(note.dataset['noteId'] ?? '')
@@ -455,8 +484,47 @@ export function mountChainDocument(
       } selecionado. ${month.count} ${
         month.count === 1 ? 'nota' : 'notas'
       } em destaque.`;
+      startPeriodHighlightTimer();
     },
   });
+
+  function finishPeriodHighlight(): void {
+    clearPeriodHighlightTimers();
+    activePeriodKey = null;
+    clearPeriodHighlightClasses();
+    periodMenu.setActive(null);
+    periodStatus.textContent = '';
+  }
+
+  function expirePeriodHighlight(): void {
+    if (activePeriodKey === null) return;
+
+    const reduceMotion =
+      typeof window.matchMedia === 'function' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduceMotion) {
+      finishPeriodHighlight();
+      return;
+    }
+
+    history
+      .querySelectorAll<HTMLElement>('.chain-note--period-selected')
+      .forEach((note) =>
+        note.classList.add('chain-note--period-selected-expiring')
+      );
+    periodHighlightFadeTimer = setTimeout(
+      finishPeriodHighlight,
+      PERIOD_HIGHLIGHT_FADE_MS
+    );
+  }
+
+  function startPeriodHighlightTimer(): void {
+    clearPeriodHighlightTimers();
+    periodHighlightTimer = setTimeout(() => {
+      periodHighlightTimer = null;
+      expirePeriodHighlight();
+    }, PERIOD_HIGHLIGHT_MS);
+  }
 
   const cancelAutoEdit = (): void => {
     if (autoEditFrame !== null) cancelAnimationFrame(autoEditFrame);
@@ -1044,6 +1112,8 @@ export function mountChainDocument(
     const justLoaded =
       previousStatus === 'loading' && tabValue.status === 'loaded';
     if (tabValue.chainId !== currentTab.chainId) {
+      clearPeriodHighlightTimers();
+      clearPeriodHighlightClasses();
       activePeriodKey = null;
       periodStatus.textContent = '';
     }
@@ -1151,6 +1221,8 @@ export function mountChainDocument(
     compactFrame = null;
     if (periodFocusFrame !== null) cancelAnimationFrame(periodFocusFrame);
     periodFocusFrame = null;
+    clearPeriodHighlightTimers();
+    clearPeriodHighlightClasses();
     clearPeriodFlash();
     window.removeEventListener('dragend', resetFileDrag);
     window.removeEventListener('drop', resetFileDrag, true);
