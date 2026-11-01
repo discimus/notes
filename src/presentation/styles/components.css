@@ -1534,7 +1534,6 @@
 
 /* Chain document */
 .chain-document {
-  --chain-fab-clearance: calc(120px + env(safe-area-inset-bottom, 0px));
   --chain-actions-overlay-space: calc(112px + env(safe-area-inset-bottom, 0px));
   --chain-note-measure: 72ch;
   position: relative;
@@ -1544,9 +1543,10 @@
   padding-bottom: 0;
   background-color: var(--md-sys-color-surface-container-lowest);
   overflow: hidden;
+  container-type: inline-size;
 }
 .chain-document:not(.chain-document--notes-collapsed) {
-  padding-bottom: var(--chain-fab-clearance);
+  padding-bottom: 0;
 }
 .chain-document__header {
   flex-shrink: 0;
@@ -1605,14 +1605,20 @@
   gap: var(--spacing-1);
   flex-shrink: 0;
 }
+.chain-document__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  border-bottom: 1px solid var(--md-sys-color-outline-variant);
+}
 .chain-document__scroll {
-  flex: 0 1 auto;
+  flex: 0 1 38%;
   min-height: 0;
   max-height: 38%;
   overflow-y: auto;
   overscroll-behavior: contain;
   padding: var(--spacing-4) var(--spacing-6) var(--spacing-2);
-  border-bottom: 1px solid var(--md-sys-color-outline-variant);
 }
 .chain-document__history {
   width: 100%;
@@ -1667,10 +1673,17 @@
   font-style: normal;
   opacity: 0.72;
 }
+.chain-note__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-1);
+  margin-left: auto;
+  flex-shrink: 0;
+}
 .chain-note__edit {
   width: 40px;
   height: 40px;
-  margin: -4px -4px -4px auto;
+  margin: -4px -4px -4px 0;
   overflow: visible;
   opacity: 0;
   transition: opacity var(--md-sys-motion-duration-short3);
@@ -1766,6 +1779,57 @@
   outline: 2px solid var(--md-sys-color-primary);
   outline-offset: 2px;
 }
+@container (min-width: 640px) {
+  .chain-document__body {
+    display: grid;
+    grid-template-columns: minmax(240px, 38%) minmax(0, 1fr);
+  }
+  .chain-document__scroll {
+    height: 100%;
+    max-height: none;
+    flex: none;
+  }
+  .chain-composer {
+    height: 100%;
+    max-height: none;
+    border-top: 0;
+    border-left: 1px solid var(--md-sys-color-outline-variant);
+    border-radius: 0;
+  }
+  .chain-note__body {
+    cursor: pointer;
+    border-radius: var(--md-sys-shape-corner-medium);
+    transition: background-color var(--md-sys-motion-duration-short3);
+  }
+  .chain-note__body:not(.chain-note__body--code) {
+    padding: var(--spacing-2) var(--spacing-3);
+  }
+  .chain-note__body:hover {
+    background-color: color-mix(
+      in srgb,
+      var(--md-sys-color-on-surface) 4%,
+      transparent
+    );
+  }
+  .chain-note--selected .chain-note__body {
+    background-color: var(--md-sys-color-surface-container-low);
+  }
+  .chain-note--selected .chain-note__body--code {
+    background-color: var(--md-sys-color-surface-container);
+  }
+  .chain-note__body:not(.chain-note__body--code) .chain-note__text {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    overflow: hidden;
+  }
+  .chain-note__body--code .chain-note__text--code {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 4;
+    overflow: hidden;
+  }
+}
 @media (hover: none) {
   .chain-note__edit {
     opacity: 1;
@@ -1787,8 +1851,8 @@
   border-radius: var(--md-sys-shape-corner-large) var(--md-sys-shape-corner-large) 0 0;
   background-color: var(--md-sys-color-surface-container-low);
 }
-.chain-document:not(.chain-document--notes-collapsed) .chain-document__scroll {
-  border-bottom: none;
+.chain-document:not(.chain-document--notes-collapsed) .chain-document__footer {
+  display: none;
 }
 .chain-composer__input {
   position: relative;
@@ -1944,6 +2008,12 @@
 }
 .chain-composer__body[hidden] {
   display: none;
+}
+.chain-document--notes-collapsed .chain-document__body {
+  flex: 1 1 auto;
+  max-height: none;
+  display: flex;
+  flex-direction: column;
 }
 .chain-document--notes-collapsed .chain-document__scroll {
   flex: 1 1 auto;
@@ -2744,10 +2814,6 @@
   padding: 1px 6px;
   border-radius: var(--md-sys-shape-corner-full);
   background-color: var(--md-sys-color-surface-container-lowest);
-}
-.chain-document--actions-compact,
-.chain-document:not(.chain-document--notes-collapsed) {
-  --chain-fab-clearance: calc(64px + env(safe-area-inset-bottom, 0px));
 }
 .chain-document--actions-compact .chain-document__footer,
 .chain-document:not(.chain-document--notes-collapsed) .chain-document__footer {

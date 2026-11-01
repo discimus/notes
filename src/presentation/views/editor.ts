@@ -297,13 +297,13 @@ export function mountEditorView(
       onSaveNote: (noteTabId) => {
         void saveChainNoteTab(tab.id, noteTabId);
       },
-      onEditNote: (noteId) => {
+      onEditNote: (noteId, options = {}) => {
         const current = store.getTab(tab.id);
         if (!current || current.kind !== 'chain') return;
         const note = current.notes.find((item) => item.id === noteId);
         if (!note) return;
         store.openChainNoteEditTab(tab.id, note);
-        focusChainNoteEditor(tab.id);
+        if (options.focus !== false) focusChainNoteEditor(tab.id);
       },
       onCreateNote: () => {
         createChainNoteTab(tab.id);
@@ -326,11 +326,6 @@ export function mountEditorView(
         store.setChainComposerCollapsed(tab.id, false);
         store.ensureChainNoteTab(tab.id);
         focusChainNoteEditor(tab.id);
-      },
-      onCollapseComposer: () => {
-        const current = store.getTab(tab.id);
-        if (!current || current.kind !== 'chain' || current.composerCollapsed) return;
-        store.setChainComposerCollapsed(tab.id, true);
       },
       onImportFiles: (files) => {
         void importFilesToChain(tab.chainId, files);

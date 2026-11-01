@@ -72,7 +72,7 @@ describe('Editor quick actions', () => {
     ).toBe(true);
   });
 
-  it('recolhe o compositor ao clicar fora da área de nova nota', () => {
+  it('mantém o compositor aberto ao interagir com a lista de notas', () => {
     const store = new EditorStore();
     const host = document.getElementById('editor-host') as HTMLElement;
     cleanup = mountEditorView(host, store);
@@ -83,27 +83,12 @@ describe('Editor quick actions', () => {
       return tab?.kind === 'chain' && tab.composerCollapsed;
     };
 
-    const composer = host.querySelector<HTMLElement>('#chain-composer')!;
-    composer.dispatchEvent(new Event('pointerdown', { bubbles: true }));
-    expect(isCollapsed()).toBe(false);
-
-    const action = host.querySelector<HTMLButtonElement>('#chain-action-document')!;
-    action.dispatchEvent(new Event('pointerdown', { bubbles: true }));
-    expect(isCollapsed()).toBe(false);
-
-    const menu = document.createElement('div');
-    menu.setAttribute('role', 'menu');
-    document.body.appendChild(menu);
-    menu.dispatchEvent(new Event('pointerdown', { bubbles: true }));
-    expect(isCollapsed()).toBe(false);
-    menu.remove();
-
     const scroll = host.querySelector<HTMLElement>('#chain-document-scroll')!;
     scroll.dispatchEvent(new Event('pointerdown', { bubbles: true }));
 
-    expect(isCollapsed()).toBe(true);
+    expect(isCollapsed()).toBe(false);
     expect(
       host.querySelector<HTMLElement>('#chain-composer-body')?.hidden
-    ).toBe(true);
+    ).toBe(false);
   });
 });

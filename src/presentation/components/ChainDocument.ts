@@ -29,12 +29,11 @@ export interface ChainDocumentHandlers {
   onNoteInput: (noteTabId: string, value: string) => void;
   onContentTypeChange?: (noteTabId: string, contentType: NoteContentType) => void;
   onSaveNote: (noteTabId: string) => void;
-  onEditNote?: (noteId: string) => void;
+  onEditNote?: (noteId: string, options?: { focus?: boolean }) => void;
   onCreateNote: () => void;
   onSelectNote: (noteTabId: string) => void;
   onCloseNote: (noteTabId: string) => void;
   onNewDocument?: () => void;
-  onCollapseComposer?: () => void;
   onImportFiles?: (files: File[]) => void;
   onRename?: () => void;
 }
@@ -58,10 +57,13 @@ function noteTabLabel(noteTab: ChainNoteTab): string {
 function renderNote(
   note: NoteDTO,
   editing: boolean,
+  selected: boolean,
   onEdit: ((noteId: string) => void) | undefined
 ): HTMLElement {
   const article = el('article', 'chain-note');
   article.setAttribute('data-note-id', note.id);
+  article.classList.toggle('chain-note--selected', selected);
+  article.setAttribute('aria-current', selected ? 'true' : 'false');
 
   const meta = el('div', 'chain-note__meta');
   if (note.role === 'header') {
@@ -94,13 +96,17 @@ function renderNote(
     meta.appendChild(editingBadge);
   }
 
+  const actions = el('div', 'chain-note__actions');
+
   const edit = el('button', 'btn-icon chain-note__edit');
   edit.type = 'button';
   edit.setAttribute('aria-label', 'Editar nota');
   edit.title = 'Editar nota';
   edit.innerHTML = '<span class="material-symbols-rounded" aria-hidden="true">edit</span>';
   edit.addEventListener('click', () => onEdit?.(note.id));
-  meta.appendChild(edit);
+  actions.appendChild(edit);
+
+  meta.appendChild(actions);
 
   const text = el(
     'p',
@@ -113,6 +119,11 @@ function renderNote(
     'div',
     `chain-note__body${isCode ? ' chain-note__body--code' : ''}`
   );
+  body.addEventListener('click', (event) => {
+    const target = event.target as Element | null;
+    if (target?.closest('a, button')) return;
+    onEdit?.(note.id);
+  });
   body.appendChild(text);
   article.append(meta, body);
   return article;
@@ -146,11 +157,12 @@ export function mountChainDocument(
       </div>
     </header>
 
-    <div class="chain-document__scroll" id="chain-document-scroll">
-      <div class="chain-document__history" id="chain-history"></div>
-    </div>
+    <div class="chain-document__body">
+      <div class="chain-document__scroll" id="chain-document-scroll">
+        <div class="chain-document__history" id="chain-history"></div>
+      </div>
 
-    <div class="chain-composer" id="chain-composer">
+      <div class="chain-composer" id="chain-composer">
       <div class="chain-composer__body" id="chain-composer-body">
         <div class="chain-note-tabbar">
           <div class="editor-tabs editor-tabs--nested" id="chain-note-tabs"></div>
@@ -185,6 +197,7 @@ export function mountChainDocument(
             </button>
           </div>
         </div>
+      </div>
       </div>
     </div>
 
@@ -230,6 +243,19 @@ export function mountChainDocument(
   const composerBody = root.querySelector<HTMLElement>('#chain-composer-body')!;
 
   let currentTab = tab;
+  let autoEditAttempted = false;
+  let autoEditFrame: number | null = null;
+
+  const cancelAutoEdit = (): void => {
+    if (autoEditFrame !== null) cancelAnimationFrame(autoEditFrame);
+    autoEditFrame = null;
+  };
+
+  const requestEdit = (noteId: string, options?: { focus?: boolean }): void => {
+    cancelAutoEdit();
+    if (options) handlers.onEditNote?.(noteId, options);
+    else handlers.onEditNote?.(noteId);
+  };
   const tagEditor = mountInlineTagEditor(tags, {
     onAdd: (name) => AppController.assignTag(currentTab.chainId, name),
     onRemove: (tag) => {
@@ -290,10 +316,42 @@ export function mountChainDocument(
         .map((noteTab) => noteTab.editingNoteId)
         .filter((id): id is string => Boolean(id))
     );
+    const activeEditNoteId =
+      currentTab.noteTabs.find((noteTab) => noteTab.id === currentTab.activeNoteTabId)
+        ?.editingNoteId ?? null;
+    const noteGroups = groupNotesByDate(currentTab.notes);
     const notesSignature = currentTab.notes
       .map((note) => `${note.id}:${note.updatedAt}`)
       .join('|');
-    const signature = `${notesSignature}#${[...editingNoteIds].sort().join(',')}`;
+    const signature = `${notesSignature}#${[...editingNoteIds].sort().join(',')}#${
+      activeEditNoteId ?? ''
+    }`;
+
+    const hasPendingDraft = currentTab.noteTabs.some(
+      (noteTab) => !noteTab.editingNoteId && noteTab.content.trim().length > 0
+    );
+    if (hasPendingDraft || (currentTab.status === 'loaded' && currentTab.notes.length === 0)) {
+      autoEditAttempted = true;
+    }
+    if (
+      editingNoteIds.size === 0 &&
+      !hasPendingDraft &&
+      !autoEditAttempted &&
+      currentTab.status === 'loaded' &&
+      currentTab.notes.length > 0
+    ) {
+      autoEditAttempted = true;
+      const lastGroup = noteGroups[noteGroups.length - 1];
+      const latestNote = lastGroup?.notes[lastGroup.notes.length - 1];
+      if (latestNote) {
+        autoEditFrame = requestAnimationFrame(() => {
+          autoEditFrame = null;
+          if (currentTab.noteTabs.some((noteTab) => noteTab.editingNoteId)) return;
+          if (currentTab.status !== 'loaded') return;
+          handlers.onEditNote?.(latestNote.id, { focus: false });
+        });
+      }
+    }
 
     count.textContent = `${currentTab.notes.length} ${
       currentTab.notes.length === 1 ? 'nota' : 'notas'
@@ -344,7 +402,7 @@ export function mountChainDocument(
         )
       );
     } else {
-      groupNotesByDate(currentTab.notes).forEach((group) => {
+      noteGroups.forEach((group) => {
         const section = el('section', 'chain-date-group');
         section.setAttribute('aria-label', group.fullLabel);
 
@@ -355,7 +413,12 @@ export function mountChainDocument(
 
         group.notes.forEach((note) => {
           section.appendChild(
-            renderNote(note, editingNoteIds.has(note.id), handlers.onEditNote)
+            renderNote(
+              note,
+              editingNoteIds.has(note.id),
+              note.id === activeEditNoteId,
+              requestEdit
+            )
           );
         });
 
@@ -514,22 +577,6 @@ export function mountChainDocument(
   });
 
   documentAction.addEventListener('click', () => handlers.onNewDocument?.());
-  const onDocumentPointerDown = (event: PointerEvent): void => {
-    if (currentTab.composerCollapsed) return;
-    const target = event.target;
-    if (!(target instanceof Node)) return;
-    if (composerShell.contains(target) || documentAction.contains(target)) return;
-    if (
-      target instanceof Element &&
-      target.closest(
-        '[role="menu"], [role="dialog"], [role="alertdialog"], [role="listbox"], .chain-menu, .snackbar-container'
-      )
-    ) {
-      return;
-    }
-    handlers.onCollapseComposer?.();
-  };
-  document.addEventListener('pointerdown', onDocumentPointerDown);
 
   const setLinkModifier = (active: boolean): void => {
     root.classList.toggle('chain-document--link-modifier', active);
@@ -715,7 +762,7 @@ export function mountChainDocument(
   window.addEventListener('dragleave', resetWhenLeavingWindow);
 
   const destroy = (): void => {
-    document.removeEventListener('pointerdown', onDocumentPointerDown);
+    cancelAutoEdit();
     document.removeEventListener('keydown', onLinkModifierKeyDown);
     document.removeEventListener('keyup', onLinkModifierKeyUp);
     root.removeEventListener('pointermove', onLinkModifierPointerMove);

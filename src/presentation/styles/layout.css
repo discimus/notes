@@ -806,6 +806,7 @@
   }
   .chain-document__scroll {
     max-height: 34%;
+    flex-basis: 34%;
     padding: var(--spacing-3) var(--spacing-4) var(--spacing-1);
   }
   .chain-composer {

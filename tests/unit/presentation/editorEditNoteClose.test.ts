@@ -118,39 +118,4 @@ describe('Editor close note edit tab', () => {
       )
     ).toBe(true);
   });
-
-  it('recolhe o compositor ao fechar a aba vazia Novo documento', async () => {
-    const store = new EditorStore();
-    const host = document.getElementById('editor-host') as HTMLElement;
-    cleanup = mountEditorView(host, store);
-
-    const chain = store.openChainTab('chain-1', 'Projeto principal', {
-      composerCollapsed: false,
-    });
-    store.setChainTabNotes(chain.id, makeChainDetail());
-
-    const chainTab = store.getTab(chain.id);
-    if (!chainTab || chainTab.kind !== 'chain') throw new Error('Cadeia não encontrada');
-    const blankTab = chainTab.noteTabs.find(
-      (tab) => !tab.editingNoteId && !tab.content.trim()
-    );
-    if (!blankTab) throw new Error('Aba vazia não encontrada');
-
-    host
-      .querySelector<HTMLButtonElement>(
-        `#chain-note-tabs [data-tab-id="${blankTab.id}"] .editor-tab__close`
-      )
-      ?.click();
-
-    await vi.waitFor(() => {
-      const after = store.getTab(chain.id);
-      if (!after || after.kind !== 'chain') throw new Error('Cadeia não encontrada');
-      expect(after.noteTabs).toHaveLength(0);
-      expect(after.composerCollapsed).toBe(true);
-    });
-
-    expect(host.querySelector<HTMLElement>('#chain-composer-body')?.hidden).toBe(
-      true
-    );
-  });
 });

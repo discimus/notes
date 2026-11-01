@@ -156,23 +156,23 @@ editorStore.flush()
 
 ## Ações rápidas da cadeia
 
-- O `ChainDocument` usa um footer absoluto, centralizado no fundo e fora da área de scroll. No modo leitura (`chain-document--notes-collapsed`), o documento não reserva faixa inferior: o scroll ocupa a altura toda e o conteúdo passa atrás do footer transparente, com `--chain-actions-overlay-space` no padding inferior do scroll. Com o compositor aberto, `--chain-fab-clearance` continua reservando espaço para não cobrir o compositor.
+- O `ChainDocument` usa um footer absoluto, centralizado no fundo e fora da área de scroll. No modo leitura (`chain-document--notes-collapsed`), o documento não reserva faixa inferior: o scroll ocupa a altura toda e o conteúdo passa atrás do footer transparente, com `--chain-actions-overlay-space` no padding inferior do scroll. Com o compositor aberto, o footer de ações fica oculto e não há reserva adicional.
 - A row do header (tags, contador, importar e mais) colapsa com `chain-document--header-hidden` usando o mesmo estado de direção do scroll: `grid-template-rows` de `1fr` para `0fr`, padding e borda zerados, `opacity`/`visibility` com atraso e `pointer-events: none`. A guarda de foco impede o colapso enquanto o foco está dentro do header.
 - As ações são FABs MD3 com 56×56, raio de 16dp, elevação `level-1`, `surface-container-high` e state layer de 8%/12%; apenas `Documento` é funcional.
 - O FAB principal usa `primary-container`/`on-primary-container`; ícone e descrição ficam empilhados, com a descrição abaixo.
 - Imagem, áudio e link ficam `disabled` com indicação `Em breve`.
 - No modo leitura, as labels das ações usam um chip discreto de `surface-container-lowest` para manter contraste sobre o conteúdo que passa atrás.
-- `Documento` alterna o compositor: expande, reutiliza uma nota pendente vazia via `ensureChainNoteTab` e foca o textarea; se já estiver aberto, recolhe.
-- Um `pointerdown` fora do `.chain-composer` recolhe o compositor para liberar a leitura da cadeia; cliques no FAB e em menus, diálogos, listboxes e snackbars são ignorados.
+- `Documento` abre o compositor quando recolhido, reutilizando uma nota pendente vazia via `ensureChainNoteTab` e focando o textarea. Com o editor aberto, o footer de ações fica oculto; fechar a última aba recolhe o compositor.
+- Não há mais recolhimento por `pointerdown` fora do compositor. Cliques na lista abrem ou alternam a aba de edição da nota; o editor permanece disponível.
 - Não existe mais o header “Notas em edição”; `aria-expanded` e `aria-controls` do FAB controlam o `#chain-composer-body`.
-- Abrir uma cadeia pelo `AppController` usa `openChainTab(chainId, title, { composerCollapsed: true })`.
+- Abrir uma cadeia pelo `AppController` usa `openChainTab(chainId, title, { composerCollapsed: true })`; na primeira carga das notas, a edição da nota mais recente é aberta automaticamente sem roubar o foco.
 - O dot badge `#chain-unsaved-badge` aparece quando há nota pendente não salva; o `aria-label` da ação informa a contagem.
-- Ao rolar para baixo (`scrollTop > 24` e delta > 4), o footer recebe `chain-document--actions-compact`: os FABs diminuem, as descrições são ocultadas e `--chain-fab-clearance` encolhe para 64px quando o compositor está aberto. No modo leitura, a reserva do scroll permanece fixa em `--chain-actions-overlay-space`.
+- Ao rolar para baixo (`scrollTop > 24` e delta > 4), o footer recebe `chain-document--actions-compact`: os FABs diminuem e as descrições são ocultadas no modo leitura. Com o compositor aberto, o footer fica oculto; ao recolher, volta ao estado normal.
 - Ao rolar para cima pelo menos 8 px, a expansão ocorre depois de 120 ms; no topo (`scrollTop <= 8`) a expansão é imediata.
 - Rolagem programática inicial até a última nota é ignorada pela lógica de compactação.
 - O rótulo de data é um badge sticky com fundo `secondary-container` e texto `on-secondary-container`; ele permanece visível durante o scroll para manter o contexto temporal.
 - O estado vazio do Editor ("Nenhum documento aberto") reutiliza o mesmo grupo de ações via `QuickActions`, sem badge, `aria-controls` ou `aria-expanded`; `Documento` cria um rascunho.
-- Cobertura: `chainQuickActions`, `chainActionsComposerOpen`, `chainHeaderVisibility`, `editorQuickActions`, `editorEmptyQuickActions` e `editorStoreComposerOption`.
+- Cobertura: `chainQuickActions`, `chainActionsComposerOpen`, `chainHeaderVisibility`, `chainNoteEditorColumn`, `editorQuickActions`, `editorEmptyQuickActions` e `editorStoreComposerOption`.
 
 ## Configurações
 
@@ -295,11 +295,10 @@ Ações destrutivas **sempre** pedem confirmação via `showConfirmDialog` antes
 - Abas de prévia usam `.editor-tab--preview` com label em itálico, `aria-description` e tooltip; não adicionam ícones extras. Ao serem promovidas ou ficarem dirty, a classe é removida na atualização.
 - O header do `ChainDocument` não repete o título; exibe tags, contador, Importar e Mais.
 - Cobertura: `editorTabRename`, `chainMenuRename` e `editorChainRename`.
-- O compositor de notas da cadeia é colapsável pelo FAB “Documento”. `ChainTab.composerCollapsed` é persistido por aba; `aria-expanded`, `aria-controls` e `hidden` controlam a acessibilidade. Quando recolhido, o histórico ocupa o espaço liberado.
-- O compositor expandido é uma bottom sheet tonal: `surface-container-low`, cantos superiores `large`, borda superior sutil e `overflow: hidden`. A tab bar é transparente, a aba ativa usa `surface-container-lowest` e o estado vazio é transparente. Em edição, o footer usa `surface-container`. Com o compositor aberto, o `border-bottom` do scroll é removido para não duplicar a divisória.
-- O `.chain-composer` tem `position: relative` e `z-index` acima do footer de ações, garantindo que o editor nunca seja coberto pelos botões do footer.
-- Com o compositor aberto, as ações rápidas entram no modo compacto (ícones 44px, labels ocultos) e `--chain-fab-clearance` cai para 64px, preservando o botão `Documento` como ação de recolher. O estado compacto é derivado de `actionsCompact || compositor aberto`, portanto o scroll para cima não expande os botões enquanto o editor está aberto; ao fechar o compositor, o comportamento volta a seguir apenas a direção do scroll.
-- O histórico de notas é um fluxo de leitura: `.chain-note__body` de texto é transparente e sem padding; apenas `.chain-note__body--code` usa `surface-container-low`, padding e canto MD3. Metadados ficam fora do body, em baixa ênfase, e o selo "Início" aparece apenas na nota header. A separação entre notas usa uma hairline sutil; não há cards por nota.
+- O compositor de notas fica dentro de `.chain-document__body`: em containers `≥640px` o body é grid com a lista à esquerda e o editor à direita; em containers estreitos o editor fica abaixo da lista. `ChainTab.composerCollapsed` controla a visibilidade e `hidden`/ARIA continuam válidos.
+- Com o compositor aberto, o editor ocupa toda a coluna direita e o footer de ações fica oculto; fechar a última aba recolhe o compositor e reexibe as ações. No container estreito, o editor é uma seção inferior com o estilo de bottom sheet tonal; no desktop vira painel lateral com borda esquerda.
+- A nota mais recente é aberta automaticamente em uma aba de edição (`focus: false`) na carga; clicar no corpo ou no botão de editar abre ou seleciona a aba correspondente. A seleção visual da lista deriva da aba de edição ativa.
+- Não existe mais painel de prévia somente leitura. Os textos da lista são limitados a 3 linhas e o código a 4 linhas somente no layout de duas colunas; o estado selecionado usa `surface-container-low` e o código selecionado usa `surface-container`.
 
 ## Renderização DOM — sem framework
 
@@ -330,4 +329,4 @@ Testes de apresentação ficam em `tests/unit/presentation/` e usam jsdom. Não 
 - QA visual ou interação real com a aplicação só quando o usuário solicitar explicitamente.
 - Novas features de UI devem vir com teste de comportamento; não considerar inspeção visual manual como validação suficiente.
 
-Exceção autorizada: `nav.test.ts` valida a busca e os 5 destinos com Editor como view inicial. Testes do editor: `navToggle`, `mobileNavEntries`, `editorStore`, `editorStoreEditNote`, `editorTabs`, `editorSidebar`, `editorGrouping`, `chainDocument`, `chainNoteBody`, `chainNoteReadingFlow`, `chainHeaderVisibility`, `editorEditNote`, `editorEditNoteClose`, `noteLinks`, `linkModifier`, `appendToChainDialog`, `activeLineHighlight`, `inlineTagEditor`, `tagSuggestions`, `pinnedChains`, `editorView` e `timelineView`.
+Exceção autorizada: `nav.test.ts` valida a busca e os 5 destinos com Editor como view inicial. Testes do editor: `navToggle`, `mobileNavEntries`, `editorStore`, `editorStoreEditNote`, `editorTabs`, `editorSidebar`, `editorGrouping`, `chainDocument`, `chainNoteBody`, `chainNoteReadingFlow`, `chainHeaderVisibility`, `chainNoteEditorColumn`, `editorEditNote`, `editorEditNoteClose`, `noteLinks`, `linkModifier`, `appendToChainDialog`, `activeLineHighlight`, `inlineTagEditor`, `tagSuggestions`, `pinnedChains`, `editorView` e `timelineView`.
