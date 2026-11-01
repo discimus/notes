@@ -73,6 +73,7 @@ editorStore.openChainTab(chainId, title, { preview?, composerCollapsed? })
 editorStore.selectTab(id)
 editorStore.updateDraftContent(id, content)
 editorStore.createChainNoteTab(chainTabId)
+editorStore.openChainNoteEditTab(chainTabId, note)
 editorStore.selectChainNoteTab(chainTabId, noteTabId)
 editorStore.updateChainNoteTab(chainTabId, noteTabId, content)
 editorStore.removeChainNoteTab(chainTabId, noteTabId)
@@ -93,11 +94,24 @@ editorStore.flush()
 - Aberturas programáticas — criar, importar, salvar e abrir pela view de cadeias — usam `preview: false`; somente a sidebar do editor solicita `preview: true`.
 - A prévia é persistida no `sessionStorage`; `normalizeChainTab` restaura dados antigos como persistentes e nunca mantém prévia com nota pendente.
 - Cobertura: `editorStorePreviewTabs`, `editorSidebarPreview` e `editorTabsPreview`.
-- `ChainNoteTab`: nota ainda não persistida. Ao salvar, vira uma nova tail da cadeia pai e a aba é fechada; uma nova aba vazia é criada. Notas já salvas são editadas pelo histórico.
+- `ChainNoteTab`: nota ainda não persistida ou edição de nota existente. Abas novas viram uma nova tail ao salvar; abas de edição têm `editingNoteId`, `baseContent` e `baseContentType`, e atualizam a nota original.
+- `isChainNoteTabDirty` usa `baseContent`/`baseContentType` para abas de edição e conteúdo não vazio para abas novas.
 - O dirty state da `ChainTab` é agregado de todas as `ChainNoteTab`.
 - Persiste abas, aba ativa e notas pendentes em `sessionStorage` (`threadnotes.editor.tabs`) com debounce. Notas já persistidas são recarregadas do IndexedDB.
 - `openChainInEditor`, `loadEditorChainTab`, `appendToEditorChainTab`, `saveEditorToChain` e `updateEditorNote` vivem no `AppController`.
 - `Ctrl+S`, `beforeunload`, sidebar mobile e foco das notas ficam na view Editor/sessão, não em `main.ts`.
+
+## Edição de nota existente
+
+- O botão `Editar nota` do histórico não abre mais editor inline; ele cria/seleciona uma aba de edição no compositor de novo documento.
+- `openChainNoteEditTab` impede duplicata por `note.id`, expande o compositor e carrega conteúdo e `contentType` da nota.
+- Abas de edição convivem com abas novas pendentes no mesmo tab bar e usam ícone `edit`.
+- O compositor mostra placeholder e status de edição, botão `Salvar` e ícone `save`; notas novas continuam com `Adicionar`.
+- Ao salvar, `AppController.updateNoteContent` atualiza a nota original. Se retornar sucesso, a aba de edição é removida, uma aba vazia é garantida e o compositor permanece aberto.
+- Abas de edição persistem em `sessionStorage` e entram no dirty state/badge; fechar com alterações reutiliza `showCloseTabDialog`.
+- `saveAllChainNoteTabs` atualiza abas de edição e anexa apenas abas novas.
+- A nota em edição recebe o chip `Em edição` no histórico.
+- Cobertura: `editorStoreEditNote`, `editorEditNote`, `chainDocumentContentType` e `chainNoteBody`.
 
 ## Cadastro de cadeia
 
@@ -200,8 +214,8 @@ editorStore.flush()
 - Usa `ContentTypeMenu` (menu MD3 com `menuitemradio`), não `<select>` nativo.
 - Texto mantém `spellcheck`; código usa fonte monoespaçada, `spellcheck=false`, `tab-size: 2` e preserva whitespace.
 - `EditorStore` persiste `contentType` em `DraftTab`/`ChainNoteTab` e restaura dados antigos como `text`.
-- Notas de código no histórico usam textarea para edição; não use `contenteditable` para código multilinha.
-- Cobertura: `contentTypeMenu`, `editorStoreContentType`, `documentContentTypeView`, `chainDocumentContentType` e `NoteContentType`.
+- Notas de código no histórico usam o compositor para edição, com fonte mono, `spellcheck=false` e `tab-size: 2`; não há mais editor inline.
+- Cobertura: `contentTypeMenu`, `editorStoreContentType`, `documentContentTypeView`, `chainDocumentContentType`, `editorStoreEditNote`, `editorEditNote` e `NoteContentType`.
 
 - Role o scroll sobre o seletor para alternar entre Texto e Código sem abrir o menu; o gesto tem cooldown para não alternar várias vezes.
 
@@ -281,6 +295,9 @@ Ações destrutivas **sempre** pedem confirmação via `showConfirmDialog` antes
 - O header do `ChainDocument` não repete o título; exibe tags, contador, Importar e Mais.
 - Cobertura: `editorTabRename`, `chainMenuRename` e `editorChainRename`.
 - O compositor de notas da cadeia é colapsável pelo FAB “Documento”. `ChainTab.composerCollapsed` é persistido por aba; `aria-expanded`, `aria-controls` e `hidden` controlam a acessibilidade. Quando recolhido, o histórico ocupa o espaço liberado.
+- O compositor expandido é uma bottom sheet tonal: `surface-container-low`, cantos superiores `large`, borda superior sutil e `overflow: hidden`. A tab bar é transparente, a aba ativa usa `surface-container-lowest` e o estado vazio é transparente. Em edição, o footer usa `surface-container`. Com o compositor aberto, o `border-bottom` do scroll é removido para não duplicar a divisória.
+- O `.chain-composer` tem `position: relative` e `z-index` acima do footer de ações, garantindo que o editor nunca seja coberto pelos botões do footer.
+- Com o compositor aberto, as ações rápidas entram no modo compacto (ícones 44px, labels ocultos) e `--chain-fab-clearance` cai para 64px, preservando o botão `Documento` como ação de recolher.
 - O histórico de notas é um fluxo de leitura: `.chain-note__body` de texto é transparente e sem padding; apenas `.chain-note__body--code` usa `surface-container-low`, padding e canto MD3. Metadados ficam fora do body, em baixa ênfase, e o selo "Início" aparece apenas na nota header. A separação entre notas usa uma hairline sutil; não há cards por nota.
 
 ## Renderização DOM — sem framework
@@ -312,4 +329,4 @@ Testes de apresentação ficam em `tests/unit/presentation/` e usam jsdom. Não 
 - QA visual ou interação real com a aplicação só quando o usuário solicitar explicitamente.
 - Novas features de UI devem vir com teste de comportamento; não considerar inspeção visual manual como validação suficiente.
 
-Exceção autorizada: `nav.test.ts` valida a busca e os 5 destinos com Editor como view inicial. Testes do editor: `navToggle`, `mobileNavEntries`, `editorStore`, `editorTabs`, `editorSidebar`, `editorGrouping`, `chainDocument`, `chainNoteBody`, `chainNoteReadingFlow`, `chainHeaderVisibility`, `noteLinks`, `linkModifier`, `appendToChainDialog`, `activeLineHighlight`, `inlineTagEditor`, `tagSuggestions`, `pinnedChains`, `editorView` e `timelineView`.
+Exceção autorizada: `nav.test.ts` valida a busca e os 5 destinos com Editor como view inicial. Testes do editor: `navToggle`, `mobileNavEntries`, `editorStore`, `editorStoreEditNote`, `editorTabs`, `editorSidebar`, `editorGrouping`, `chainDocument`, `chainNoteBody`, `chainNoteReadingFlow`, `chainHeaderVisibility`, `editorEditNote`, `noteLinks`, `linkModifier`, `appendToChainDialog`, `activeLineHighlight`, `inlineTagEditor`, `tagSuggestions`, `pinnedChains`, `editorView` e `timelineView`.

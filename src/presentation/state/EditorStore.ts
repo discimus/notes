@@ -24,6 +24,9 @@ export interface ChainNoteTab {
   id: string;
   content: string;
   contentType?: NoteContentType | undefined;
+  editingNoteId?: string | undefined;
+  baseContent?: string | undefined;
+  baseContentType?: NoteContentType | undefined;
 }
 
 export interface ChainTab {
@@ -107,7 +110,12 @@ function isChainNoteTab(value: unknown): value is ChainNoteTab {
     typeof value['content'] === 'string' &&
     (value['contentType'] === undefined ||
       value['contentType'] === 'text' ||
-      value['contentType'] === 'code')
+      value['contentType'] === 'code') &&
+    (value['editingNoteId'] === undefined || typeof value['editingNoteId'] === 'string') &&
+    (value['baseContent'] === undefined || typeof value['baseContent'] === 'string') &&
+    (value['baseContentType'] === undefined ||
+      value['baseContentType'] === 'text' ||
+      value['baseContentType'] === 'code')
   );
 }
 
@@ -116,7 +124,13 @@ function createBlankNoteTab(): ChainNoteTab {
 }
 
 function cloneNoteTab(noteTab: ChainNoteTab): ChainNoteTab {
-  return { ...noteTab, contentType: contentTypeOf(noteTab) };
+  return {
+    ...noteTab,
+    contentType: contentTypeOf(noteTab),
+    ...(noteTab.baseContentType !== undefined
+      ? { baseContentType: normalizeContentType(noteTab.baseContentType) }
+      : {}),
+  };
 }
 
 function cloneNote(note: NoteDTO): NoteDTO {
@@ -149,6 +163,12 @@ export function deriveEditorTitle(content: string): string {
 }
 
 export function isChainNoteTabDirty(noteTab: ChainNoteTab): boolean {
+  if (noteTab.editingNoteId) {
+    return (
+      noteTab.content !== (noteTab.baseContent ?? '') ||
+      contentTypeOf(noteTab) !== normalizeContentType(noteTab.baseContentType)
+    );
+  }
   return noteTab.content.trim().length > 0;
 }
 
@@ -351,6 +371,37 @@ export class EditorStore {
     const noteTab = createBlankNoteTab();
     tab.noteTabs.push(noteTab);
     tab.activeNoteTabId = noteTab.id;
+    this.persist();
+    this.notify();
+    return cloneNoteTab(noteTab);
+  }
+
+  openChainNoteEditTab(chainTabId: string, note: NoteDTO): ChainNoteTab | null {
+    const tab = this.tabs.find((item) => item.id === chainTabId);
+    if (!tab || tab.kind !== 'chain') return null;
+
+    const existing = tab.noteTabs.find((item) => item.editingNoteId === note.id);
+    if (existing) {
+      tab.composerCollapsed = false;
+      tab.activeNoteTabId = existing.id;
+      this.persist();
+      this.notify();
+      return cloneNoteTab(existing);
+    }
+
+    const baseType = contentTypeOf({ contentType: note.contentType });
+    const noteTab: ChainNoteTab = {
+      id: generateId(),
+      content: note.content,
+      contentType: baseType,
+      editingNoteId: note.id,
+      baseContent: note.content,
+      baseContentType: baseType,
+    };
+
+    tab.noteTabs.push(noteTab);
+    tab.activeNoteTabId = noteTab.id;
+    tab.composerCollapsed = false;
     this.persist();
     this.notify();
     return cloneNoteTab(noteTab);

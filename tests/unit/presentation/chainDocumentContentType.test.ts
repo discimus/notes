@@ -3,7 +3,6 @@ import type { NoteDTO } from '@application/dto/index.js';
 import type { ChainTab } from '@presentation/state/EditorStore.js';
 import { appState } from '@presentation/state/AppState.js';
 import { mountChainDocument } from '@presentation/components/ChainDocument.js';
-import { AppController } from '@presentation/pages/AppController.js';
 
 const code = '  const value = 1;\n  return value;';
 
@@ -20,7 +19,7 @@ function makeNote(): NoteDTO {
   };
 }
 
-function makeTab(): ChainTab {
+function makeTab(overrides: Partial<ChainTab> = {}): ChainTab {
   return {
     kind: 'chain',
     id: 'tab-chain',
@@ -31,6 +30,7 @@ function makeTab(): ChainTab {
     activeNoteTabId: 'note-tab-1',
     composerCollapsed: false,
     status: 'loaded',
+    ...overrides,
   };
 }
 
@@ -72,10 +72,12 @@ describe('ChainDocument content type', () => {
     expect(view.element.querySelector('.chain-note__format')?.textContent).toBe('Código');
   });
 
-  it('edita código em textarea e permite cancelar com Escape', () => {
+  it('encaminha a edição de código para o compositor', () => {
+    const onEditNote = vi.fn();
     const view = mountChainDocument(makeTab(), {
       onNoteInput: vi.fn(),
       onSaveNote: vi.fn(),
+      onEditNote,
       onCreateNote: vi.fn(),
       onSelectNote: vi.fn(),
       onCloseNote: vi.fn(),
@@ -83,41 +85,50 @@ describe('ChainDocument content type', () => {
 
     view.element.querySelector<HTMLButtonElement>('.chain-note__edit')?.click();
 
-    const editor = view.element.querySelector<HTMLTextAreaElement>(
-      '.chain-note__code-editor'
-    );
-    expect(editor?.value).toBe(code);
-    expect(editor?.spellcheck).toBe(false);
-
-    editor?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
-
+    expect(onEditNote).toHaveBeenCalledWith('note-code');
     expect(view.element.querySelector('.chain-note__code-editor')).toBeNull();
-    expect(view.element.querySelector('.chain-note__text--code')?.textContent).toBe(code);
   });
 
-  it('salva edição de código mantendo o tipo', async () => {
-    const update = vi.spyOn(AppController, 'updateNoteContent').mockResolvedValue(undefined);
-    const view = mountChainDocument(makeTab(), {
-      onNoteInput: vi.fn(),
-      onSaveNote: vi.fn(),
-      onCreateNote: vi.fn(),
-      onSelectNote: vi.fn(),
-      onCloseNote: vi.fn(),
-    });
-
-    view.element.querySelector<HTMLButtonElement>('.chain-note__edit')?.click();
-    const editor = view.element.querySelector<HTMLTextAreaElement>(
-      '.chain-note__code-editor'
-    )!;
-    const next = '  const value = 2;\n  return value;';
-    editor.value = next;
-    editor.dispatchEvent(
-      new KeyboardEvent('keydown', { key: 's', ctrlKey: true, bubbles: true })
+  it('exibe a nota de código em edição no compositor', () => {
+    const onSaveNote = vi.fn();
+    const view = mountChainDocument(
+      makeTab({
+        noteTabs: [
+          {
+            id: 'edit-tab',
+            content: code,
+            contentType: 'code',
+            editingNoteId: 'note-code',
+            baseContent: code,
+            baseContentType: 'code',
+          },
+        ],
+        activeNoteTabId: 'edit-tab',
+        composerCollapsed: false,
+      }),
+      {
+        onNoteInput: vi.fn(),
+        onSaveNote,
+        onCreateNote: vi.fn(),
+        onSelectNote: vi.fn(),
+        onCloseNote: vi.fn(),
+      }
     );
 
-    await vi.waitFor(() => {
-      expect(update).toHaveBeenCalledWith('chain-1', 'note-code', next, 'code');
-      expect(view.element.querySelector('.chain-note__code-editor')).toBeNull();
-    });
+    const composer = view.element.querySelector<HTMLTextAreaElement>(
+      '#chain-composer-input'
+    );
+    const save = view.element.querySelector<HTMLButtonElement>('#chain-composer-save');
+    const label = view.element.querySelector('#chain-composer-save-label');
+    const status = view.element.querySelector('#chain-composer-status');
+
+    expect(composer?.value).toBe(code);
+    expect(composer?.classList.contains('chain-composer__input--code')).toBe(true);
+    expect(label?.textContent).toBe('Salvar');
+    expect(status?.textContent).toBe('Editando nota');
+    expect(view.element.querySelector('.editor-tab--editing')).not.toBeNull();
+
+    save?.click();
+    expect(onSaveNote).toHaveBeenCalledWith('edit-tab');
   });
 });

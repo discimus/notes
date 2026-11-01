@@ -1022,6 +1022,9 @@
 .editor-tab--preview .editor-tab__label {
   font-style: italic;
 }
+.editor-tab--editing .editor-tab__icon {
+  color: var(--md-sys-color-tertiary);
+}
 .editor-tab__close {
   width: 32px;
   height: 32px;
@@ -1769,6 +1772,8 @@
   }
 }
 .chain-composer {
+  position: relative;
+  z-index: 7;
   flex: 1 1 auto;
   min-height: 0;
   width: 100%;
@@ -1776,7 +1781,14 @@
   padding: 0;
   display: flex;
   flex-direction: column;
-  background-color: var(--md-sys-color-surface-container-lowest);
+  overflow: hidden;
+  border-top: 1px solid
+    color-mix(in srgb, var(--md-sys-color-outline-variant) 70%, transparent);
+  border-radius: var(--md-sys-shape-corner-large) var(--md-sys-shape-corner-large) 0 0;
+  background-color: var(--md-sys-color-surface-container-low);
+}
+.chain-document:not(.chain-document--notes-collapsed) .chain-document__scroll {
+  border-bottom: none;
 }
 .chain-composer__input {
   position: relative;
@@ -1810,6 +1822,9 @@
   padding: 0 var(--spacing-6);
   border-top: 1px solid var(--md-sys-color-outline-variant);
   flex-shrink: 0;
+}
+.chain-composer--editing .chain-composer__footer {
+  background-color: var(--md-sys-color-surface-container);
 }
 .chain-composer__status {
   min-height: 16px;
@@ -1851,7 +1866,7 @@
   gap: var(--spacing-1);
   padding: 0 var(--spacing-2);
   border-bottom: 1px solid var(--md-sys-color-outline-variant);
-  background-color: var(--md-sys-color-surface-container-lowest);
+  background-color: transparent;
 }
 .editor-tabs--nested {
   flex: 1;
@@ -1902,7 +1917,7 @@
   gap: var(--spacing-2);
   padding: var(--spacing-6);
   text-align: center;
-  background-color: var(--md-sys-color-surface-container-lowest);
+  background-color: transparent;
 }
 .chain-note-empty[hidden] {
   display: none;
@@ -2144,6 +2159,14 @@
   border-radius: var(--md-sys-shape-corner-full);
   background-color: var(--md-sys-color-surface-container-high);
   color: var(--md-sys-color-on-surface-variant);
+  font-size: var(--md-sys-typescale-label-small-size);
+  font-weight: var(--md-sys-typescale-label-small-weight);
+}
+.chain-note__editing {
+  padding: 2px var(--spacing-2);
+  border-radius: var(--md-sys-shape-corner-full);
+  background-color: var(--md-sys-color-tertiary-container);
+  color: var(--md-sys-color-on-tertiary-container);
   font-size: var(--md-sys-typescale-label-small-size);
   font-weight: var(--md-sys-typescale-label-small-weight);
 }
@@ -2722,26 +2745,33 @@
   border-radius: var(--md-sys-shape-corner-full);
   background-color: var(--md-sys-color-surface-container-lowest);
 }
-.chain-document--actions-compact {
+.chain-document--actions-compact,
+.chain-document:not(.chain-document--notes-collapsed) {
   --chain-fab-clearance: calc(64px + env(safe-area-inset-bottom, 0px));
 }
-.chain-document--actions-compact .chain-document__footer {
+.chain-document--actions-compact .chain-document__footer,
+.chain-document:not(.chain-document--notes-collapsed) .chain-document__footer {
   bottom: calc(var(--spacing-3) + env(safe-area-inset-bottom, 0px));
 }
-.chain-document--actions-compact .chain-quick-actions {
+.chain-document--actions-compact .chain-quick-actions,
+.chain-document:not(.chain-document--notes-collapsed) .chain-quick-actions {
   padding: var(--spacing-1);
 }
-.chain-document--actions-compact .chain-quick-action {
+.chain-document--actions-compact .chain-quick-action,
+.chain-document:not(.chain-document--notes-collapsed) .chain-quick-action {
   gap: 0;
 }
-.chain-document--actions-compact .chain-quick-action__icon-wrap {
+.chain-document--actions-compact .chain-quick-action__icon-wrap,
+.chain-document:not(.chain-document--notes-collapsed) .chain-quick-action__icon-wrap {
   width: 44px;
   height: 44px;
 }
-.chain-document--actions-compact .chain-quick-action__icon {
+.chain-document--actions-compact .chain-quick-action__icon,
+.chain-document:not(.chain-document--notes-collapsed) .chain-quick-action__icon {
   font-size: 20px;
 }
-.chain-document--actions-compact .chain-quick-action__label {
+.chain-document--actions-compact .chain-quick-action__label,
+.chain-document:not(.chain-document--notes-collapsed) .chain-quick-action__label {
   max-height: 0;
   opacity: 0;
 }

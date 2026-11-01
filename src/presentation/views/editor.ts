@@ -1,7 +1,13 @@
 import { appState } from '../state/AppState.js';
 import { AppController } from '../pages/AppController.js';
 import { editorStore } from '../state/EditorStore.js';
-import type { ChainTab, DraftTab, EditorStore, EditorTab } from '../state/EditorStore.js';
+import type {
+  ChainNoteTab,
+  ChainTab,
+  DraftTab,
+  EditorStore,
+  EditorTab,
+} from '../state/EditorStore.js';
 import {
   contentTypeOf,
   deriveEditorTitle,
@@ -291,6 +297,14 @@ export function mountEditorView(
       onSaveNote: (noteTabId) => {
         void saveChainNoteTab(tab.id, noteTabId);
       },
+      onEditNote: (noteId) => {
+        const current = store.getTab(tab.id);
+        if (!current || current.kind !== 'chain') return;
+        const note = current.notes.find((item) => item.id === noteId);
+        if (!note) return;
+        store.openChainNoteEditTab(tab.id, note);
+        focusChainNoteEditor(tab.id);
+      },
       onCreateNote: () => {
         createChainNoteTab(tab.id);
       },
@@ -385,11 +399,33 @@ export function mountEditorView(
     return true;
   };
 
+  const updateChainNoteEditTab = async (
+    chainTab: ChainTab,
+    noteTab: ChainNoteTab
+  ): Promise<boolean> => {
+    if (!noteTab.editingNoteId) return false;
+
+    const updated = await AppController.updateNoteContent(
+      chainTab.chainId,
+      noteTab.editingNoteId,
+      noteTab.content,
+      contentTypeOf(noteTab)
+    );
+    if (!updated) return false;
+
+    store.removeChainNoteTab(chainTab.id, noteTab.id);
+    store.ensureChainNoteTab(chainTab.id);
+    return true;
+  };
+
   const saveChainNoteTab = async (
     chainTabId: string,
     noteTabId: string
   ): Promise<boolean> => {
     if (saving) return false;
+
+    const chainTab = store.getTab(chainTabId);
+    if (!chainTab || chainTab.kind !== 'chain') return false;
 
     const noteTab = store.getChainNoteTab(chainTabId, noteTabId);
     if (!noteTab) return false;
@@ -403,8 +439,12 @@ export function mountEditorView(
     setSaving(chainTabId, true);
 
     try {
-      const saved = await appendChainNoteTab(chainTabId, noteTabId);
-      if (saved) snackbar.success('Nota adicionada à cadeia.');
+      const editing = Boolean(noteTab.editingNoteId);
+      const saved = editing
+        ? await updateChainNoteEditTab(chainTab, noteTab)
+        : await appendChainNoteTab(chainTabId, noteTabId);
+
+      if (saved && !editing) snackbar.success('Nota adicionada à cadeia.');
       return saved;
     } finally {
       saving = false;
@@ -420,7 +460,7 @@ export function mountEditorView(
     if (!chainTab || chainTab.kind !== 'chain') return false;
 
     const noteTabIds = chainTab.noteTabs
-      .filter((noteTab) => noteTab.content.trim().length > 0)
+      .filter(isChainNoteTabDirty)
       .map((noteTab) => noteTab.id);
 
     if (noteTabIds.length === 0) return true;
@@ -429,18 +469,24 @@ export function mountEditorView(
     setSaving(chainTabId, true);
 
     try {
+      let appended = 0;
+
       for (const noteTabId of noteTabIds) {
         const current = store.getChainNoteTab(chainTabId, noteTabId);
-        if (!current || !current.content.trim()) continue;
-        const saved = await appendChainNoteTab(chainTabId, noteTabId);
+        if (!current || !current.content.trim()) return false;
+
+        const saved = current.editingNoteId
+          ? await updateChainNoteEditTab(chainTab, current)
+          : await appendChainNoteTab(chainTabId, noteTabId);
         if (!saved) return false;
+        if (!current.editingNoteId) appended += 1;
       }
 
-      snackbar.success(
-        noteTabIds.length === 1
-          ? 'Nota adicionada à cadeia.'
-          : 'Notas adicionadas à cadeia.'
-      );
+      if (appended > 0) {
+        snackbar.success(
+          appended === 1 ? 'Nota adicionada à cadeia.' : 'Notas adicionadas à cadeia.'
+        );
+      }
       return true;
     } finally {
       saving = false;
@@ -463,7 +509,13 @@ export function mountEditorView(
 
     const title = deriveEditorTitle(noteTab.content);
     const choice = await showCloseTabDialog(
-      title === 'Sem título' ? 'Novo documento' : title
+      noteTab.editingNoteId
+        ? title === 'Sem título'
+          ? 'Nota em edição'
+          : title
+        : title === 'Sem título'
+          ? 'Novo documento'
+          : title
     );
     if (choice === 'cancel') return;
     if (choice === 'discard') {

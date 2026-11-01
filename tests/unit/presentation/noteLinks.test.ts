@@ -2,7 +2,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { NoteDTO } from '@application/dto/index.js';
 import type { ChainTab } from '@presentation/state/EditorStore.js';
 import { appState } from '@presentation/state/AppState.js';
-import { AppController } from '@presentation/pages/AppController.js';
 import { mountChainDocument } from '@presentation/components/ChainDocument.js';
 
 const content = 'Veja https://example.com/docs e www.openai.com. Fim.';
@@ -34,22 +33,25 @@ function makeTab(note: NoteDTO = makeNote()): ChainTab {
   };
 }
 
-function makeHandlers() {
+function makeHandlers(overrides: Record<string, unknown> = {}) {
   return {
     onNoteInput: vi.fn(),
     onSaveNote: vi.fn(),
+    onEditNote: vi.fn(),
     onCreateNote: vi.fn(),
     onSelectNote: vi.fn(),
     onCloseNote: vi.fn(),
+    ...overrides,
   };
 }
 
-function mount(note?: NoteDTO) {
-  const view = mountChainDocument(makeTab(note), makeHandlers());
+function mount(note?: NoteDTO, overrides: Record<string, unknown> = {}) {
+  const handlers = makeHandlers(overrides);
+  const view = mountChainDocument(makeTab(note), handlers);
   document.body.appendChild(view.element);
   const text = view.element.querySelector<HTMLElement>('.chain-note__text');
   if (!text) throw new Error('Texto da nota não encontrado');
-  return { view, text };
+  return { view, text, handlers };
 }
 
 function clickEvent(overrides: MouseEventInit = {}): MouseEvent {
@@ -138,46 +140,17 @@ describe('links nas notas', () => {
     expect(iconOpened).toBe(true);
   });
 
-  it('remove links durante a edição e restaura ao cancelar ou salvar sem mudanças', () => {
-    const { view, text } = mount();
+  it('encaminha a edição para o compositor sem alterar os links no histórico', () => {
+    const onEditNote = vi.fn();
+    const { view, text } = mount(undefined, { onEditNote });
     const edit = view.element.querySelector<HTMLButtonElement>('.chain-note__edit');
     if (!edit) throw new Error('Ação de editar não encontrada');
 
     edit.click();
-    expect(text.contentEditable).toBe('true');
-    expect(text.querySelectorAll('a')).toHaveLength(0);
-    expect(text.textContent).toBe(content);
 
-    text.dispatchEvent(
-      new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })
-    );
-    expect(text.contentEditable).toBe('false');
+    expect(onEditNote).toHaveBeenCalledWith('note-1');
     expect(text.querySelectorAll('.chain-note__link')).toHaveLength(2);
-
-    edit.click();
-    text.dispatchEvent(new Event('blur'));
-    expect(text.contentEditable).toBe('false');
-    expect(text.querySelectorAll('.chain-note__link')).toHaveLength(2);
-  });
-
-  it('relinkifica o conteúdo depois de uma edição salva', async () => {
-    const update = vi
-      .spyOn(AppController, 'updateNoteContent')
-      .mockResolvedValue(undefined);
-    const { view, text } = mount();
-    const edit = view.element.querySelector<HTMLButtonElement>('.chain-note__edit');
-    if (!edit) throw new Error('Ação de editar não encontrada');
-
-    edit.click();
-    text.textContent = 'Novo https://x.dev';
-    text.dispatchEvent(new Event('blur'));
-
-    await vi.waitFor(() => {
-      expect(update).toHaveBeenCalledWith('chain-1', 'note-1', 'Novo https://x.dev');
-    });
-    expect(text.querySelector<HTMLAnchorElement>('.chain-note__link')?.href).toBe(
-      'https://x.dev/'
-    );
+    expect(text.contentEditable).not.toBe('true');
   });
 
   it('não linkifica notas de código', () => {

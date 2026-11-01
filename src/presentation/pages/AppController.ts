@@ -323,7 +323,7 @@ export const AppController = {
     noteId: string,
     content: string,
     contentType?: NoteContentType
-  ): Promise<void> {
+  ): Promise<boolean> {
     try {
       const note = await updateNote.execute({
         chainId,
@@ -338,8 +338,10 @@ export const AppController = {
       } else {
         await openChain(chainId, false);
       }
+      return true;
     } catch (e: unknown) {
       snackbar.error((e as Error).message);
+      return false;
     }
   },
 

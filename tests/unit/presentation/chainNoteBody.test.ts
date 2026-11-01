@@ -85,10 +85,11 @@ describe('Chain note body surface', () => {
     ).toBe('const value = 1;');
   });
 
-  it('mantém a edição de código dentro do body', () => {
+  it('mantém a edição de código disponível sem editor inline', () => {
     const view = mountChainDocument(tab, {
       onNoteInput: vi.fn(),
       onSaveNote: vi.fn(),
+      onEditNote: vi.fn(),
       onCreateNote: vi.fn(),
       onSelectNote: vi.fn(),
       onCloseNote: vi.fn(),
@@ -97,10 +98,11 @@ describe('Chain note body surface', () => {
     const codeArticle = view.element.querySelector<HTMLElement>(
       '[data-note-id="note-code"]'
     )!;
-    codeArticle.querySelector<HTMLButtonElement>('.chain-note__edit')?.click();
 
     expect(
-      codeArticle.querySelector('.chain-note__body .chain-note__code-editor')
+      codeArticle.querySelector('.chain-note__body .chain-note__text--code')
     ).not.toBeNull();
+    expect(codeArticle.querySelector('.chain-note__edit')).not.toBeNull();
+    expect(codeArticle.querySelector('.chain-note__code-editor')).toBeNull();
   });
 });

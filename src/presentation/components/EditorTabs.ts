@@ -16,6 +16,7 @@ export interface TabListItem {
   dirty: boolean;
   renamable?: boolean;
   preview?: boolean;
+  editing?: boolean;
 }
 
 const renameStarters = new WeakMap<HTMLElement, Map<string, () => void>>();
@@ -86,6 +87,7 @@ export function renderTabList(
     wrapper.classList.toggle('editor-tab--active', item.id === activeId);
     wrapper.classList.toggle('editor-tab--dirty', item.dirty);
     wrapper.classList.toggle('editor-tab--preview', item.preview === true);
+    wrapper.classList.toggle('editor-tab--editing', item.editing === true);
 
     const button = el('button', 'editor-tab__button');
     button.id = `editor-tab-${item.id}`;
@@ -94,10 +96,12 @@ export function renderTabList(
     button.setAttribute('aria-selected', item.id === activeId ? 'true' : 'false');
     button.setAttribute('aria-controls', panelId);
     button.tabIndex = item.id === activeId ? 0 : -1;
-    button.title = `${item.label}${item.preview ? ' · prévia substituível' : ''}${
-      item.dirty ? ' · alterações não salvas' : ''
-    }`;
-    if (item.preview) {
+    button.title = `${item.label}${item.editing ? ' · editando' : ''}${
+      item.preview ? ' · prévia substituível' : ''
+    }${item.dirty ? ' · alterações não salvas' : ''}`;
+    if (item.editing) {
+      button.setAttribute('aria-description', 'Editando nota existente');
+    } else if (item.preview) {
       button.setAttribute(
         'aria-description',
         'Aba de prévia substituível. Clique duas vezes na cadeia para manter aberta.'

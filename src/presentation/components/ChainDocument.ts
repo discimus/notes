@@ -29,6 +29,7 @@ export interface ChainDocumentHandlers {
   onNoteInput: (noteTabId: string, value: string) => void;
   onContentTypeChange?: (noteTabId: string, contentType: NoteContentType) => void;
   onSaveNote: (noteTabId: string) => void;
+  onEditNote?: (noteId: string) => void;
   onCreateNote: () => void;
   onSelectNote: (noteTabId: string) => void;
   onCloseNote: (noteTabId: string) => void;
@@ -48,103 +49,17 @@ export interface ChainDocumentView {
 
 function noteTabLabel(noteTab: ChainNoteTab): string {
   const title = deriveEditorTitle(noteTab.content);
+  if (noteTab.editingNoteId) {
+    return title === 'Sem título' ? 'Nota em edição' : title;
+  }
   return title === 'Sem título' ? 'Novo documento' : title;
 }
 
-function startNoteEdit(text: HTMLElement, note: NoteDTO, chainId: string): void {
-  const original = note.content;
-  const restore = (content: string): void => {
-    text.contentEditable = 'false';
-    renderNoteContent(text, content);
-  };
-
-  text.contentEditable = 'true';
-  text.replaceChildren(document.createTextNode(original));
-  text.focus();
-
-  const range = document.createRange();
-  range.selectNodeContents(text);
-  range.collapse(false);
-  const selection = window.getSelection();
-  selection?.removeAllRanges();
-  selection?.addRange(range);
-
-  const save = async (): Promise<void> => {
-    const content = text.textContent?.trim() ?? '';
-    if (!content || content === original) {
-      restore(original);
-      return;
-    }
-
-    restore(content);
-    await AppController.updateNoteContent(chainId, note.id, content);
-  };
-
-  const onBlur = (): void => {
-    void save();
-  };
-  text.addEventListener('blur', onBlur, { once: true });
-  text.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape') {
-      text.removeEventListener('blur', onBlur);
-      restore(original);
-    }
-    if (event.key === 'Enter' && !event.shiftKey) {
-      event.preventDefault();
-      text.blur();
-    }
-  });
-}
-
-function startCodeNoteEdit(text: HTMLElement, note: NoteDTO, chainId: string): void {
-  const original = note.content;
-  const editor = el('textarea', 'chain-note__code-editor') as HTMLTextAreaElement;
-  editor.value = original;
-  editor.rows = Math.min(24, Math.max(4, original.split(/\r?\n/).length + 1));
-  editor.spellcheck = false;
-  editor.setAttribute('aria-label', 'Editar código da nota');
-
-  let finished = false;
-  const restore = (): void => {
-    if (editor.parentElement) editor.replaceWith(text);
-  };
-  const save = async (): Promise<void> => {
-    if (finished) return;
-    finished = true;
-    const content = editor.value;
-
-    if (!content.trim()) {
-      restore();
-      return;
-    }
-    if (content !== original) {
-      await AppController.updateNoteContent(chainId, note.id, content, 'code');
-    }
-    restore();
-  };
-
-  text.replaceWith(editor);
-  editor.focus();
-  editor.setSelectionRange(original.length, original.length);
-
-  editor.addEventListener('blur', () => {
-    void save();
-  }, { once: true });
-  editor.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape') {
-      event.preventDefault();
-      finished = true;
-      restore();
-      return;
-    }
-    if (event.key === 's' && (event.ctrlKey || event.metaKey)) {
-      event.preventDefault();
-      void save();
-    }
-  });
-}
-
-function renderNote(note: NoteDTO, chainId: string): HTMLElement {
+function renderNote(
+  note: NoteDTO,
+  editing: boolean,
+  onEdit: ((noteId: string) => void) | undefined
+): HTMLElement {
   const article = el('article', 'chain-note');
   article.setAttribute('data-note-id', note.id);
 
@@ -173,11 +88,18 @@ function renderNote(note: NoteDTO, chainId: string): HTMLElement {
     meta.appendChild(format);
   }
 
+  if (editing) {
+    const editingBadge = el('span', 'chain-note__editing');
+    editingBadge.textContent = 'Em edição';
+    meta.appendChild(editingBadge);
+  }
+
   const edit = el('button', 'btn-icon chain-note__edit');
   edit.type = 'button';
   edit.setAttribute('aria-label', 'Editar nota');
   edit.title = 'Editar nota';
   edit.innerHTML = '<span class="material-symbols-rounded" aria-hidden="true">edit</span>';
+  edit.addEventListener('click', () => onEdit?.(note.id));
   meta.appendChild(edit);
 
   const text = el(
@@ -186,10 +108,6 @@ function renderNote(note: NoteDTO, chainId: string): HTMLElement {
   );
   if (isCode) text.textContent = note.content;
   else renderNoteContent(text, note.content);
-  edit.addEventListener('click', () => {
-    if (isCode) startCodeNoteEdit(text, note, chainId);
-    else startNoteEdit(text, note, chainId);
-  });
 
   const body = el(
     'div',
@@ -358,9 +276,15 @@ export function mountChainDocument(
   };
 
   const renderNotes = (): void => {
-    const signature = currentTab.notes
+    const editingNoteIds = new Set(
+      currentTab.noteTabs
+        .map((noteTab) => noteTab.editingNoteId)
+        .filter((id): id is string => Boolean(id))
+    );
+    const notesSignature = currentTab.notes
       .map((note) => `${note.id}:${note.updatedAt}`)
       .join('|');
+    const signature = `${notesSignature}#${[...editingNoteIds].sort().join(',')}`;
 
     count.textContent = `${currentTab.notes.length} ${
       currentTab.notes.length === 1 ? 'nota' : 'notas'
@@ -421,7 +345,9 @@ export function mountChainDocument(
         section.appendChild(heading);
 
         group.notes.forEach((note) => {
-          section.appendChild(renderNote(note, currentTab.chainId));
+          section.appendChild(
+            renderNote(note, editingNoteIds.has(note.id), handlers.onEditNote)
+          );
         });
 
         history.appendChild(section);
@@ -459,6 +385,18 @@ export function mountChainDocument(
   });
   contentTypeHost.appendChild(contentTypeMenu.element);
 
+  const syncSaveAction = (editing: boolean): void => {
+    saveLabel.textContent = savingState
+      ? editing
+        ? 'Salvando...'
+        : 'Adicionando...'
+      : editing
+        ? 'Salvar'
+        : 'Adicionar';
+    const icon = save.querySelector<HTMLElement>('.material-symbols-rounded');
+    if (icon) icon.textContent = savingState ? 'hourglass_top' : editing ? 'save' : 'add';
+  };
+
   const syncNoteEditor = (): void => {
     const noteTab = activeNoteTab();
 
@@ -472,11 +410,14 @@ export function mountChainDocument(
       save.disabled = true;
       composer.disabled = savingState;
       composerStatus.textContent = '';
+      composerShell.classList.remove('chain-composer--editing');
+      syncSaveAction(false);
       activeLine.refresh();
       return;
     }
 
     const isCode = contentTypeOf(noteTab) === 'code';
+    const editing = Boolean(noteTab.editingNoteId);
     composer.hidden = false;
     emptyNote.hidden = true;
     contentTypeMenu.element.hidden = false;
@@ -484,11 +425,16 @@ export function mountChainDocument(
     composer.classList.toggle('chain-composer__input--code', isCode);
     composer.spellcheck = !isCode;
     composer.placeholder = isCode
-      ? 'Escreva um trecho de código...'
-      : 'Escreva uma nova nota para esta cadeia...';
+      ? editing
+        ? 'Edite o trecho de código...'
+        : 'Escreva um trecho de código...'
+      : editing
+        ? 'Edite a nota...'
+        : 'Escreva uma nova nota para esta cadeia...';
     panel.setAttribute('aria-labelledby', `editor-tab-${noteTab.id}`);
     save.disabled = savingState;
     composer.disabled = savingState;
+    composerShell.classList.toggle('chain-composer--editing', editing);
 
     if (renderedNoteTabId !== noteTab.id) {
       composer.value = noteTab.content;
@@ -497,19 +443,29 @@ export function mountChainDocument(
       composer.value = noteTab.content;
     }
 
-    composerStatus.textContent = isChainNoteTabDirty(noteTab)
-      ? 'Pronto para adicionar'
-      : '';
+    const dirty = isChainNoteTabDirty(noteTab);
+    composerStatus.textContent = editing
+      ? dirty
+        ? 'Alterações não salvas'
+        : 'Editando nota'
+      : dirty
+        ? 'Pronto para adicionar'
+        : '';
+    syncSaveAction(editing);
     activeLine.refresh();
   };
 
   const renderNoteTabs = (): void => {
-    const items = currentTab.noteTabs.map((noteTab) => ({
-      id: noteTab.id,
-      label: noteTabLabel(noteTab),
-      icon: contentTypeOf(noteTab) === 'code' ? 'code' : 'edit_note',
-      dirty: isChainNoteTabDirty(noteTab),
-    }));
+    const items = currentTab.noteTabs.map((noteTab) => {
+      const editing = Boolean(noteTab.editingNoteId);
+      return {
+        id: noteTab.id,
+        label: noteTabLabel(noteTab),
+        icon: editing ? 'edit' : contentTypeOf(noteTab) === 'code' ? 'code' : 'edit_note',
+        dirty: isChainNoteTabDirty(noteTab),
+        editing,
+      };
+    });
 
     renderTabList(
       noteTabs,
@@ -692,9 +648,6 @@ export function mountChainDocument(
     savingState = saving;
     newNote.disabled = saving;
     emptyNewNote.disabled = saving;
-    saveLabel.textContent = saving ? 'Adicionando...' : 'Adicionar';
-    const icon = save.querySelector<HTMLElement>('.material-symbols-rounded');
-    if (icon) icon.textContent = saving ? 'hourglass_top' : 'add';
     syncNoteEditor();
   };
 
