@@ -94,9 +94,12 @@ export class InMemoryChainRepository implements IChainRepository, ITimelineQuery
     const normalizedText = query.text ? normalizeText(query.text) : '';
     const fromTs = query.from ? new Date(query.from).getTime() : null;
     const toTs = query.to ? new Date(query.to).getTime() : null;
-    const tagChainIds = new Set(query.tagChainIds ?? []);
-    const tagNoteIds = new Set(query.tagNoteIds ?? []);
-    const hasTagFilter = tagChainIds.size > 0 || tagNoteIds.size > 0;
+    const tagFilters = (query.tagFilters ?? []).map((group) => ({
+      chainIds: new Set(group.chainIds),
+      noteIds: new Set(group.noteIds),
+    }));
+    const tagMode = query.tagMode ?? 'any';
+    const contentTypes = new Set(query.contentTypes ?? []);
     const offset = Math.max(0, query.offset);
     const limit = Math.max(1, query.limit);
 
@@ -116,10 +119,22 @@ export class InMemoryChainRepository implements IChainRepository, ITimelineQuery
                 normalizedText
               );
             const matchesTag =
-              !hasTagFilter ||
-              tagChainIds.has(note.chainId) ||
-              tagNoteIds.has(note.id);
-            return inRange && matchesText && matchesTag;
+              tagFilters.length === 0 ||
+              (tagMode === 'all'
+                ? tagFilters.every(
+                    (group) =>
+                      group.chainIds.has(note.chainId) ||
+                      group.noteIds.has(note.id)
+                  )
+                : tagFilters.some(
+                    (group) =>
+                      group.chainIds.has(note.chainId) ||
+                      group.noteIds.has(note.id)
+                  ));
+            const matchesType =
+              contentTypes.size === 0 ||
+              contentTypes.has(note.contentType ?? 'text');
+            return inRange && matchesText && matchesTag && matchesType;
           })
           .map((note) => ({
             note,
@@ -130,7 +145,12 @@ export class InMemoryChainRepository implements IChainRepository, ITimelineQuery
       )
       .sort((a, b) => {
         const dateDiff = a.note.createdAt.localeCompare(b.note.createdAt);
-        return dateDiff !== 0 ? dateDiff : a.note.id.localeCompare(b.note.id);
+        if (dateDiff !== 0) {
+          return query.sort === 'newest' ? -dateDiff : dateDiff;
+        }
+        return query.sort === 'newest'
+          ? b.note.id.localeCompare(a.note.id)
+          : a.note.id.localeCompare(b.note.id);
       });
 
     return {

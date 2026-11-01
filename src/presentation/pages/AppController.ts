@@ -273,7 +273,10 @@ function timelineToDate(value: string): string | undefined {
 async function loadTimelinePage(offset: number, mode: 'replace' | 'append'): Promise<void> {
   const state = appState.get();
   const requestId = ++timelineRequestId;
-  const chainIds = state.timelineSelectedChainIds;
+  const chainIds =
+    state.timelineSelectedChainIds.length > 0
+      ? state.timelineSelectedChainIds
+      : state.chainSummaries.map((chain) => chain.id);
   const filters = state.timelineFilters;
 
   if (chainIds.length === 0) {
@@ -301,6 +304,11 @@ async function loadTimelinePage(offset: number, mode: 'replace' | 'append'): Pro
       ...(timelineToDate(filters.to) ? { to: timelineToDate(filters.to)! } : {}),
       ...(filters.query.trim() ? { text: filters.query.trim() } : {}),
       ...(filters.tagIds.length > 0 ? { tagIds: filters.tagIds } : {}),
+      tagMode: filters.tagMode ?? 'any',
+      ...(filters.contentTypes && filters.contentTypes.length > 0
+        ? { contentTypes: filters.contentTypes }
+        : {}),
+      sort: filters.sort ?? 'newest',
       offset,
       limit: state.timelinePageSize,
     });
@@ -957,7 +965,15 @@ export const AppController = {
 
   async clearTimelineFilters(): Promise<void> {
     appState.set({
-      timelineFilters: { query: '', from: '', to: '', tagIds: [] },
+      timelineFilters: {
+        query: '',
+        from: '',
+        to: '',
+        tagIds: [],
+        contentTypes: [],
+        tagMode: 'any',
+        sort: 'newest',
+      },
       timelinePageIndex: 0,
     });
     await loadTimelinePage(0, 'replace');
@@ -1027,7 +1043,7 @@ export const AppController = {
       await loadTags();
     } else if (view === 'timeline') {
       await loadTags();
-      if (appState.get().timelineSelectedChainIds.length > 0) {
+      if (appState.get().chainSummaries.length > 0) {
         await AppController.reloadTimeline();
       }
     } else if (view === 'chain-detail' && chainId) {

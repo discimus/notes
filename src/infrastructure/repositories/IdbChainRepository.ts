@@ -191,16 +191,20 @@ export class IdbChainRepository implements IChainRepository, ITimelineQueryRepos
     const normalizedText = query.text ? normalizeText(query.text) : '';
     const fromTs = query.from ? new Date(query.from).getTime() : null;
     const toTs = query.to ? new Date(query.to).getTime() : null;
-    const tagChainIds = new Set(query.tagChainIds ?? []);
-    const tagNoteIds = new Set(query.tagNoteIds ?? []);
-    const hasTagFilter = tagChainIds.size > 0 || tagNoteIds.size > 0;
+    const tagFilters = (query.tagFilters ?? []).map((group) => ({
+      chainIds: new Set(group.chainIds),
+      noteIds: new Set(group.noteIds),
+    }));
+    const tagMode = query.tagMode ?? 'any';
+    const contentTypes = new Set(query.contentTypes ?? []);
     const offset = Math.max(0, query.offset);
     const limit = Math.max(1, query.limit);
     const entries: TimelineEntry[] = [];
     let total = 0;
 
     const tx = db.transaction('notes');
-    let cursor = await tx.store.index('by-createdAt').openCursor();
+    const direction: IDBCursorDirection = query.sort === 'newest' ? 'prev' : 'next';
+    let cursor = await tx.store.index('by-createdAt').openCursor(null, direction);
 
     while (cursor) {
       const note = cursor.value;
@@ -213,11 +217,21 @@ export class IdbChainRepository implements IChainRepository, ITimelineQueryRepos
           !normalizedText ||
           normalizeText(`${note.content} ${note.title ?? ''} ${chainTitle}`).includes(normalizedText);
         const matchesTag =
-          !hasTagFilter ||
-          tagChainIds.has(note.chainId) ||
-          tagNoteIds.has(note.id);
+          tagFilters.length === 0 ||
+          (tagMode === 'all'
+            ? tagFilters.every(
+                (group) =>
+                  group.chainIds.has(note.chainId) || group.noteIds.has(note.id)
+              )
+            : tagFilters.some(
+                (group) =>
+                  group.chainIds.has(note.chainId) || group.noteIds.has(note.id)
+              ));
+        const matchesType =
+          contentTypes.size === 0 ||
+          contentTypes.has(note.contentType ?? 'text');
 
-        if (inRange && matchesText && matchesTag) {
+        if (inRange && matchesText && matchesTag && matchesType) {
           if (total >= offset && entries.length < limit) {
             entries.push({
               note,

@@ -207,6 +207,9 @@ export interface GetTimelinePageCommand {
   to?: ISODateString | undefined;
   text?: string | undefined;
   tagIds?: UUID[] | undefined;
+  tagMode?: 'any' | 'all' | undefined;
+  contentTypes?: NoteContentType[] | undefined;
+  sort?: 'newest' | 'oldest' | undefined;
   offset: number;
   limit: number;
 }

@@ -5,4 +5,5 @@ export type {
   ITimelineQueryRepository,
   TimelinePageQuery,
   TimelinePageResult,
+  TimelineTagGroup,
 } from './ITimelineQueryRepository.js';

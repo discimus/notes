@@ -1,4 +1,11 @@
-﻿import type { ChainSummaryDTO, ChainDetailDTO, TagDTO, SearchResultDTO, TimelineEntryDTO } from '@application/dto/index.js';
+﻿import type {
+  ChainSummaryDTO,
+  ChainDetailDTO,
+  NoteContentType,
+  TagDTO,
+  SearchResultDTO,
+  TimelineEntryDTO,
+} from '@application/dto/index.js';
 import type { NoteImageLayout } from '../app/noteImageLayout.js';
 
 /**
@@ -13,6 +20,9 @@ export interface TimelineFilters {
   from: string;
   to: string;
   tagIds: string[];
+  contentTypes?: NoteContentType[] | undefined;
+  tagMode?: 'any' | 'all' | undefined;
+  sort?: 'newest' | 'oldest' | undefined;
 }
 
 export interface AppState {
@@ -60,7 +70,15 @@ class AppStateStore {
     timelineLoadedOffset: 0,
     timelinePageSize: 50,
     timelinePageIndex: 0,
-    timelineFilters: { query: '', from: '', to: '', tagIds: [] },
+    timelineFilters: {
+      query: '',
+      from: '',
+      to: '',
+      tagIds: [],
+      contentTypes: [],
+      tagMode: 'any',
+      sort: 'newest',
+    },
     timelineIsLoadingMore: false,
     timelineSelectedChainIds: [],
     isLoading: false,

@@ -1,8 +1,18 @@
-import type { ITagRepository, ITimelineQueryRepository } from '@domain/repositories/index.js';
-import type { GetTimelinePageCommand, NoteDTO, TimelinePageDTO } from '../dto/index.js';
-import type { NoteData } from '@domain/entities/index.js';
+import type {
+  ITagRepository,
+  ITimelineQueryRepository,
+  TimelineTagGroup,
+} from '@domain/repositories/index.js';
+import type {
+  GetTimelinePageCommand,
+  NoteDTO,
+  TagDTO,
+  TimelinePageDTO,
+} from '../dto/index.js';
+import type { NoteData, Tag } from '@domain/entities/index.js';
+import { mapTagToDTO } from '../mappers/index.js';
 
-function mapNoteData(note: NoteData): NoteDTO {
+function mapNoteData(note: NoteData, tags: TagDTO[] = []): NoteDTO {
   return {
     id: note.id,
     content: note.content,
@@ -11,6 +21,7 @@ function mapNoteData(note: NoteData): NoteDTO {
     role: note.role,
     contentType: note.contentType ?? 'text',
     ...(note.title ? { title: note.title } : {}),
+    ...(tags.length > 0 ? { tags } : {}),
     createdAt: note.createdAt,
     updatedAt: note.updatedAt,
   };
@@ -26,20 +37,28 @@ export class GetTimelinePage {
     const offset = Math.max(0, command.offset);
     const limit = Math.max(1, command.limit);
     const chainIds = [...new Set(command.chainIds)];
-    let tagChainIds: string[] | undefined;
-    let tagNoteIds: string[] | undefined;
+    let tagFilters: TimelineTagGroup[] | undefined;
 
     if (command.tagIds && command.tagIds.length > 0) {
-      const chainTags = await Promise.all(
-        command.tagIds.map((tagId) => this.tagRepo.findChainIdsByTag(tagId))
+      tagFilters = await Promise.all(
+        command.tagIds.map(async (tagId) => ({
+          chainIds: await this.tagRepo.findChainIdsByTag(tagId),
+          noteIds: await this.tagRepo.findNoteIdsByTag(tagId),
+        }))
       );
-      const noteIds = await Promise.all(
-        command.tagIds.map((tagId) => this.tagRepo.findNoteIdsByTag(tagId))
-      );
-      tagChainIds = [...new Set(chainTags.flat())];
-      tagNoteIds = [...new Set(noteIds.flat())];
 
-      if (tagChainIds.length === 0 && tagNoteIds.length === 0) {
+      const hasMatch = tagFilters.every(
+        (group) => group.chainIds.length > 0 || group.noteIds.length > 0
+      );
+      if (!hasMatch && (command.tagMode ?? 'any') === 'all') {
+        return { entries: [], total: 0, offset, limit, hasMore: false };
+      }
+      if (
+        (command.tagMode ?? 'any') === 'any' &&
+        tagFilters.every(
+          (group) => group.chainIds.length === 0 && group.noteIds.length === 0
+        )
+      ) {
         return { entries: [], total: 0, offset, limit, hasMore: false };
       }
     }
@@ -53,15 +72,41 @@ export class GetTimelinePage {
       ...(command.from ? { from: command.from } : {}),
       ...(command.to ? { to: command.to } : {}),
       ...(command.text?.trim() ? { text: command.text.trim() } : {}),
-      ...(tagChainIds ? { tagChainIds } : {}),
-      ...(tagNoteIds ? { tagNoteIds } : {}),
+      ...(tagFilters ? { tagFilters } : {}),
+      ...(command.tagMode ? { tagMode: command.tagMode } : {}),
+      ...(command.contentTypes && command.contentTypes.length > 0
+        ? { contentTypes: command.contentTypes }
+        : {}),
+      ...(command.sort ? { sort: command.sort } : {}),
       offset,
       limit,
     });
 
+    const entryTags = await this.tagRepo.findByNoteIds(
+      page.entries.map((entry) => entry.note.id)
+    );
+    const uniqueTags = new Map<string, Tag>();
+    entryTags.forEach((tags) => {
+      tags.forEach((tag) => uniqueTags.set(tag.id, tag));
+    });
+    const tagDTOsById = new Map<string, TagDTO>();
+    await Promise.all(
+      [...uniqueTags.values()].map(async (tag) => {
+        tagDTOsById.set(
+          tag.id,
+          mapTagToDTO(tag, await this.tagRepo.countChainsForTag(tag.id))
+        );
+      })
+    );
+
     return {
       entries: page.entries.map((entry) => ({
-        note: mapNoteData(entry.note),
+        note: mapNoteData(
+          entry.note,
+          (entryTags.get(entry.note.id) ?? [])
+            .map((tag) => tagDTOsById.get(tag.id))
+            .filter((tag): tag is TagDTO => tag !== undefined)
+        ),
         chainId: entry.chainId,
         chainTitle: entry.chainTitle,
       })),
