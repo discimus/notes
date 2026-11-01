@@ -2978,33 +2978,39 @@
     display: inline-flex;
   }
 }
-.app-shell--full-note-content .chain-note .chain-note__attachment-grid {
+.app-shell--full-note-content:not(.app-shell--compact)
+  .chain-note
+  .chain-note__attachment-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(128px, 1fr));
   grid-auto-rows: auto;
   gap: var(--spacing-2);
   overflow: visible;
 }
-.app-shell--full-note-content
+.app-shell--full-note-content:not(.app-shell--compact)
   .chain-note
   .chain-note__attachment-grid
   .chain-attachment--preview-hidden {
   display: block;
 }
-.app-shell--full-note-content
+.app-shell--full-note-content:not(.app-shell--compact)
   .chain-note
   .chain-note__attachment-grid
   .chain-attachment__image {
   height: 140px;
   object-fit: cover;
 }
-.app-shell--image-column.app-shell--full-note-content
+.app-shell--image-column.app-shell--full-note-content:not(
+    .app-shell--compact
+  )
   .chain-note
   .chain-note__attachment-grid {
   grid-template-columns: minmax(0, 1fr);
   gap: var(--spacing-3);
 }
-.app-shell--image-column.app-shell--full-note-content
+.app-shell--image-column.app-shell--full-note-content:not(
+    .app-shell--compact
+  )
   .chain-note
   .chain-note__attachment-grid
   .chain-attachment__image {
@@ -3012,7 +3018,76 @@
   max-height: none;
   object-fit: contain;
 }
-.app-shell--full-note-content .chain-note__attachment-more {
+.app-shell--full-note-content:not(.app-shell--compact)
+  .chain-note__attachment-more {
+  display: none;
+}
+.app-shell--compact .chain-note__attachment-grid {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: var(--spacing-2);
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-inline: contain;
+  scroll-snap-type: x proximity;
+  scroll-padding-inline: 2px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--md-sys-color-outline-variant) transparent;
+}
+.app-shell--compact
+  .chain-note
+  .chain-note__attachment-grid
+  .chain-attachment--image {
+  flex: 0 0 clamp(168px, 46%, 220px);
+  width: auto;
+  min-width: 0;
+  scroll-snap-align: start;
+}
+.app-shell--compact
+  .chain-note
+  .chain-note__attachment-grid
+  .chain-attachment--preview-hidden {
+  display: block;
+}
+.app-shell--compact
+  .chain-note
+  .chain-note__attachment-grid
+  .chain-attachment__image {
+  height: 112px;
+  object-fit: cover;
+}
+.app-shell--compact .chain-note__attachment-more {
+  display: none;
+}
+.app-shell--image-column .chain-note .chain-note__attachment-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--spacing-3);
+  overflow: visible;
+  scroll-snap-type: none;
+}
+.app-shell--image-column
+  .chain-note
+  .chain-note__attachment-grid
+  .chain-attachment--image {
+  width: 100%;
+}
+.app-shell--image-column
+  .chain-note
+  .chain-note__attachment-grid
+  .chain-attachment__image {
+  width: 100%;
+  height: auto;
+  max-height: none;
+  object-fit: contain;
+}
+.app-shell--image-column
+  .chain-note
+  .chain-note__attachment-grid
+  .chain-attachment--preview-hidden {
+  display: block;
+}
+.app-shell--image-column .chain-note__attachment-more {
   display: none;
 }
 .chain-note__audio-list {

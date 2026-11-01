@@ -93,6 +93,8 @@ describe('Limite visual de imagens da nota', () => {
     const more = group?.querySelector('.chain-note__attachment-more');
 
     expect(group).not.toBeNull();
+    expect(group?.getAttribute('role')).toBe('group');
+    expect(group?.getAttribute('aria-label')).toBe('Imagens da nota');
     expect(group?.querySelector('.chain-note__attachment-grid')).not.toBeNull();
     expect(more?.textContent).toContain('+1');
     expect(more?.textContent).toContain('1 imagem adicional');

@@ -181,6 +181,8 @@ export function renderNoteAttachments(
 
   if (imageAttachments.length > 0) {
     const imageGroup = el('div', 'chain-note__attachment-images');
+    imageGroup.setAttribute('role', 'group');
+    imageGroup.setAttribute('aria-label', 'Imagens da nota');
     imageGroup.appendChild(images);
 
     const hiddenCount = Math.max(0, imageAttachments.length - previewImageLimit);
