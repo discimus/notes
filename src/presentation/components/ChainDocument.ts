@@ -17,6 +17,12 @@ import { mountContentTypeMenu } from './ContentTypeMenu.js';
 import { el } from '../dom.js';
 import { formatDateFull, formatTime } from '@shared/utilities/index.js';
 
+const COMPACT_SCROLL_MIN = 24;
+const COMPACT_DELTA_MIN = 4;
+const EXPAND_DELTA_MIN = 8;
+const EXPAND_DELAY_MS = 120;
+const SCROLL_IGNORE_MS = 100;
+
 export interface ChainDocumentHandlers {
   onNoteInput: (noteTabId: string, value: string) => void;
   onContentTypeChange?: (noteTabId: string, contentType: NoteContentType) => void;
@@ -24,7 +30,8 @@ export interface ChainDocumentHandlers {
   onCreateNote: () => void;
   onSelectNote: (noteTabId: string) => void;
   onCloseNote: (noteTabId: string) => void;
-  onToggleComposer: () => void;
+  onNewDocument?: () => void;
+  onCollapseComposer?: () => void;
   onImportFiles?: (files: File[]) => void;
   onRename?: () => void;
 }
@@ -212,17 +219,6 @@ export function mountChainDocument(
     </div>
 
     <div class="chain-composer" id="chain-composer">
-      <div class="chain-composer__header">
-        <button class="chain-composer__toggle" id="chain-composer-toggle" type="button"
-          aria-expanded="true" aria-controls="chain-composer-body">
-          <span class="chain-composer__toggle-icon material-symbols-rounded" aria-hidden="true">edit_note</span>
-          <span class="chain-composer__toggle-label">Notas em edição</span>
-          <span class="chain-composer__count" id="chain-composer-count"></span>
-          <span class="chain-composer__dirty" id="chain-composer-dirty" hidden aria-hidden="true"></span>
-          <span class="chain-composer__chevron material-symbols-rounded" id="chain-composer-chevron" aria-hidden="true">expand_less</span>
-        </button>
-      </div>
-
       <div class="chain-composer__body" id="chain-composer-body">
         <div class="chain-note-tabbar">
           <div class="editor-tabs editor-tabs--nested" id="chain-note-tabs"></div>
@@ -260,6 +256,37 @@ export function mountChainDocument(
       </div>
     </div>
 
+    <footer class="chain-document__footer">
+      <div class="chain-quick-actions" id="chain-quick-actions" role="group" aria-label="Adicionar conteúdo">
+        <button class="chain-quick-action chain-quick-action--primary" id="chain-action-document" type="button"
+          aria-label="Documento" aria-controls="chain-composer-body" aria-expanded="false">
+          <span class="chain-quick-action__icon-wrap">
+            <span class="material-symbols-rounded chain-quick-action__icon" aria-hidden="true">edit_note</span>
+            <span class="chain-quick-action__badge" id="chain-unsaved-badge" hidden aria-hidden="true"></span>
+          </span>
+          <span class="chain-quick-action__label">Documento</span>
+        </button>
+        <button class="chain-quick-action" type="button" disabled title="Em breve" aria-label="Imagem, em breve">
+          <span class="chain-quick-action__icon-wrap">
+            <span class="material-symbols-rounded chain-quick-action__icon" aria-hidden="true">image</span>
+          </span>
+          <span class="chain-quick-action__label">Imagem</span>
+        </button>
+        <button class="chain-quick-action" type="button" disabled title="Em breve" aria-label="Áudio, em breve">
+          <span class="chain-quick-action__icon-wrap">
+            <span class="material-symbols-rounded chain-quick-action__icon" aria-hidden="true">audio_file</span>
+          </span>
+          <span class="chain-quick-action__label">Áudio</span>
+        </button>
+        <button class="chain-quick-action" type="button" disabled title="Em breve" aria-label="Link, em breve">
+          <span class="chain-quick-action__icon-wrap">
+            <span class="material-symbols-rounded chain-quick-action__icon" aria-hidden="true">link</span>
+          </span>
+          <span class="chain-quick-action__label">Link</span>
+        </button>
+      </div>
+    </footer>
+
     <div class="chain-document__drop-overlay" id="chain-drop-overlay" hidden aria-hidden="true">
       <span class="material-symbols-rounded chain-document__drop-icon" aria-hidden="true">upload_file</span>
       <span class="chain-document__drop-text">Solte para importar nesta cadeia</span>
@@ -270,6 +297,8 @@ export function mountChainDocument(
   const importButton = root.querySelector<HTMLButtonElement>('#chain-import-file')!;
   const fileInput = root.querySelector<HTMLInputElement>('#chain-file-input')!;
   const dropOverlay = root.querySelector<HTMLElement>('#chain-drop-overlay')!;
+  const documentAction = root.querySelector<HTMLButtonElement>('#chain-action-document')!;
+  const unsavedBadge = root.querySelector<HTMLElement>('#chain-unsaved-badge')!;
   const tags = root.querySelector<HTMLElement>('#chain-tags')!;
   const count = root.querySelector<HTMLElement>('#chain-note-count')!;
   const scroll = root.querySelector<HTMLElement>('#chain-document-scroll')!;
@@ -285,11 +314,8 @@ export function mountChainDocument(
   const save = root.querySelector<HTMLButtonElement>('#chain-composer-save')!;
   const saveLabel = root.querySelector<HTMLElement>('#chain-composer-save-label')!;
   const activeLine = mountActiveLineHighlight(composer, panel);
-  const composerToggle = root.querySelector<HTMLButtonElement>('#chain-composer-toggle')!;
+  const composerShell = root.querySelector<HTMLElement>('#chain-composer')!;
   const composerBody = root.querySelector<HTMLElement>('#chain-composer-body')!;
-  const composerCount = root.querySelector<HTMLElement>('#chain-composer-count')!;
-  const composerDirty = root.querySelector<HTMLElement>('#chain-composer-dirty')!;
-  const composerChevron = root.querySelector<HTMLElement>('#chain-composer-chevron')!;
 
   let currentTab = tab;
   const tagEditor = mountInlineTagEditor(tags, {
@@ -310,24 +336,23 @@ export function mountChainDocument(
       handlers.onRename ? { onRename: handlers.onRename } : {}
     );
   });
-  composerToggle.addEventListener('click', handlers.onToggleComposer);
-
-  const syncComposerHeader = (tabValue: ChainTab): void => {
-    const dirty = tabValue.noteTabs.some(isChainNoteTabDirty);
-    const count = tabValue.noteTabs.length;
+  const syncComposerState = (tabValue: ChainTab): void => {
+    const dirtyCount = tabValue.noteTabs.filter(isChainNoteTabDirty).length;
+    const dirty = dirtyCount > 0;
     const collapsed = tabValue.composerCollapsed;
-    const summary = `${count} ${count === 1 ? 'nota' : 'notas'} em edição${
-      dirty ? ', com alterações não salvas' : ''
-    }`;
 
     root.classList.toggle('chain-document--notes-collapsed', collapsed);
     composerBody.hidden = collapsed;
-    composerToggle.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
-    composerToggle.setAttribute('aria-label', `${collapsed ? 'Expandir' : 'Recolher'} ${summary}`);
-    composerToggle.title = `${collapsed ? 'Expandir' : 'Recolher'} notas em edição`;
-    composerChevron.textContent = collapsed ? 'expand_more' : 'expand_less';
-    composerCount.textContent = count > 0 ? String(count) : '';
-    composerDirty.hidden = !dirty;
+    documentAction.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+    unsavedBadge.hidden = !dirty;
+    documentAction.setAttribute(
+      'aria-label',
+      dirtyCount > 0
+        ? `Documento, ${dirtyCount} ${dirtyCount === 1 ? 'nota não salva' : 'notas não salvas'}`
+        : 'Documento'
+    );
+    documentAction.title =
+      dirtyCount > 0 ? 'Documento · há notas não salvas' : 'Documento';
   };
 
   const renderTags = (): void => {
@@ -503,7 +528,7 @@ export function mountChainDocument(
       },
       {
         panelId: 'chain-note-panel',
-        ariaLabel: 'Notas em edição',
+        ariaLabel: 'Notas pendentes',
       }
     );
   };
@@ -529,12 +554,99 @@ export function mountChainDocument(
     if (active) handlers.onSaveNote(active.id);
   });
 
+  documentAction.addEventListener('click', () => handlers.onNewDocument?.());
+  const onDocumentPointerDown = (event: PointerEvent): void => {
+    if (currentTab.composerCollapsed) return;
+    const target = event.target;
+    if (!(target instanceof Node)) return;
+    if (composerShell.contains(target) || documentAction.contains(target)) return;
+    if (
+      target instanceof Element &&
+      target.closest(
+        '[role="menu"], [role="dialog"], [role="alertdialog"], [role="listbox"], .chain-menu, .snackbar-container'
+      )
+    ) {
+      return;
+    }
+    handlers.onCollapseComposer?.();
+  };
+  document.addEventListener('pointerdown', onDocumentPointerDown);
   newNote.addEventListener('click', handlers.onCreateNote);
   emptyNewNote.addEventListener('click', handlers.onCreateNote);
   save.addEventListener('click', () => {
     const active = activeNoteTab();
     if (active) handlers.onSaveNote(active.id);
   });
+
+  let actionsCompact = false;
+  let lastScrollTop = scroll.scrollTop;
+  let upwardDistance = 0;
+  let expandTimer: ReturnType<typeof setTimeout> | null = null;
+  let compactFrame: number | null = null;
+  let ignoreCompactUntil = 0;
+
+  const cancelExpand = (): void => {
+    if (expandTimer !== null) clearTimeout(expandTimer);
+    expandTimer = null;
+  };
+
+  const setActionsCompact = (value: boolean): void => {
+    if (actionsCompact === value) return;
+    actionsCompact = value;
+    root.classList.toggle('chain-document--actions-compact', value);
+  };
+
+  const scrollToBottom = (): void => {
+    ignoreCompactUntil = Date.now() + SCROLL_IGNORE_MS;
+    scroll.scrollTop = scroll.scrollHeight;
+    lastScrollTop = scroll.scrollTop;
+  };
+
+  const onScroll = (): void => {
+    if (compactFrame !== null) return;
+
+    compactFrame = requestAnimationFrame(() => {
+      compactFrame = null;
+
+      if (Date.now() < ignoreCompactUntil) {
+        lastScrollTop = scroll.scrollTop;
+        return;
+      }
+
+      const current = scroll.scrollTop;
+      const delta = current - lastScrollTop;
+      lastScrollTop = current;
+
+      if (current <= 8) {
+        cancelExpand();
+        upwardDistance = 0;
+        setActionsCompact(false);
+        return;
+      }
+
+      if (delta > COMPACT_DELTA_MIN && current > COMPACT_SCROLL_MIN) {
+        cancelExpand();
+        upwardDistance = 0;
+        setActionsCompact(true);
+        return;
+      }
+
+      if (delta < 0 && actionsCompact) {
+        upwardDistance += Math.abs(delta);
+        if (upwardDistance >= EXPAND_DELTA_MIN && expandTimer === null) {
+          expandTimer = setTimeout(() => {
+            expandTimer = null;
+            setActionsCompact(false);
+          }, EXPAND_DELAY_MS);
+        }
+      } else if (delta > 0) {
+        cancelExpand();
+        upwardDistance = 0;
+      }
+    });
+  };
+
+  scroll.addEventListener('scroll', onScroll);
 
   const update = (tabValue: ChainTab): void => {
     const justLoaded =
@@ -543,16 +655,14 @@ export function mountChainDocument(
     root.setAttribute('aria-label', `Cadeia ${tabValue.title}`);
     root.dataset['chainId'] = tabValue.chainId;
 
-    syncComposerHeader(tabValue);
+    syncComposerState(tabValue);
     renderTags();
     renderNotes();
     renderNoteTabs();
     syncNoteEditor();
 
     if (justLoaded) {
-      requestAnimationFrame(() => {
-        scroll.scrollTop = scroll.scrollHeight;
-      });
+      requestAnimationFrame(scrollToBottom);
     }
 
     previousStatus = tabValue.status;
@@ -627,6 +737,11 @@ export function mountChainDocument(
   window.addEventListener('dragleave', resetWhenLeavingWindow);
 
   const destroy = (): void => {
+    document.removeEventListener('pointerdown', onDocumentPointerDown);
+    scroll.removeEventListener('scroll', onScroll);
+    cancelExpand();
+    if (compactFrame !== null) cancelAnimationFrame(compactFrame);
+    compactFrame = null;
     window.removeEventListener('dragend', resetFileDrag);
     window.removeEventListener('drop', resetFileDrag, true);
     window.removeEventListener('dragleave', resetWhenLeavingWindow);
@@ -638,7 +753,7 @@ export function mountChainDocument(
   update(tab);
 
   requestAnimationFrame(() => {
-    if (tab.status === 'loaded') scroll.scrollTop = scroll.scrollHeight;
+    if (tab.status === 'loaded') scrollToBottom();
   });
 
   return {
@@ -647,7 +762,7 @@ export function mountChainDocument(
     setSaving,
     focusNoteEditor: () => {
       if (currentTab.composerCollapsed) {
-        composerToggle.focus();
+        documentAction.focus();
         return;
       }
       const noteTab = activeNoteTab();

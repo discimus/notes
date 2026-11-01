@@ -1,4 +1,4 @@
-﻿import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ChainSummaryDTO, NoteDTO } from '@application/dto/index.js';
 import { EditorStore } from '@presentation/state/EditorStore.js';
 import { mountEditorView } from '@presentation/views/editor.js';
@@ -140,7 +140,7 @@ describe('EditorView', () => {
     const host = mount(store);
     const chain = store.openChainTab('chain-1', 'Projeto principal');
 
-    host.querySelector<HTMLButtonElement>('#chain-composer-toggle')?.click();
+    host.querySelector<HTMLButtonElement>('#chain-action-document')?.click();
 
     const collapsed = store.getTab(chain.id);
     expect(
@@ -155,7 +155,7 @@ describe('EditorView', () => {
       host.querySelector<HTMLElement>('#chain-composer-body')?.hidden
     ).toBe(true);
 
-    host.querySelector<HTMLButtonElement>('#chain-composer-toggle')?.click();
+    host.querySelector<HTMLButtonElement>('#chain-action-document')?.click();
     const expanded = store.getTab(chain.id);
     expect(
       expanded?.kind === 'chain' && expanded.composerCollapsed

@@ -65,7 +65,6 @@ describe('ChainDocument content type', () => {
       onCreateNote: vi.fn(),
       onSelectNote: vi.fn(),
       onCloseNote: vi.fn(),
-      onToggleComposer: vi.fn(),
     });
 
     const text = view.element.querySelector<HTMLElement>('.chain-note__text--code');
@@ -80,7 +79,6 @@ describe('ChainDocument content type', () => {
       onCreateNote: vi.fn(),
       onSelectNote: vi.fn(),
       onCloseNote: vi.fn(),
-      onToggleComposer: vi.fn(),
     });
 
     view.element.querySelector<HTMLButtonElement>('.chain-note__edit')?.click();
@@ -105,7 +103,6 @@ describe('ChainDocument content type', () => {
       onCreateNote: vi.fn(),
       onSelectNote: vi.fn(),
       onCloseNote: vi.fn(),
-      onToggleComposer: vi.fn(),
     });
 
     view.element.querySelector<HTMLButtonElement>('.chain-note__edit')?.click();

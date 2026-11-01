@@ -64,7 +64,6 @@ describe('Chain note body surface', () => {
       onCreateNote: vi.fn(),
       onSelectNote: vi.fn(),
       onCloseNote: vi.fn(),
-      onToggleComposer: vi.fn(),
     });
 
     const articles = [...view.element.querySelectorAll<HTMLElement>('.chain-note')];
@@ -93,7 +92,6 @@ describe('Chain note body surface', () => {
       onCreateNote: vi.fn(),
       onSelectNote: vi.fn(),
       onCloseNote: vi.fn(),
-      onToggleComposer: vi.fn(),
     });
 
     const codeArticle = view.element.querySelector<HTMLElement>(

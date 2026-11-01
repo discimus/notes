@@ -596,7 +596,7 @@ export const AppController = {
       appState.get().chainSummaries.find((chain) => chain.id === chainId)?.displayTitle ??
       'Cadeia';
 
-    const tab = editorStore.openChainTab(chainId, title);
+    const tab = editorStore.openChainTab(chainId, title, { composerCollapsed: true });
     appState.set({ view: 'editor', selectedChainId: null, currentChain: null });
     pushNavigation('editor', chainId);
 

@@ -41,7 +41,6 @@ describe('Empty chain document', () => {
       onCreateNote: vi.fn(),
       onSelectNote: vi.fn(),
       onCloseNote: vi.fn(),
-      onToggleComposer: vi.fn(),
     });
 
     expect(view.element.querySelector('#chain-note-count')?.textContent).toBe('0 notas');

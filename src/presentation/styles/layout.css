@@ -983,15 +983,6 @@
 .app-shell--compact .chain-note__body {
   padding: var(--spacing-2) var(--spacing-3);
 }
-.app-shell--compact .chain-composer__header {
-  height: 40px;
-}
-.app-shell--compact .chain-composer__toggle {
-  padding: 0 var(--spacing-3);
-}
-.app-shell--compact .chain-document--notes-collapsed .chain-composer {
-  flex-basis: 40px;
-}
 .app-shell--compact .chain-note-tabbar {
   min-height: 36px;
   padding: 0 var(--spacing-1);

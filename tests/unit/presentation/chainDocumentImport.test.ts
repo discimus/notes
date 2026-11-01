@@ -63,7 +63,6 @@ describe('ChainDocument file import', () => {
       onCreateNote: vi.fn(),
       onSelectNote: vi.fn(),
       onCloseNote: vi.fn(),
-      onToggleComposer: vi.fn(),
       onImportFiles,
     });
 

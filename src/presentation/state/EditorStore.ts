@@ -248,7 +248,11 @@ export class EditorStore {
     return cloneTab(tab) as DraftTab;
   }
 
-  openChainTab(chainId: string, title: string): ChainTab {
+  openChainTab(
+    chainId: string,
+    title: string,
+    options: { composerCollapsed?: boolean } = {}
+  ): ChainTab {
     const existing = this.tabs.find(
       (item) => item.kind === 'chain' && item.chainId === chainId
     );
@@ -271,7 +275,7 @@ export class EditorStore {
       notes: [],
       noteTabs: [noteTab],
       activeNoteTabId: noteTab.id,
-      composerCollapsed: false,
+      composerCollapsed: options.composerCollapsed ?? false,
       status: 'idle',
     };
 

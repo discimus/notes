@@ -292,10 +292,21 @@ export function mountEditorView(
       onCloseNote: (noteTabId) => {
         void requestCloseChainNoteTab(tab.id, noteTabId);
       },
-      onToggleComposer: () => {
+      onNewDocument: () => {
         const current = store.getTab(tab.id);
         if (!current || current.kind !== 'chain') return;
-        store.setChainComposerCollapsed(tab.id, !current.composerCollapsed);
+        if (!current.composerCollapsed) {
+          store.setChainComposerCollapsed(tab.id, true);
+          return;
+        }
+        store.setChainComposerCollapsed(tab.id, false);
+        store.ensureChainNoteTab(tab.id);
+        focusChainNoteEditor(tab.id);
+      },
+      onCollapseComposer: () => {
+        const current = store.getTab(tab.id);
+        if (!current || current.kind !== 'chain' || current.composerCollapsed) return;
+        store.setChainComposerCollapsed(tab.id, true);
       },
       onImportFiles: (files) => {
         void importFilesToChain(tab.chainId, files);

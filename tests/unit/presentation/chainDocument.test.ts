@@ -39,7 +39,7 @@ function makeHandlers() {
     onCreateNote: vi.fn(),
     onSelectNote: vi.fn(),
     onCloseNote: vi.fn(),
-    onToggleComposer: vi.fn(),
+    onNewDocument: vi.fn(),
   };
 }
 
@@ -85,9 +85,11 @@ describe('ChainDocument', () => {
     expect(view.element.querySelector('#chain-composer-save-label')?.textContent).toBe(
       'Adicionar'
     );
+    expect(view.element.querySelector('.chain-composer__header')).toBeNull();
+    expect(view.element.querySelector('#chain-composer-toggle')).toBeNull();
   });
 
-  it('recolhe e expande a Ã¡rea de notas com estado acessÃ­vel', () => {
+  it('mantem o editor de notas acessivel pela acao de novo documento', () => {
     const handlers = makeHandlers();
     const view = mountChainDocument(
       makeTab({
@@ -97,26 +99,23 @@ describe('ChainDocument', () => {
       handlers
     );
 
-    const toggle = view.element.querySelector<HTMLButtonElement>(
-      '#chain-composer-toggle'
+    const action = view.element.querySelector<HTMLButtonElement>(
+      '#chain-action-document'
     );
     const body = view.element.querySelector<HTMLElement>('#chain-composer-body');
 
-    expect(toggle?.getAttribute('aria-expanded')).toBe('false');
-    expect(toggle?.getAttribute('aria-controls')).toBe('chain-composer-body');
+    expect(action?.getAttribute('aria-expanded')).toBe('false');
+    expect(action?.getAttribute('aria-controls')).toBe('chain-composer-body');
     expect(body?.hidden).toBe(true);
     expect(view.element.classList.contains('chain-document--notes-collapsed')).toBe(
       true
     );
     expect(
-      view.element.querySelector<HTMLElement>('#chain-composer-count')?.textContent
-    ).toBe('1');
-    expect(
-      view.element.querySelector<HTMLElement>('#chain-composer-dirty')?.hidden
+      view.element.querySelector<HTMLElement>('#chain-unsaved-badge')?.hidden
     ).toBe(false);
 
-    toggle?.click();
-    expect(handlers.onToggleComposer).toHaveBeenCalled();
+    action?.click();
+    expect(handlers.onNewDocument).toHaveBeenCalled();
   });
 
   it('encaminha digitaÃ§Ã£o, adiÃ§Ã£o e criaÃ§Ã£o de nova aba', () => {
