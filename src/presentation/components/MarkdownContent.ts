@@ -11,6 +11,7 @@ markdown.validateLink = (url) => /^(https?:\/\/|mailto:)/i.test(url);
 
 const defaultLinkOpen = markdown.renderer.rules.link_open;
 markdown.renderer.rules.link_open = (tokens, idx, options, env, self) => {
+  tokens[idx]?.attrSet('class', 'note-link');
   tokens[idx]?.attrSet('target', '_blank');
   tokens[idx]?.attrSet('rel', 'noopener noreferrer');
   tokens[idx]?.attrSet('referrerpolicy', 'no-referrer');

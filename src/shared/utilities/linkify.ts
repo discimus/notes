@@ -18,7 +18,7 @@ const CLOSING_BRACKETS: Record<string, string> = {
   ']': '[',
   '}': '{',
 };
-const TRAILING_QUOTES = ['"', "'", '”', '’'];
+const TRAILING_QUOTES = ['"', "'", '`', '”', '’'];
 
 function countOccurrences(value: string, char: string): number {
   return value.split(char).length - 1;

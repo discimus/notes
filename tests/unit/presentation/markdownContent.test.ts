@@ -24,6 +24,7 @@ describe('MarkdownContent', () => {
     const target = render('[link](https://example.com)');
 
     const link = target.querySelector('a');
+    expect(link?.classList.contains('note-link')).toBe(true);
     expect(link?.getAttribute('href')).toBe('https://example.com');
     expect(link?.getAttribute('target')).toBe('_blank');
     expect(link?.getAttribute('rel')).toBe('noopener noreferrer');

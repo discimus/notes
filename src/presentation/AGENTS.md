@@ -222,16 +222,17 @@ editorStore.flush()
 
 ## Links em notas
 
-- `NoteContent` renderiza o conteúdo do histórico da cadeia com links derivados de `findLinks`; notas de código nunca são linkificadas.
+- `LinkedText` renderiza texto e código com links derivados de `findLinks`; `MarkdownContent` renderiza Markdown sanitizado.
 - A fonte de verdade continua sendo texto puro. Não persistir HTML nem alterar o conteúdo salvo ao linkificar.
 - Apenas `http://`, `https://` e `www.` são detectados; `www.` recebe `https://`. Protocolos inseguros são ignorados.
-- Links usam âncoras reais com `target="_blank"` e `rel="noopener noreferrer"` e cor `primary`. Sem modificador, o texto mantém apenas a cor, com cursor padrão e sem sublinhado; o sublinhado e o cursor `pointer` aparecem somente no hover com Ctrl/Cmd pressionado. O ícone permanece sempre clicável.
-- `chain-document--link-modifier` é sincronizada por `keydown`/`keyup` de Ctrl/Meta, `pointermove` com o modificador e `blur` da janela; os listeners são removidos no `destroy`.
-- Clique simples no texto não navega; `Ctrl/Cmd+clique`, `Enter` e o ícone `open_in_new` abrem nova aba. Em dispositivos touch, o toque simples pode abrir.
-- O ícone é decorativo (`aria-hidden`, `tabindex="-1"`); o link de texto é o controle acessível.
-- Ao entrar em edição, o conteúdo volta a ser texto puro; ao salvar, cancelar ou sair sem mudanças, a linkificação é restaurada.
-- Não usar `innerHTML` para linkificar conteúdo do usuário.
-- Cobertura: `linkify`, `noteLinks` e `linkModifier`.
+- Links usam a classe `note-link`, âncoras reais, `target="_blank"`, `rel="noopener noreferrer"` e `referrerpolicy="no-referrer"`.
+- O padrão é minimalista: cor `primary`, sem ícone externo e sem sublinhado permanente; sublinhado em hover/focus e outline de foco MD3.
+- Clique simples, teclado e toque abrem em nova aba. Não existe mais o modificador Ctrl/Cmd exclusivo.
+- URLs em notas de código são linkificadas genéricamente, inclusive em strings e comentários, pois a linguagem não é armazenada.
+- O histórico da cadeia e a timeline usam o mesmo padrão. O detalhe da cadeia mantém texto puro por causa da edição inline em `contentEditable`.
+- Markdown usa `html: false`; HTML bruto não é renderizado e apenas links/imagens HTTP(S) são permitidos.
+- Não usar `innerHTML` para linkificar conteúdo do usuário fora do renderizador Markdown sanitizado.
+- Cobertura: `linkify`, `noteLinks`, `markdownContent` e `timelineLinks`.
 
 ## Importação de documentos externos
 

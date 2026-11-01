@@ -25,7 +25,7 @@ import { mountInlineTagEditor } from './InlineTagEditor.js';
 import { mountContentTypeMenu } from './ContentTypeMenu.js';
 import { mountPeriodMenu } from './PeriodMenu.js';
 import { renderQuickActions } from './QuickActions.js';
-import { renderNoteContent } from './NoteContent.js';
+import { renderLinkedText } from './LinkedText.js';
 import { renderMarkdownContent } from './MarkdownContent.js';
 import { stopAttachmentAudio, renderNoteAttachments } from './NoteAttachments.js';
 import { stopAllAudioCascades } from './audioList.js';
@@ -184,11 +184,10 @@ function renderNote(
     isMarkdown ? 'div' : 'p',
     `chain-note__text chain-note__text--${note.role}${
       isCode ? ' chain-note__text--code chain-note__text--verbatim' : ''
-    }${isMarkdown ? ' chain-note__text--markdown' : ''}`
+    }${isMarkdown ? ' chain-note__text--markdown note-markdown' : ''}`
   );
   if (isMarkdown) renderMarkdownContent(text, note.content);
-  else if (isCode) text.textContent = note.content;
-  else renderNoteContent(text, note.content);
+  else renderLinkedText(text, note.content);
 
   const body = el(
     'div',
@@ -1036,27 +1035,6 @@ export function mountChainDocument(
 
   documentAction.addEventListener('click', () => handlers.onNewDocument?.());
 
-  const setLinkModifier = (active: boolean): void => {
-    root.classList.toggle('chain-document--link-modifier', active);
-  };
-  const onLinkModifierKeyDown = (event: KeyboardEvent): void => {
-    if (event.key === 'Control' || event.key === 'Meta') setLinkModifier(true);
-  };
-  const onLinkModifierKeyUp = (event: KeyboardEvent): void => {
-    if (event.key === 'Control' || event.key === 'Meta') {
-      setLinkModifier(event.ctrlKey || event.metaKey);
-    }
-  };
-  const onLinkModifierPointerMove = (event: PointerEvent): void => {
-    setLinkModifier(event.ctrlKey || event.metaKey);
-  };
-  const clearLinkModifier = (): void => setLinkModifier(false);
-
-  document.addEventListener('keydown', onLinkModifierKeyDown);
-  document.addEventListener('keyup', onLinkModifierKeyUp);
-  root.addEventListener('pointermove', onLinkModifierPointerMove);
-  window.addEventListener('blur', clearLinkModifier);
-
   newNote.addEventListener('click', handlers.onCreateNote);
   emptyNewNote.addEventListener('click', handlers.onCreateNote);
   save.addEventListener('click', () => {
@@ -1229,10 +1207,6 @@ export function mountChainDocument(
 
   const destroy = (): void => {
     cancelAutoEdit();
-    document.removeEventListener('keydown', onLinkModifierKeyDown);
-    document.removeEventListener('keyup', onLinkModifierKeyUp);
-    root.removeEventListener('pointermove', onLinkModifierPointerMove);
-    window.removeEventListener('blur', clearLinkModifier);
     scroll.removeEventListener('scroll', onScroll);
     scroll.removeEventListener('click', onHistoryClick);
     history.removeEventListener('keydown', onHistoryKeyDown);

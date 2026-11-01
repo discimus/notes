@@ -9,7 +9,8 @@ import {
   formatTime,
 } from '@shared/utilities/index.js';
 import type { ChainSummaryDTO, TagDTO, TimelineEntryDTO } from '@application/dto/index.js';
-import { isVerbatimContentType } from '../app/noteContentTypes.js';
+import { renderLinkedText } from '../components/LinkedText.js';
+import { renderMarkdownContent } from '../components/MarkdownContent.js';
 import { renderEmptyDetail, renderLoadingState } from '../components/states.js';
 import { renderNavToggle } from '../components/NavToggle.js';
 
@@ -355,14 +356,15 @@ function renderEntries(container: HTMLElement, entries: TimelineEntryDTO[]): voi
     const body = el('div', 'timeline-entry__body');
     const type = entry.note.contentType ?? 'text';
     const isCode = type === 'code';
-    const verbatim = isVerbatimContentType(type);
+    const isMarkdown = type === 'markdown';
     const textEl = el(
-      'p',
+      isMarkdown ? 'div' : 'p',
       `timeline-entry__text${isCode ? ' timeline-entry__text--code' : ''}${
-        verbatim ? ' timeline-entry__text--verbatim' : ''
-      }`
+        isCode ? ' timeline-entry__text--verbatim' : ''
+      }${isMarkdown ? ' timeline-entry__text--markdown note-markdown' : ''}`
     );
-    textEl.textContent = entry.note.content;
+    if (isMarkdown) renderMarkdownContent(textEl, entry.note.content);
+    else renderLinkedText(textEl, entry.note.content);
 
     const chainLink = el('button', 'timeline-entry__chain');
     chainLink.setAttribute('aria-label', `Abrir cadeia: ${entry.chainTitle}`);

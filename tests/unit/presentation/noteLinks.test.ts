@@ -82,62 +82,41 @@ describe('links nas notas', () => {
     });
   });
 
-  it('renderiza links seguros e ícone sem alterar o texto puro', () => {
+  it('renderiza links mínimos e seguros sem alterar o texto puro', () => {
     const { text } = mount();
-    const links = [...text.querySelectorAll<HTMLAnchorElement>('.chain-note__link')];
-    const icons = [...text.querySelectorAll<HTMLAnchorElement>('.chain-note__link-icon')];
+    const links = [...text.querySelectorAll<HTMLAnchorElement>('.note-link')];
 
     expect(text.textContent).toBe(content);
     expect(links).toHaveLength(2);
+    expect(text.querySelector('.chain-note__link-icon')).toBeNull();
     expect(links[0]?.href).toBe('https://example.com/docs');
     expect(links[0]?.textContent).toBe('https://example.com/docs');
     expect(links[0]?.target).toBe('_blank');
     expect(links[0]?.getAttribute('rel')).toBe('noopener noreferrer');
+    expect(links[0]?.getAttribute('referrerpolicy')).toBe('no-referrer');
     expect(links[1]?.href).toBe('https://www.openai.com/');
     expect(links[1]?.textContent).toBe('www.openai.com');
-
-    expect(icons).toHaveLength(2);
-    for (const icon of icons) {
-      expect(icon.target).toBe('_blank');
-      expect(icon.getAttribute('rel')).toBe('noopener noreferrer');
-      expect(icon.getAttribute('aria-hidden')).toBe('true');
-      expect(icon.tabIndex).toBe(-1);
-    }
   });
 
-  it('permite nova aba por Ctrl, teclado e ícone, mas não por clique simples', () => {
+  it('abre com clique normal, sem modificador', () => {
     const { text } = mount();
-    const link = text.querySelector<HTMLAnchorElement>('.chain-note__link');
-    const icon = text.querySelector<HTMLAnchorElement>('.chain-note__link-icon');
-    if (!link || !icon) throw new Error('Link ou ícone não encontrado');
+    const link = text.querySelector<HTMLAnchorElement>('.note-link');
+    if (!link) throw new Error('Link não encontrado');
 
-    const plain = clickEvent();
-    link.dispatchEvent(plain);
-    expect(plain.defaultPrevented).toBe(true);
+    const event = clickEvent();
+    let preventedByApp = false;
+    link.addEventListener(
+      'click',
+      (click) => {
+        preventedByApp = click.defaultPrevented;
+        click.preventDefault();
+      },
+      { once: true }
+    );
+    link.dispatchEvent(event);
 
-    let ctrlOpened = false;
-    link.addEventListener('click', (event) => {
-      ctrlOpened = !event.defaultPrevented;
-      event.preventDefault();
-    }, { once: true });
-    link.dispatchEvent(clickEvent({ ctrlKey: true }));
-    expect(ctrlOpened).toBe(true);
-
-    let keyboardOpened = false;
-    link.addEventListener('click', (event) => {
-      keyboardOpened = !event.defaultPrevented;
-      event.preventDefault();
-    }, { once: true });
-    link.dispatchEvent(clickEvent({ detail: 0 }));
-    expect(keyboardOpened).toBe(true);
-
-    let iconOpened = false;
-    icon.addEventListener('click', (event) => {
-      iconOpened = !event.defaultPrevented;
-      event.preventDefault();
-    }, { once: true });
-    icon.dispatchEvent(clickEvent());
-    expect(iconOpened).toBe(true);
+    expect(preventedByApp).toBe(false);
+    expect(link.getAttribute('aria-description')).toBeNull();
   });
 
   it('encaminha a edição para o compositor sem alterar os links no histórico', () => {
@@ -149,16 +128,19 @@ describe('links nas notas', () => {
     edit.click();
 
     expect(onEditNote).toHaveBeenCalledWith('note-1');
-    expect(text.querySelectorAll('.chain-note__link')).toHaveLength(2);
+    expect(text.querySelectorAll('.note-link')).toHaveLength(2);
     expect(text.contentEditable).not.toBe('true');
   });
 
-  it('não linkifica notas de código', () => {
-    const { text } = mount(
-      makeNote({ contentType: 'code', content: 'const url = "https://example.com";' })
-    );
+  it('linkifica notas de código com o mesmo padrão', () => {
+    const code = 'const url = "https://example.com";';
+    const { text } = mount(makeNote({ contentType: 'code', content: code }));
 
-    expect(text.querySelector('.chain-note__link')).toBeNull();
-    expect(text.textContent).toBe('const url = "https://example.com";');
+    const link = text.querySelector<HTMLAnchorElement>('.note-link');
+    expect(link?.href).toBe('https://example.com/');
+    expect(link?.target).toBe('_blank');
+    expect(link?.getAttribute('rel')).toBe('noopener noreferrer');
+    expect(text.textContent).toBe(code);
+    expect(text.querySelector('.chain-note__link-icon')).toBeNull();
   });
 });
