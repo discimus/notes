@@ -10,6 +10,7 @@ import {
 } from '@shared/utilities/index.js';
 import type { ChainSummaryDTO, TagDTO, TimelineEntryDTO } from '@application/dto/index.js';
 import { renderEmptyDetail, renderLoadingState } from '../components/states.js';
+import { renderNavToggle } from '../components/NavToggle.js';
 
 let queryTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -61,6 +62,7 @@ export function renderTimelineLayout(state: AppState): HTMLElement {
       </div>
     </div>
   `;
+  header.prepend(renderNavToggle());
   layout.appendChild(header);
 
   const list = el('div', 'timeline-panel__list');

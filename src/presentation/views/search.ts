@@ -4,6 +4,7 @@ import { AppController } from '../pages/AppController.js';
 import { el, qs } from '../dom.js';
 import { debounce, escapeHtml, formatDate, highlightMatch } from '@shared/utilities/index.js';
 import { renderEmptyDetail, renderLoadingState } from '../components/states.js';
+import { renderNavToggle } from '../components/NavToggle.js';
 
 export function renderSearchLayout(state: AppState): HTMLElement {
   const layout = el('div', 'search-layout');
@@ -22,6 +23,7 @@ export function renderSearchLayout(state: AppState): HTMLElement {
       <span class="material-symbols-rounded" aria-hidden="true">close</span>
     </button>
   `;
+  searchHeader.appendChild(renderNavToggle());
   searchHeader.appendChild(searchBar);
   layout.appendChild(searchHeader);
 

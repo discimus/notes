@@ -25,6 +25,7 @@ import { showCloseTabDialog } from '../components/CloseTabDialog.js';
 import { showImportTextDialog } from '../components/ImportTextDialog.js';
 import { showImportTextFilesDialog } from '../components/ImportTextFilesDialog.js';
 import { snackbar } from '../components/Snackbar.js';
+import { renderNavToggle } from '../components/NavToggle.js';
 import { togglePinnedChain } from '../app/pinnedChains.js';
 import { el } from '../dom.js';
 import { showComposerModal } from './menus.js';
@@ -204,6 +205,8 @@ export function mountEditorView(
   const documentHost = main.querySelector<HTMLElement>('#editor-document-host')!;
   const newButton = main.querySelector<HTMLButtonElement>('#editor-new-tab')!;
   const explorerButton = main.querySelector<HTMLButtonElement>('#editor-explorer-toggle')!;
+  const tabbar = main.querySelector<HTMLElement>('.editor-tabbar')!;
+  tabbar.prepend(renderNavToggle());
 
   let activeDocument: ActiveDocument | null = null;
   let saving = false;
@@ -630,7 +633,6 @@ export function mountEditorView(
   };
 
   newButton.addEventListener('click', createDraftTab);
-  const tabbar = main.querySelector<HTMLElement>('.editor-tabbar')!;
   tabbar.addEventListener('dblclick', (event) => {
     if (event.target !== tabbar) return;
     createDraftTab();

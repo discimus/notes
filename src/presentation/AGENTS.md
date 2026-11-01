@@ -9,7 +9,7 @@ app/settings.ts     → preferências persistidas (confirmação da lixeira)
 app/compactMode.ts  → densidade compacta persistida
 app/navigation.ts   → histórico (pushState/popstate)
 app/editorGrouping.ts → agrupamento puro de notas por data
-views/              → nav, topbar, editor, chains, search, timeline, tags, menus
+views/              → nav, editor, chains, search, timeline, tags, menus
 components/         → Dialog, EditorTabs, EditorSidebar, DraftDocument, ChainDocument, ActiveLineHighlight, InlineTagEditor, ChainListItem, AppendToChainDialog, CloseTabDialog, SettingsDialog, Snackbar, states
 dom.ts              → el(), qs(), qsa()
 filters.ts          → filtros puros de apresentação
@@ -186,7 +186,7 @@ editorStore.flush()
 - Preferência separada em `threadnotes.compact-mode`, via `app/compactMode.ts`.
 - `AppState.compactMode` aplica `app-shell--compact`.
 - O modo altera apenas densidade: larguras, alturas, paddings e gaps.
-- **Não** ocultar navegação, topbar, sidebar, abas ou qualquer elemento estrutural.
+- **Não** ocultar navegação, sidebar, abas ou qualquer elemento estrutural.
 - Controle no rodapé da navegação (`#compact-toggle`), com `aria-pressed` e labels dinâmicos.
 - O estado é independente do recolhimento do rodapé de notas da cadeia.
 
@@ -253,7 +253,7 @@ Ações destrutivas **sempre** pedem confirmação via `showConfirmDialog` antes
 - Cadeias fixadas são preferência de UI (`threadnotes.pinned-chains`) e aparecem primeiro na sidebar; não há mais view nem campo de favoritos.
 - Tokens MD3: use `var(--md-sys-color-primary)` etc. — nunca valores de cor literais.
 - **Nunca** ler `components.css` inteiro — use grep para a classe específica.
-- Navegação: rail fixo de 80px em `≥769px`; drawer modal de 280px em `≤768px`. O hambúrguer (`#nav-toggle`) só aparece no compacto. Configurações, tema e modo compacto ficam no rodapé do rail/drawer.
+- Navegação: rail fixo de 80px em `≥769px`; drawer modal de 280px em `≤768px`. A lupa é o primeiro item da navegação (`data-view="search"`) e preserva o atalho `Ctrl+K`. Não existe topbar; o título acessível da view fica em `#app-view-title` com `.sr-only`. No mobile, o botão `.nav-toggle` é renderizado dentro dos headers já existentes de cada view, sem criar uma row nova. Configurações, tema e modo compacto ficam no rodapé do rail/drawer.
 - A navegação não deve ter scroll próprio: conteúdo com `overflow: hidden`, itens de 52px, footer com botões de 48px e dimensões ajustadas para caber sem rolagem.
 - Workspace Editor: lateral de 300px no desktop e off-canvas no compacto. O botão `#editor-explorer-toggle` abre/fecha a lateral no mobile; overlay usa o scrim MD3.
 - O documento e o histórico da cadeia permanecem full-bleed, sem centralização, borda ou raio de card. O histórico usa medida de leitura de ~72ch alinhada à esquerda para linhas confortáveis. A sidebar de cadeias permanece fixa como Explorer.
@@ -296,4 +296,4 @@ Testes de apresentação ficam em `tests/unit/presentation/` e usam jsdom. Não 
 - QA visual ou interação real com a aplicação só quando o usuário solicitar explicitamente.
 - Novas features de UI devem vir com teste de comportamento; não considerar inspeção visual manual como validação suficiente.
 
-Exceção autorizada: `nav.test.ts` valida os 5 destinos com Editor como view inicial. Testes do editor: `editorStore`, `editorTabs`, `editorSidebar`, `editorGrouping`, `chainDocument`, `chainNoteBody`, `chainNoteReadingFlow`, `appendToChainDialog`, `activeLineHighlight`, `inlineTagEditor`, `tagSuggestions`, `pinnedChains`, `editorView` e `timelineView`.
+Exceção autorizada: `nav.test.ts` valida a busca e os 5 destinos com Editor como view inicial. Testes do editor: `navToggle`, `mobileNavEntries`, `editorStore`, `editorTabs`, `editorSidebar`, `editorGrouping`, `chainDocument`, `chainNoteBody`, `chainNoteReadingFlow`, `appendToChainDialog`, `activeLineHighlight`, `inlineTagEditor`, `tagSuggestions`, `pinnedChains`, `editorView` e `timelineView`.

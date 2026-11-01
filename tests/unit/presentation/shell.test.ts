@@ -17,14 +17,18 @@ describe('renderApp', () => {
     });
   });
 
-  it('monta shell, navegação, topbar, conteúdo e FAB', () => {
+  it('monta shell, navegação, conteúdo e FAB sem topbar', () => {
     const root = document.getElementById('app') as HTMLElement;
 
     renderApp(root);
 
     expect(root.querySelector('.app-shell')).not.toBeNull();
     expect(root.querySelector('#nav-drawer')).not.toBeNull();
-    expect(root.querySelector('#app-topbar')).not.toBeNull();
+    expect(root.querySelector('#app-topbar')).toBeNull();
+    expect(root.querySelector('#app-view-title')?.textContent).toBe(
+      'Todas as cadeias'
+    );
+    expect(root.querySelector('.nav-toggle')).not.toBeNull();
     expect(root.querySelector('#app-content')).not.toBeNull();
     expect(root.querySelector('#fab-new-chain')).not.toBeNull();
   });

@@ -5,6 +5,8 @@ import { el, qs, qsa } from '../dom.js';
 import { cycleTheme, themeIcon, themeLabel } from '../app/theme.js';
 import { toggleCompactMode } from '../app/compactMode.js';
 import { showSettingsDialog } from '../components/SettingsDialog.js';
+import { syncNavToggles } from '../components/NavToggle.js';
+import { showSearchPanel } from './search.js';
 
 const COMPACT_NAV_QUERY = '(max-width: 768px)';
 const DESKTOP_NAV_QUERY = '(min-width: 769px)';
@@ -62,6 +64,10 @@ export function renderNavDrawer(): HTMLElement {
   const content = el('div', 'nav-drawer__content');
   content.innerHTML = `
     <nav aria-label="Seções principais">
+      <button class="nav-item nav-search" data-view="search" aria-label="Pesquisar" title="Pesquisar (Ctrl+K)">
+        <span class="nav-item__icon material-symbols-rounded" aria-hidden="true">search</span>
+        <span class="nav-item__label">Pesquisar</span>
+      </button>
       <button class="nav-item nav-item--active" data-view="editor" aria-current="page" aria-label="Editor de texto" title="Editor de texto">
         <span class="nav-item__icon material-symbols-rounded" aria-hidden="true">edit_note</span>
         <span class="nav-item__label">Editor</span>
@@ -124,9 +130,13 @@ export function updateNavDrawer(state: AppState): void {
     if (!(item as HTMLElement).dataset['bound']) {
       (item as HTMLElement).dataset['bound'] = '1';
       item.addEventListener('click', () => {
-        if (view) AppController.navigateTo(view as AppView);
+        if (view === 'search') {
+          showSearchPanel();
+        } else if (view) {
+          void AppController.navigateTo(view as AppView);
+        }
         if (isCompactNav()) {
-          drawer.classList.remove('nav-drawer--open');
+          appState.set({ drawerOpen: false });
           qs('#nav-overlay')?.remove();
         }
       });
@@ -134,6 +144,7 @@ export function updateNavDrawer(state: AppState): void {
   });
 
   drawer.classList.toggle('nav-drawer--open', state.drawerOpen);
+  syncNavToggles(state.drawerOpen);
 
   const compactBtn = qs('#compact-toggle', drawer);
   if (compactBtn) {

@@ -9,7 +9,8 @@ import { el } from '../dom.js';
 import { renderChainListItem } from '../components/ChainListItem.js';
 import { renderEmptyDetail, renderLoadingState } from '../components/states.js';
 import { filterChains } from '../filters.js';
-import { showComposerModal } from './menus.js';
+import { showChainMenu, showComposerModal } from './menus.js';
+import { renderNavToggle } from '../components/NavToggle.js';
 
 export function renderChainsLayout(state: AppState): HTMLElement {
   const layout = el('div', 'chains-layout');
@@ -153,10 +154,18 @@ function renderChainItem(
 function renderDetailPanel(container: HTMLElement, state: AppState): void {
   container.innerHTML = '';
 
+  if (state.view !== 'chain-detail') {
+    const navRow = el('div', 'detail-panel__nav-row');
+    navRow.appendChild(renderNavToggle());
+    container.appendChild(navRow);
+  }
+
   if (state.view === 'chain-detail' && state.currentChain) {
     const chain = state.currentChain;
 
     const header = el('div', 'detail-panel__header');
+    const titleRow = el('div', 'detail-panel__title-row');
+    titleRow.appendChild(renderNavToggle());
 
     const titleEl = el('h2', 'detail-panel__title');
     titleEl.setAttribute('contenteditable', 'true');
@@ -179,7 +188,17 @@ function renderDetailPanel(container: HTMLElement, state: AppState): void {
     titleEl.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') { e.preventDefault(); titleEl.blur(); }
     });
-    header.appendChild(titleEl);
+
+    const actions = el('div', 'detail-panel__actions');
+    const moreBtn = el('button', 'btn-icon');
+    moreBtn.setAttribute('aria-label', 'Mais opções');
+    moreBtn.setAttribute('title', 'Mais opções');
+    moreBtn.innerHTML = '<span class="material-symbols-rounded" aria-hidden="true">more_vert</span>';
+    moreBtn.addEventListener('click', (event) => showChainMenu(event, chain.id));
+    actions.appendChild(moreBtn);
+
+    titleRow.append(titleEl, actions);
+    header.appendChild(titleRow);
 
     const tagsRow = el('div', 'detail-panel__tags');
     tagsRow.setAttribute('aria-label', 'Tags da cadeia');

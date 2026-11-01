@@ -630,6 +630,10 @@
 .nav-item:hover {
   background-color: color-mix(in srgb, var(--md-sys-color-on-surface-variant) 8%, transparent);
 }
+.nav-item:focus-visible {
+  outline: 2px solid var(--md-sys-color-primary);
+  outline-offset: 2px;
+}
 .nav-item.nav-item--active {
   background-color: var(--md-sys-color-secondary-container);
   color: var(--md-sys-color-on-secondary-container);

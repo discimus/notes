@@ -29,7 +29,7 @@ describe('modo compacto na interface', () => {
     ).toBe('compress');
     expect(shell?.classList.contains('app-shell--compact')).toBe(false);
     expect(root.querySelector('#nav-drawer')).not.toBeNull();
-    expect(root.querySelector('#app-topbar')).not.toBeNull();
+    expect(root.querySelector('#app-topbar')).toBeNull();
     expect(root.querySelector('#compact-restore')).toBeNull();
 
     compactButton?.click();
@@ -41,9 +41,9 @@ describe('modo compacto na interface', () => {
     expect(compactButton?.getAttribute('aria-pressed')).toBe('true');
     expect(
       compactButton?.querySelector('.material-symbols-rounded')?.textContent
-    ).toBe('expand');
+    ).toBe('expand'    );
     expect(root.querySelector('#nav-drawer')).not.toBeNull();
-    expect(root.querySelector('#app-topbar')).not.toBeNull();
+    expect(root.querySelector('#app-topbar')).toBeNull();
     expect(localStorage.getItem('threadnotes.compact-mode')).toBe('true');
 
     compactButton?.click();

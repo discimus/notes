@@ -7,7 +7,6 @@ import { initPinnedChains } from './pinnedChains.js';
 import { initNavigationHistory } from './navigation.js';
 import { AppController } from '../pages/AppController.js';
 import { initNavResponsive, renderNavDrawer, updateNavDrawer } from '../views/nav.js';
-import { updateTopbar } from '../views/topbar.js';
 import { renderChainsLayout, updateChainsLayout } from '../views/chains.js';
 import { renderSearchLayout, updateSearchLayout } from '../views/search.js';
 import { renderTimelineLayout, updateTimelineLayout } from '../views/timeline.js';
@@ -32,9 +31,11 @@ export function renderApp(root: HTMLElement): void {
   const main = el('main', 'app-main');
   main.setAttribute('id', 'main-content');
 
-  const topbar = el('header', 'app-topbar');
-  topbar.setAttribute('id', 'app-topbar');
-  main.appendChild(topbar);
+  const viewTitle = el('h1', 'sr-only');
+  viewTitle.id = 'app-view-title';
+  viewTitle.textContent = 'ThreadNotes';
+  main.setAttribute('aria-labelledby', viewTitle.id);
+  main.appendChild(viewTitle);
 
   const content = el('div', 'app-content');
   content.setAttribute('id', 'app-content');
@@ -55,9 +56,9 @@ export function renderApp(root: HTMLElement): void {
 
   const applyState = (state: AppState) => {
     shell.classList.toggle('app-shell--compact', state.compactMode);
-    updateNavDrawer(state);
-    updateTopbar(topbar, state);
+    updateViewTitle(viewTitle, state);
     contentCleanup = updateContent(content, state, contentCleanup);
+    updateNavDrawer(state);
     updateFab(fab, state);
   };
 
@@ -92,6 +93,21 @@ export function renderApp(root: HTMLElement): void {
 
 function updateFab(fab: HTMLElement, state: AppState): void {
   fab.hidden = state.view !== 'chains';
+}
+
+function updateViewTitle(element: HTMLElement, state: AppState): void {
+  if (state.view === 'editor') element.textContent = 'Editor';
+  else if (state.view === 'chains') element.textContent = 'Todas as cadeias';
+  else if (state.view === 'archived') element.textContent = 'Arquivo';
+  else if (state.view === 'trash') element.textContent = 'Lixeira';
+  else if (state.view === 'tags') element.textContent = 'Tags';
+  else if (state.view === 'timeline') element.textContent = 'Visualização cronológica';
+  else if (state.view === 'search') element.textContent = `Pesquisa: "${state.searchQuery}"`;
+  else if (state.view === 'chain-detail' && state.currentChain) {
+    element.textContent = state.currentChain.displayTitle;
+  } else {
+    element.textContent = 'ThreadNotes';
+  }
 }
 
 function updateContent(

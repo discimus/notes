@@ -4,6 +4,7 @@ import { showInputDialog } from '../components/Dialog.js';
 import { el, qs } from '../dom.js';
 import { escapeHtml } from '@shared/utilities/index.js';
 import { renderEmptyDetail } from '../components/states.js';
+import { renderNavToggle } from '../components/NavToggle.js';
 
 export function renderTagsLayout(state: AppState): HTMLElement {
   const layout = el('div', 'tags-layout');
@@ -21,6 +22,10 @@ export function updateTagsLayout(content: HTMLElement, state: AppState): void {
 }
 
 function renderTagsContent(container: HTMLElement, state: AppState): void {
+  const header = el('div', 'tags-header');
+  header.appendChild(renderNavToggle());
+  container.appendChild(header);
+
   if (state.allTags.length === 0) {
     container.appendChild(renderEmptyDetail('label_off', 'Nenhuma tag ainda', 'Tags são criadas ao associá-las a cadeias no editor.'));
     return;
