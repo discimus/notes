@@ -44,18 +44,32 @@ function makeTab(overrides: Partial<ChainTab> = {}): ChainTab {
 }
 
 function makeHandlers() {
+  const recorded = {
+    blob: new Blob(['audio'], { type: 'audio/webm' }),
+    mimeType: 'audio/webm',
+    duration: 2,
+  };
+  const stop = vi.fn().mockResolvedValue(recorded);
+  const controller = {
+    elapsed: () => 0,
+    stop,
+    cancel: vi.fn(),
+  };
+  const startAudioRecordingFn = vi.fn().mockResolvedValue(controller);
   return {
     onNoteInput: vi.fn(),
     onSaveNote: vi.fn(),
     onEditNote: vi.fn(),
     onAddNoteImages: vi.fn(),
-    onAddNoteAudio: vi.fn(),
+    onSaveNoteAudio: vi.fn().mockResolvedValue(true),
     onAddChainImages: vi.fn(),
-    onAddChainAudio: vi.fn(),
+    onSaveChainAudio: vi.fn().mockResolvedValue(true),
+    startAudioRecordingFn,
     onCreateNote: vi.fn(),
     onSelectNote: vi.fn(),
     onCloseNote: vi.fn(),
     onNewDocument: vi.fn(),
+    controller,
   };
 }
 
@@ -114,8 +128,18 @@ describe('Quick actions de mídia', () => {
     );
 
     audio?.click();
-    expect(handlers.onAddChainAudio).toHaveBeenCalledTimes(1);
-    expect(handlers.onAddNoteAudio).not.toHaveBeenCalled();
+    await vi.waitFor(() => {
+      expect(handlers.startAudioRecordingFn).toHaveBeenCalledTimes(1);
+      expect(
+        audio?.classList.contains('chain-quick-action--recording')
+      ).toBe(true);
+    });
+    audio?.click();
+    await vi.waitFor(() => {
+      expect(handlers.controller.stop).toHaveBeenCalledTimes(1);
+      expect(handlers.onSaveChainAudio).toHaveBeenCalledTimes(1);
+    });
+    expect(handlers.onSaveNoteAudio).not.toHaveBeenCalled();
 
     image?.click();
     await vi.waitFor(() => {
@@ -142,14 +166,30 @@ describe('Quick actions de mídia', () => {
       handlers
     );
 
-    view.element.querySelector<HTMLButtonElement>('#chain-action-audio')?.click();
+    const audio = view.element.querySelector<HTMLButtonElement>(
+      '#chain-action-audio'
+    );
+    audio?.click();
+    await vi.waitFor(() => {
+      expect(handlers.startAudioRecordingFn).toHaveBeenCalledTimes(1);
+      expect(
+        audio?.classList.contains('chain-quick-action--recording')
+      ).toBe(true);
+    });
+    audio?.click();
+    await vi.waitFor(() => {
+      expect(handlers.onSaveChainAudio).toHaveBeenCalledTimes(1);
+      expect(
+        view.element.querySelector<HTMLButtonElement>('#chain-action-image')
+          ?.disabled
+      ).toBe(false);
+    });
     view.element.querySelector<HTMLButtonElement>('#chain-action-image')?.click();
 
-    expect(handlers.onAddChainAudio).toHaveBeenCalledTimes(1);
     await vi.waitFor(() => {
       expect(handlers.onAddChainImages).toHaveBeenCalledWith(expect.any(Array));
     });
-    expect(handlers.onAddNoteAudio).not.toHaveBeenCalled();
+    expect(handlers.onSaveNoteAudio).not.toHaveBeenCalled();
     expect(handlers.onAddNoteImages).not.toHaveBeenCalled();
   });
 });

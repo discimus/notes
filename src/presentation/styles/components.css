@@ -3269,40 +3269,6 @@
   font-size: var(--md-sys-typescale-body-small-size);
   text-align: center;
 }
-.audio-recorder {
-  width: min(480px, calc(100vw - var(--spacing-8)));
-}
-.audio-recorder__body {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--spacing-2);
-  padding: var(--spacing-4) var(--spacing-2);
-  text-align: center;
-}
-.audio-recorder__icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 56px;
-  height: 56px;
-  border-radius: var(--md-sys-shape-corner-full);
-  background-color: var(--md-sys-color-primary-container);
-  color: var(--md-sys-color-on-primary-container);
-  font-size: 28px;
-}
-.audio-recorder__timer {
-  color: var(--md-sys-color-on-surface);
-  font-size: var(--md-sys-typescale-headline-medium-size);
-  font-weight: var(--md-sys-typescale-headline-medium-weight);
-  font-variant-numeric: tabular-nums;
-  letter-spacing: 0.04em;
-}
-.audio-recorder__status {
-  min-height: 20px;
-  color: var(--md-sys-color-on-surface-variant);
-  font-size: var(--md-sys-typescale-body-small-size);
-}
 .chain-note__format {
   padding: 2px var(--spacing-2);
   border-radius: var(--md-sys-shape-corner-full);
@@ -3937,6 +3903,52 @@
   max-height: 0;
   opacity: 0;
 }
+.chain-quick-action--recording:not(:disabled) .chain-quick-action__icon-wrap,
+.chain-quick-action--recording:not(:disabled):hover
+  .chain-quick-action__icon-wrap,
+.chain-quick-action--recording:not(:disabled):active
+  .chain-quick-action__icon-wrap {
+  background-color: var(--md-sys-color-error-container);
+  color: var(--md-sys-color-on-error-container);
+  animation: inline-audio-pulse 1s ease-in-out infinite;
+}
+.chain-quick-action--recording .chain-quick-action__label {
+  color: var(--md-sys-color-error);
+  font-variant-numeric: tabular-nums;
+}
+.chain-note__attach--recording,
+.chain-note__attach--recording:hover,
+.chain-note__attach--recording:active {
+  width: auto;
+  min-width: 62px;
+  padding: 0 var(--spacing-2);
+  gap: 4px;
+  opacity: 1;
+  background-color: var(--md-sys-color-error-container);
+  color: var(--md-sys-color-on-error-container);
+  animation: inline-audio-pulse 1s ease-in-out infinite;
+}
+.chain-note__attach--recording .material-symbols-rounded {
+  font-size: 16px;
+}
+.chain-note__audio-timer {
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+  line-height: 1;
+}
+.chain-note__audio-timer[hidden] {
+  display: none;
+}
+@keyframes inline-audio-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
+}
 @media (max-width: 768px) {
   .chain-document__footer {
     bottom: calc(var(--spacing-3) + env(safe-area-inset-bottom, 0px));
@@ -3967,6 +3979,10 @@
     );
   }
   .chain-attachment__progress:not([hidden]) {
+    animation: none;
+  }
+  .chain-quick-action--recording .chain-quick-action__icon-wrap,
+  .chain-note__attach--recording {
     animation: none;
   }
 }

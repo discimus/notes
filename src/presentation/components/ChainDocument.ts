@@ -37,6 +37,14 @@ import { highlightTextInElement } from './SearchHighlight.js';
 import { stopAttachmentAudio, renderNoteAttachments } from './NoteAttachments.js';
 import { stopAllAudioCascades } from './audioList.js';
 import { releaseAllAttachmentUrls } from './attachmentUrls.js';
+import {
+  CHAIN_AUDIO_KEY,
+  createInlineAudioRecorder,
+  noteAudioKey,
+  paintInlineAudioButton,
+} from './inlineAudioRecorder.js';
+import { snackbar } from './Snackbar.js';
+import type { AudioRecorderController, RecordedAudio } from './audioRecorder.js';
 import { pickImagesWithClipboardFallback } from './imageAttachmentInput.js';
 import { el } from '../dom.js';
 import {
@@ -67,9 +75,13 @@ export interface ChainDocumentHandlers {
     options?: { focus?: boolean; preview?: boolean }
   ) => void;
   onAddNoteImages?: (noteId: string, files: File[]) => void;
-  onAddNoteAudio?: (noteId: string) => void;
+  onSaveNoteAudio?: (
+    noteId: string,
+    recorded: RecordedAudio
+  ) => Promise<boolean>;
   onAddChainImages?: (files: File[]) => void;
-  onAddChainAudio?: () => void;
+  onSaveChainAudio?: (recorded: RecordedAudio) => Promise<boolean>;
+  startAudioRecordingFn?: () => Promise<AudioRecorderController>;
   onPasteText?: () => void;
   onDeleteNoteAttachment?: (noteId: string, attachment: AttachmentDTO) => void;
   onDeleteNote?: (noteId: string) => void;
@@ -103,7 +115,7 @@ function noteTabLabel(noteTab: ChainNoteTab): string {
 interface NoteRenderHandlers {
   onEdit?: (noteId: string, options?: { focus?: boolean; preview?: boolean }) => void;
   onAddImages?: (noteId: string, files: File[]) => void;
-  onAddAudio?: (noteId: string) => void;
+  onToggleAudio?: (noteId: string) => void;
   onDelete?: (noteId: string) => void;
   onDeleteAttachment?: (noteId: string, attachment: AttachmentDTO) => void;
   showTags?: boolean;
@@ -193,10 +205,15 @@ function renderNote(
 
   const addAudio = el('button', 'btn-icon chain-note__attach chain-note__attach--audio');
   addAudio.type = 'button';
-  addAudio.setAttribute('aria-label', 'Gravar A�udio nesta nota');
-  addAudio.title = 'Gravar A�udio nesta nota';
-  addAudio.innerHTML = '<span class="material-symbols-rounded" aria-hidden="true">mic</span>';
-  addAudio.addEventListener('click', () => handlers.onAddAudio?.(note.id));
+  addAudio.setAttribute('aria-label', 'Gravar áudio nesta nota');
+  addAudio.title = 'Gravar áudio nesta nota';
+  addAudio.dataset['audioKey'] = noteAudioKey(note.id);
+  addAudio.dataset['audioKind'] = 'note';
+  addAudio.innerHTML = `
+    <span class="material-symbols-rounded chain-note__audio-icon" aria-hidden="true">mic</span>
+    <span class="chain-note__audio-timer" aria-hidden="true" hidden></span>
+  `;
+  addAudio.addEventListener('click', () => handlers.onToggleAudio?.(note.id));
 
   const remove = el('button', 'btn-icon chain-note__delete');
   remove.type = 'button';
@@ -412,6 +429,13 @@ export function mountChainDocument(
   const actionFooter = root.querySelector<HTMLElement>('.chain-document__footer')!;
 
   let currentTab = tab;
+  const audioRecorder = createInlineAudioRecorder({
+    ...(handlers.startAudioRecordingFn
+      ? { startRecordingFn: handlers.startAudioRecordingFn }
+      : {}),
+    onChange: () => syncAudioButtons(),
+    onError: (message) => snackbar.error(message),
+  });
   const noteTagEditors = new Map<string, InlineTagEditorView>();
   let autoEditAttempted = false;
   let autoEditFrame: number | null = null;
@@ -901,8 +925,16 @@ export function mountChainDocument(
                 ...(handlers.onAddNoteImages
                   ? { onAddImages: handlers.onAddNoteImages }
                   : {}),
-                ...(handlers.onAddNoteAudio
-                  ? { onAddAudio: handlers.onAddNoteAudio }
+                ...(handlers.onSaveNoteAudio
+                  ? {
+                      onToggleAudio: (noteId: string) => {
+                        audioRecorder.toggle(
+                          noteAudioKey(noteId),
+                          (recorded) =>
+                            handlers.onSaveNoteAudio!(noteId, recorded)
+                        );
+                      },
+                    }
                   : {}),
                 ...(handlers.onDeleteNote
                   ? { onDelete: handlers.onDeleteNote }
@@ -932,6 +964,61 @@ export function mountChainDocument(
     currentTab.noteTabs.find((item) => item.id === currentTab.activeNoteTabId) ??
     null;
 
+  const setAudioActionLock = (
+    button: HTMLButtonElement,
+    locked: boolean
+  ): void => {
+    if (locked) {
+      if (button.dataset['audioLocked'] !== 'true') {
+        button.dataset['audioDisabled'] = button.disabled ? 'true' : 'false';
+        button.dataset['audioLocked'] = 'true';
+      }
+      button.disabled = true;
+      return;
+    }
+    if (button.dataset['audioLocked'] !== 'true') return;
+    button.disabled = button.dataset['audioDisabled'] === 'true';
+    delete button.dataset['audioLocked'];
+    delete button.dataset['audioDisabled'];
+  };
+
+  const syncAudioButtons = (): void => {
+    const hasNotes = currentTab.notes.length > 0;
+    root
+      .querySelectorAll<HTMLButtonElement>('[data-audio-key]')
+      .forEach((button) => {
+        const key = button.dataset['audioKey'];
+        if (!key) return;
+        const kind = button.dataset['audioKind'] === 'chain' ? 'chain' : 'note';
+        const state = audioRecorder.getState(key);
+        const idleEnabled =
+          kind === 'chain'
+            ? hasNotes && Boolean(handlers.onSaveChainAudio)
+            : Boolean(handlers.onSaveNoteAudio);
+        if (!state && kind === 'chain' && !hasNotes) return;
+        paintInlineAudioButton(button, state, kind, idleEnabled);
+      });
+
+    const activeKey = audioRecorder.getActiveKey();
+    const recording = activeKey !== null;
+    root
+      .querySelectorAll<HTMLButtonElement>('.chain-quick-action')
+      .forEach((button) => {
+        setAudioActionLock(
+          button,
+          recording && button.dataset['audioKey'] !== activeKey
+        );
+      });
+    root
+      .querySelectorAll<HTMLButtonElement>('.chain-note__actions button')
+      .forEach((button) => {
+        setAudioActionLock(
+          button,
+          recording && button.dataset['audioKey'] !== activeKey
+        );
+      });
+  };
+
   const syncQuickActions = (): void => {
     const hasNotes = currentTab.notes.length > 0;
     quickImage.disabled = !hasNotes;
@@ -946,8 +1033,9 @@ export function mountChainDocument(
       quickImage.title = 'Em breve';
       quickImage.setAttribute('aria-label', 'Imagem, em breve');
       quickAudio.title = 'Em breve';
-      quickAudio.setAttribute('aria-label', 'Áudio, em breve');
+      quickAudio.setAttribute('aria-label', 'Audio, em breve');
     }
+    syncAudioButtons();
   };
 
   quickImage.addEventListener('click', () => {
@@ -956,8 +1044,11 @@ export function mountChainDocument(
     });
   });
 
+  quickAudio.dataset['audioKey'] = CHAIN_AUDIO_KEY;
+  quickAudio.dataset['audioKind'] = 'chain';
   quickAudio.addEventListener('click', () => {
-    handlers.onAddChainAudio?.();
+    if (!handlers.onSaveChainAudio) return;
+    audioRecorder.toggle(CHAIN_AUDIO_KEY, handlers.onSaveChainAudio);
   });
 
   quickLink.addEventListener('click', () => {
@@ -1424,6 +1515,7 @@ export function mountChainDocument(
     window.removeEventListener('resize', onActionSpaceResize);
     actionSpaceObserver?.disconnect();
     actionSpaceObserver = null;
+    audioRecorder.flush();
     stopAllAudioCascades();
     stopAttachmentAudio();
     releaseAllAttachmentUrls();

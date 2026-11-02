@@ -61,17 +61,31 @@ function makeTab(): ChainTab {
 }
 
 function makeHandlers() {
+  const recorded = {
+    blob: new Blob(['audio'], { type: 'audio/webm' }),
+    mimeType: 'audio/webm',
+    duration: 2,
+  };
+  const stop = vi.fn().mockResolvedValue(recorded);
+  const controller = {
+    elapsed: () => 0,
+    stop,
+    cancel: vi.fn(),
+  };
+  const startAudioRecordingFn = vi.fn().mockResolvedValue(controller);
   return {
     onNoteInput: vi.fn(),
     onSaveNote: vi.fn(),
     onEditNote: vi.fn(),
     onAddNoteImages: vi.fn(),
-    onAddNoteAudio: vi.fn(),
+    onSaveNoteAudio: vi.fn().mockResolvedValue(true),
     onDeleteNoteAttachment: vi.fn(),
+    startAudioRecordingFn,
     onCreateNote: vi.fn(),
     onSelectNote: vi.fn(),
     onCloseNote: vi.fn(),
     onNewDocument: vi.fn(),
+    controller,
   };
 }
 
@@ -193,9 +207,23 @@ describe('Anexos na nota', () => {
     const imageFiles = handlers.onAddNoteImages.mock.calls[0]?.[1] as File[];
     expect(imageFiles[0]?.type).toBe('image/png');
 
-    view.element
-      .querySelector<HTMLButtonElement>('.chain-note__attach--audio')
-      ?.click();
-    expect(handlers.onAddNoteAudio).toHaveBeenCalledWith('note-1');
+    const audioButton = view.element.querySelector<HTMLButtonElement>(
+      '.chain-note__attach--audio'
+    );
+    audioButton?.click();
+    await vi.waitFor(() => {
+      expect(handlers.startAudioRecordingFn).toHaveBeenCalledTimes(1);
+      expect(
+        audioButton?.classList.contains('chain-note__attach--recording')
+      ).toBe(true);
+    });
+    audioButton?.click();
+    await vi.waitFor(() => {
+      expect(handlers.controller.stop).toHaveBeenCalledTimes(1);
+      expect(handlers.onSaveNoteAudio).toHaveBeenCalledWith(
+        'note-1',
+        expect.objectContaining({ duration: 2 })
+      );
+    });
   });
 });

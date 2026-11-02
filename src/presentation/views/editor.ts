@@ -30,8 +30,8 @@ import { showAppendToChainDialog } from '../components/AppendToChainDialog.js';
 import { showCloseTabDialog } from '../components/CloseTabDialog.js';
 import { showImportTextDialog } from '../components/ImportTextDialog.js';
 import { showImportTextFilesDialog } from '../components/ImportTextFilesDialog.js';
-import { showAudioRecorderDialog } from '../components/AudioRecorderDialog.js';
 import { extensionForAudioMime } from '../components/audioRecorder.js';
+import type { RecordedAudio } from '../components/audioRecorder.js';
 import { readImageDimensions } from '../components/imageAttachmentInput.js';
 import { releaseAttachmentUrl } from '../components/attachmentUrls.js';
 import { snackbar } from '../components/Snackbar.js';
@@ -330,9 +330,8 @@ export function mountEditorView(
             void addImagesToNote(tab.chainId, noteId, files);
           }
         },
-        onAddNoteAudio: (noteId) => {
-          void recordAudioForNote(tab.id, tab.chainId, noteId);
-        },
+        onSaveNoteAudio: (noteId, recorded) =>
+          saveNoteAudio(tab.chainId, noteId, recorded),
         onDeleteNote: (noteId) => {
           void AppController.deleteNote(tab.chainId, noteId);
         },
@@ -341,9 +340,7 @@ export function mountEditorView(
             void addChainEndImages(tab.chainId, files);
           }
         },
-        onAddChainAudio: () => {
-          void recordAudioForChainEnd(tab.chainId);
-        },
+        onSaveChainAudio: (recorded) => saveChainAudio(tab.chainId, recorded),
         onPasteText: () => {
           void pasteTextFromClipboard(tab.id, tab.chainId);
         },
@@ -413,13 +410,6 @@ export function mountEditorView(
   const createChainNoteTab = (chainTabId: string): void => {
     if (!store.createChainNoteTab(chainTabId)) return;
     focusChainNoteEditor(chainTabId);
-  };
-
-  const noteTitle = (chainTabId: string, noteId: string): string => {
-    const tab = store.getTab(chainTabId);
-    if (!tab || tab.kind !== 'chain') return 'Nota';
-    const note = tab.notes.find((item) => item.id === noteId);
-    return note ? deriveEditorTitle(note.content) : 'Nota';
   };
 
   const addImagesToNote = async (
@@ -494,45 +484,38 @@ export function mountEditorView(
     }
   };
 
-  const recordAudioForChainEnd = async (chainId: string): Promise<void> => {
-    await showAudioRecorderDialog({
-      noteTitle: 'Final da coleção',
-      onSave: async (recorded) => {
-        const result = await AppController.addChainEndAttachment({
-          chainId,
-          kind: 'audio',
-          fileName: `audio-${Date.now()}.${extensionForAudioMime(recorded.mimeType)}`,
-          mimeType: recorded.mimeType,
-          blob: recorded.blob,
-          duration: recorded.duration,
-        });
-        if (result.ok) snackbar.success('Áudio anexado ao final da coleção.');
-        return result.ok;
-      },
+  const saveChainAudio = async (
+    chainId: string,
+    recorded: RecordedAudio
+  ): Promise<boolean> => {
+    const result = await AppController.addChainEndAttachment({
+      chainId,
+      kind: 'audio',
+      fileName: `audio-${Date.now()}.${extensionForAudioMime(recorded.mimeType)}`,
+      mimeType: recorded.mimeType,
+      blob: recorded.blob,
+      duration: recorded.duration,
     });
+    if (result.ok) snackbar.success('Áudio anexado ao final da coleção.');
+    return result.ok;
   };
 
-  const recordAudioForNote = async (
-    chainTabId: string,
+  const saveNoteAudio = async (
     chainId: string,
-    noteId: string
-  ): Promise<void> => {
-    await showAudioRecorderDialog({
-      noteTitle: noteTitle(chainTabId, noteId),
-      onSave: async (recorded) => {
-        const result = await AppController.addNoteAttachment({
-          chainId,
-          noteId,
-          kind: 'audio',
-          fileName: `audio-${Date.now()}.${extensionForAudioMime(recorded.mimeType)}`,
-          mimeType: recorded.mimeType,
-          blob: recorded.blob,
-          duration: recorded.duration,
-        });
-        if (result.ok) snackbar.success('Áudio anexado.');
-        return result.ok;
-      },
+    noteId: string,
+    recorded: RecordedAudio
+  ): Promise<boolean> => {
+    const result = await AppController.addNoteAttachment({
+      chainId,
+      noteId,
+      kind: 'audio',
+      fileName: `audio-${Date.now()}.${extensionForAudioMime(recorded.mimeType)}`,
+      mimeType: recorded.mimeType,
+      blob: recorded.blob,
+      duration: recorded.duration,
     });
+    if (result.ok) snackbar.success('Áudio anexado.');
+    return result.ok;
   };
 
   const deleteAttachmentFromNote = async (
