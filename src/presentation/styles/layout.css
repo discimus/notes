@@ -1094,6 +1094,56 @@
 :is(.trash-item__delete, .archive-item__delete) {
   color: var(--md-sys-color-error);
 }
+.chains-bulk-controls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--spacing-1);
+  flex-shrink: 0;
+}
+.chains-bulk-controls__all {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: var(--md-sys-typescale-label-small-size);
+}
+.chains-bulk-controls__all input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--md-sys-color-primary);
+  cursor: pointer;
+}
+.chains-bulk-controls__count {
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: var(--md-sys-typescale-label-small-size);
+  white-space: nowrap;
+}
+:is(.trash-item, .archive-item) {
+  transition: background-color var(--md-sys-motion-duration-short3);
+}
+:is(.trash-item--selectable, .archive-item--selectable) {
+  cursor: pointer;
+}
+:is(.trash-item--selected, .archive-item--selected) {
+  background-color: var(--md-sys-color-surface-container-high);
+  box-shadow: inset 0 0 0 1px var(--md-sys-color-primary);
+}
+:is(.trash-item__select, .archive-item__select) {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+:is(.trash-item__select, .archive-item__select) input {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--md-sys-color-primary);
+  cursor: pointer;
+}
 @media (max-width: 768px) {
   :is(.trash-page, .archive-page) {
     padding: var(--spacing-4) var(--spacing-3) var(--spacing-6);

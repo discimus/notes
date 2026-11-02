@@ -1809,6 +1809,180 @@ export const AppController = {
     await loadChains();
   },
 
+  async restoreSelectedArchivedChains(): Promise<void> {
+    const ids = [...new Set(appState.get().chainsBulkSelection)];
+    if (ids.length === 0) return;
+
+    const restored: string[] = [];
+    let failures = 0;
+    for (const chainId of ids) {
+      try {
+        await restoreChain.execute(chainId);
+        restored.push(chainId);
+      } catch {
+        failures += 1;
+      }
+    }
+    appState.set({ chainsBulkMode: false, chainsBulkSelection: [] });
+    if (restored.length > 0) {
+      snackbar.success(
+        `${restored.length} ${
+          restored.length === 1 ? 'coleção restaurada' : 'coleções restauradas'
+        }.`
+      );
+    }
+    if (failures > 0) {
+      snackbar.error(
+        `${failures} ${
+          failures === 1
+            ? 'coleção não pôde ser restaurada'
+            : 'coleções não puderam ser restauradas'
+        }.`
+      );
+    }
+    await loadChains();
+  },
+
+  async moveSelectedArchivedToTrash(): Promise<void> {
+    const ids = [...new Set(appState.get().chainsBulkSelection)];
+    if (ids.length === 0) return;
+
+    if (getSettings().confirmBeforeTrash) {
+      const confirmed = await showConfirmDialog({
+        title:
+          ids.length === 1
+            ? 'Mover para a lixeira?'
+            : `Mover ${ids.length} coleções para a lixeira?`,
+        body:
+          ids.length === 1
+            ? 'A coleção será movida do arquivo para a lixeira.'
+            : 'As coleções serão movidas do arquivo para a lixeira.',
+        icon: 'delete',
+        confirmLabel: 'Mover para lixeira',
+        destructive: true,
+      });
+      if (!confirmed) return;
+    }
+
+    const moved: string[] = [];
+    let failures = 0;
+    for (const chainId of ids) {
+      try {
+        await moveArchivedToTrash.execute(chainId);
+        editorStore.closeChainTabs(chainId);
+        moved.push(chainId);
+      } catch {
+        failures += 1;
+      }
+    }
+    appState.set({ chainsBulkMode: false, chainsBulkSelection: [] });
+    if (moved.length > 0) {
+      snackbar.success(
+        `${moved.length} ${
+          moved.length === 1
+            ? 'coleção movida para a lixeira'
+            : 'coleções movidas para a lixeira'
+        }.`
+      );
+    }
+    if (failures > 0) {
+      snackbar.error(
+        `${failures} ${
+          failures === 1
+            ? 'coleção não pôde ser movida'
+            : 'coleções não puderam ser movidas'
+        }.`
+      );
+    }
+    await loadChains();
+  },
+
+  async restoreSelectedTrashChains(): Promise<void> {
+    const ids = [...new Set(appState.get().chainsBulkSelection)];
+    if (ids.length === 0) return;
+
+    const restored: string[] = [];
+    let failures = 0;
+    for (const chainId of ids) {
+      try {
+        await restoreFromTrash.execute(chainId);
+        restored.push(chainId);
+      } catch {
+        failures += 1;
+      }
+    }
+    appState.set({ chainsBulkMode: false, chainsBulkSelection: [] });
+    if (restored.length > 0) {
+      snackbar.success(
+        `${restored.length} ${
+          restored.length === 1 ? 'coleção restaurada' : 'coleções restauradas'
+        }.`
+      );
+    }
+    if (failures > 0) {
+      snackbar.error(
+        `${failures} ${
+          failures === 1
+            ? 'coleção não pôde ser restaurada'
+            : 'coleções não puderam ser restauradas'
+        }.`
+      );
+    }
+    await loadChains();
+  },
+
+  async permanentDeleteSelectedChains(): Promise<void> {
+    const ids = [...new Set(appState.get().chainsBulkSelection)];
+    if (ids.length === 0) return;
+
+    const confirmed = await showConfirmDialog({
+      title:
+        ids.length === 1
+          ? 'Excluir permanentemente?'
+          : `Excluir ${ids.length} coleções permanentemente?`,
+      body:
+        ids.length === 1
+          ? 'Esta ação não pode ser desfeita. A coleção e todas as suas notas serão removidas definitivamente.'
+          : 'Esta ação não pode ser desfeita. As coleções e todas as suas notas serão removidas definitivamente.',
+      icon: 'delete_forever',
+      confirmLabel: 'Excluir',
+      destructive: true,
+    });
+    if (!confirmed) return;
+
+    const deleted: string[] = [];
+    let failures = 0;
+    for (const chainId of ids) {
+      try {
+        await deleteChain.execute(chainId, true);
+        editorStore.closeChainTabs(chainId);
+        deleted.push(chainId);
+      } catch {
+        failures += 1;
+      }
+    }
+    appState.set({ chainsBulkMode: false, chainsBulkSelection: [] });
+    if (deleted.length > 0) {
+      snackbar.success(
+        `${deleted.length} ${
+          deleted.length === 1
+            ? 'coleção excluída permanentemente'
+            : 'coleções excluídas permanentemente'
+        }.`
+      );
+    }
+    if (failures > 0) {
+      snackbar.error(
+        `${failures} ${
+          failures === 1
+            ? 'coleção não pôde ser excluída'
+            : 'coleções não puderam ser excluídas'
+        }.`
+      );
+    }
+    await loadChains();
+  },
+
   async archiveChain(chainId: string): Promise<void> {
     const confirmed = await showConfirmDialog({
       title: 'Arquivar coleção?',

@@ -3,6 +3,7 @@ import { appState } from '../state/AppState.js';
 import { AppController } from '../pages/AppController.js';
 import { el } from '../dom.js';
 import { filterChains } from '../filters.js';
+import { renderChainsBulkControls } from '../components/ChainsBulkControls.js';
 import { renderNavToggle } from '../components/NavToggle.js';
 import { renderEmptyDetail, renderLoadingState } from '../components/states.js';
 import {
@@ -43,6 +44,11 @@ function renderArchiveHeader(state: AppState): HTMLElement {
   `;
   header.appendChild(searchBar);
 
+  const bulkHost = el('div');
+  bulkHost.id = 'archive-bulk-controls';
+  header.appendChild(bulkHost);
+  renderArchiveBulkControls(header, state);
+
   const search = searchBar.querySelector<HTMLInputElement>('#archive-search-input')!;
   const clear = searchBar.querySelector<HTMLButtonElement>('#archive-filter-clear')!;
   search.addEventListener('input', () => {
@@ -57,16 +63,46 @@ function renderArchiveHeader(state: AppState): HTMLElement {
   return header;
 }
 
-function renderArchiveItem(chain: AppState['chainSummaries'][number]): HTMLElement {
+function renderArchiveItem(
+  chain: AppState['chainSummaries'][number],
+  selectionMode = false,
+  selected = false
+): HTMLElement {
   const item = el('article', 'archive-item');
   item.setAttribute('role', 'listitem');
   item.dataset['chainId'] = chain.id;
+  item.classList.toggle('archive-item--selected', selected);
+  item.classList.toggle('archive-item--selectable', selectionMode);
   item.setAttribute(
     'aria-label',
     `Coleção arquivada: ${chain.displayTitle}, ${chain.noteCount} ${
       chain.noteCount === 1 ? 'nota' : 'notas'
     }`
   );
+
+  if (selectionMode) {
+    const selectLabel = el('label', 'archive-item__select');
+    const selectInput = document.createElement('input');
+    selectInput.type = 'checkbox';
+    selectInput.checked = selected;
+    selectInput.dataset['chainSelect'] = chain.id;
+    selectInput.setAttribute(
+      'aria-label',
+      `Selecionar coleção ${chain.displayTitle}`
+    );
+    selectInput.addEventListener('click', (event) => event.stopPropagation());
+    selectInput.addEventListener('change', () =>
+      AppController.toggleChainSelection(chain.id)
+    );
+    selectLabel.appendChild(selectInput);
+    selectLabel.addEventListener('click', (event) => event.stopPropagation());
+    item.appendChild(selectLabel);
+    item.addEventListener('click', (event) => {
+      const target = event.target as Element | null;
+      if (target?.closest('button, input, label, a')) return;
+      AppController.toggleChainSelection(chain.id);
+    });
+  }
 
   const icon = el('span', 'material-symbols-rounded archive-item__icon');
   icon.setAttribute('aria-hidden', 'true');
@@ -105,8 +141,51 @@ function renderArchiveItem(chain: AppState['chainSummaries'][number]): HTMLEleme
   });
 
   actions.append(restore, remove);
-  item.append(icon, body, actions);
+  if (!selectionMode) item.append(icon, body, actions);
+  else item.append(icon, body);
   return item;
+}
+
+function renderArchiveBulkControls(
+  container: HTMLElement,
+  state: AppState
+): void {
+  const host = container.querySelector<HTMLElement>('#archive-bulk-controls');
+  if (!host) return;
+  const visibleChainIds = filterChains(
+    state.chainSummaries,
+    state.chainFilterQuery
+  ).map((chain) => chain.id);
+
+  host.replaceChildren(
+    renderChainsBulkControls({
+      idPrefix: 'archive',
+      mode: state.chainsBulkMode,
+      selectedIds: state.chainsBulkSelection,
+      visibleChainIds,
+      onEnter: () => AppController.enterChainsBulkMode(),
+      onExit: () => AppController.exitChainsBulkMode(),
+      onToggleAll: (ids) => AppController.toggleAllChainsBulkSelection(ids),
+      actions: [
+        {
+          id: 'restore',
+          label: 'Restaurar coleções selecionadas',
+          icon: 'unarchive',
+          onClick: () => {
+            void AppController.restoreSelectedArchivedChains();
+          },
+        },
+        {
+          id: 'trash',
+          label: 'Mover coleções selecionadas para a lixeira',
+          icon: 'delete',
+          onClick: () => {
+            void AppController.moveSelectedArchivedToTrash();
+          },
+        },
+      ],
+    })
+  );
 }
 
 function renderArchiveList(container: HTMLElement, state: AppState): void {
@@ -140,8 +219,12 @@ function renderArchiveList(container: HTMLElement, state: AppState): void {
     return;
   }
 
+  const selection = new Set(state.chainsBulkSelection);
+  const selectionMode = state.chainsBulkMode;
   chains.forEach((chain) => {
-    container.appendChild(renderArchiveItem(chain));
+    container.appendChild(
+      renderArchiveItem(chain, selectionMode, selection.has(chain.id))
+    );
   });
 }
 
@@ -170,6 +253,7 @@ export function updateArchiveLayout(content: HTMLElement, state: AppState): void
   if (clear) clear.hidden = !state.chainFilterQuery.trim();
   const count = content.querySelector<HTMLElement>('#archive-count');
   if (count) count.textContent = archiveSubtitle(state.chainSummaries.length);
+  renderArchiveBulkControls(content, state);
   const list = content.querySelector<HTMLElement>(`#${ARCHIVE_LIST_ID}`);
   if (list) renderArchiveList(list, state);
 }
