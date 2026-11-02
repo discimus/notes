@@ -45,6 +45,11 @@ export function renderSearchLayout(state: AppState): HTMLElement {
     }
   }, 350);
   input.addEventListener('input', debouncedSearch as EventListener);
+  input.addEventListener('keydown', (event) => {
+    if (event.key !== 'Escape' || input.value.trim()) return;
+    event.preventDefault();
+    void AppController.navigateTo('editor');
+  });
 
   queueMicrotask(() => {
     if (!input.isConnected) return;
