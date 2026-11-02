@@ -8,9 +8,12 @@ import { processFolderImport } from './folderImportFlow.js';
 import type { FolderImportResult } from './folderImportFlow.js';
 import {
   collectFolderFilesFromEntries,
+  collectionTitleFromPath,
   dropEntries,
   filesFromDirectoryInput,
+  folderHasSubfolders,
   groupFilesByFolder,
+  groupFilesByRoot,
   type FolderTextFile,
 } from './textFolderImport.js';
 
@@ -156,40 +159,64 @@ export async function startFolderImport(
     return;
   }
 
-  const groups = groupFilesByFolder(files);
-  if (groups.length === 0) {
+  const baseGroups = groupFilesByFolder(files);
+  if (baseGroups.length === 0) {
     snackbar.error('Nenhuma pasta com arquivos de texto foi encontrada.');
     return;
   }
+  const separateGroups = baseGroups.map((group) => ({
+    ...group,
+    title: collectionTitleFromPath(group.folderPath),
+  }));
+  const mergeGroups = groupFilesByRoot(files);
+  const hasSubfolders = folderHasSubfolders(files);
 
   const totalFiles = files.length;
   const totalBytes = files.reduce((total, entry) => total + entry.file.size, 0);
-  const dialogGroups = groups.map((group) => {
-    const rejectedCount = group.files.filter((entry) =>
-      isRejectedBySize(entry.file)
-    ).length;
-    return {
-      title: group.title,
-      fileCount: group.files.length - rejectedCount,
-      totalBytes: group.files.reduce(
-        (total, entry) => total + entry.file.size,
-        0
-      ),
-      rejectedCount,
-    };
-  });
+  const toDialogGroups = (
+    groups: ReturnType<typeof groupFilesByFolder>
+  ) =>
+    groups.map((group) => {
+      const rejectedCount = group.files.filter((entry) =>
+        isRejectedBySize(entry.file)
+      ).length;
+      return {
+        title: group.title,
+        fileCount: group.files.length - rejectedCount,
+        totalBytes: group.files.reduce(
+          (total, entry) => total + entry.file.size,
+          0
+        ),
+        rejectedCount,
+      };
+    });
+  const dialogGroups = toDialogGroups(separateGroups);
+  const mergeDialogGroups = toDialogGroups(mergeGroups);
 
   folderImportRunning = true;
   const target = activeImportTarget();
   try {
     await showImportFolderDialog({
       groups: dialogGroups,
+      mergeGroups: mergeDialogGroups,
+      hasSubfolders,
       totalFiles,
       totalBytes,
       showDateOption: hasSourceDates(files),
       ...(discoveryErrors.length > 0 ? { discoveryErrors } : {}),
       ...(target ? { appendTarget: target } : {}),
-      onConfirm: async (mode, useSourceDates, onProgress, isCancelled) => {
+      onConfirm: async (
+        mode,
+        subfolderMode,
+        useSourceDates,
+        onProgress,
+        isCancelled
+      ) => {
+        const groups =
+          mode === 'collections' && subfolderMode === 'merge'
+            ? mergeGroups
+            : separateGroups;
+
         if (mode === 'append' && target) {
           const result = await processFolderImport({
             groups,

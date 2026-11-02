@@ -41,6 +41,19 @@ export function folderTitleFromPath(folderPath: string): string {
   return title.trim();
 }
 
+export function collectionTitleFromPath(folderPath: string): string {
+  const segments = normalizeRelativePath(folderPath)
+    .split(PATH_SEPARATOR)
+    .filter(Boolean);
+  return segments.join('-');
+}
+
+export function folderHasSubfolders(files: FolderTextFile[]): boolean {
+  return files.some(
+    (entry) => normalizeRelativePath(entry.relativePath).split('/').length > 2
+  );
+}
+
 export function filesFromDirectoryInput(files: File[]): FolderTextFile[] {
   return files
     .map((file) => ({
@@ -75,6 +88,38 @@ export function groupFilesByFolder(
 
   return [...groups.values()]
     .filter((group) => group.title.length > 0)
+    .sort((a, b) => a.folderPath.localeCompare(b.folderPath))
+    .map((group) => ({
+      ...group,
+      files: [...group.files].sort((a, b) =>
+        a.relativePath.localeCompare(b.relativePath)
+      ),
+    }));
+}
+
+export function groupFilesByRoot(
+  files: FolderTextFile[]
+): FolderImportGroup[] {
+  const groups = new Map<string, FolderImportGroup>();
+
+  for (const entry of files) {
+    const normalized = normalizeRelativePath(entry.relativePath);
+    const root = normalized.split('/')[0] ?? '';
+    if (!root) continue;
+
+    let group = groups.get(root);
+    if (!group) {
+      group = {
+        title: root,
+        folderPath: root,
+        files: [],
+      };
+      groups.set(root, group);
+    }
+    group.files.push(entry);
+  }
+
+  return [...groups.values()]
     .sort((a, b) => a.folderPath.localeCompare(b.folderPath))
     .map((group) => ({
       ...group,

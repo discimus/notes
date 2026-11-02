@@ -15,9 +15,12 @@ export interface ImportFolderDialogGroup {
 }
 
 export type FolderImportMode = 'collections' | 'append';
+export type FolderImportSubfolderMode = 'merge' | 'separate';
 
 export interface ImportFolderDialogOptions {
   groups: ImportFolderDialogGroup[];
+  mergeGroups?: ImportFolderDialogGroup[];
+  hasSubfolders?: boolean;
   totalFiles: number;
   totalBytes: number;
   showDateOption: boolean;
@@ -25,6 +28,7 @@ export interface ImportFolderDialogOptions {
   appendTarget?: { id: string; title: string } | undefined;
   onConfirm: (
     mode: FolderImportMode,
+    subfolderMode: FolderImportSubfolderMode,
     useSourceDates: boolean,
     onProgress: (progress: FolderImportProgress) => void,
     isCancelled: () => boolean
@@ -54,7 +58,9 @@ export function showImportFolderDialog(
     const progressId = `import-folder-progress-${uid}`;
     const progressLabelId = `import-folder-progress-label-${uid}`;
 
-    const importableGroups = options.groups.filter(
+    const separateGroups = options.groups;
+    const mergeGroups = options.mergeGroups ?? options.groups;
+    const importableGroups = separateGroups.filter(
       (group) => group.fileCount > 0
     );
     const importableFiles = importableGroups.reduce(
@@ -106,6 +112,24 @@ export function showImportFolderDialog(
             <span>Adicionar à coleção <strong>${escapeHtml(
               options.appendTarget.title
             )}</strong></span>
+          </label>
+        </fieldset>
+      `
+          : ''
+      }
+
+      ${
+        options.hasSubfolders
+          ? `
+        <fieldset class="import-dialog__destination" id="import-folder-subfolders-${uid}">
+          <legend class="import-dialog__destination-title">Conteúdo das subpastas</legend>
+          <label class="import-dialog__destination-option">
+            <input type="radio" name="import-folder-subfolder-mode-${uid}" value="separate" checked />
+            <span>Criar coleções filhas com o nome da pasta pai como prefixo</span>
+          </label>
+          <label class="import-dialog__destination-option">
+            <input type="radio" name="import-folder-subfolder-mode-${uid}" value="merge" />
+            <span>Migrar o conteúdo das subpastas para a coleção pai</span>
           </label>
         </fieldset>
       `
@@ -230,53 +254,6 @@ export function showImportFolderDialog(
       `#import-folder-duplicates-${uid}`
     )!;
 
-    options.groups.forEach((group) => {
-      const row = el('article', 'import-batch-item');
-      row.setAttribute('role', 'listitem');
-
-      const header = el('div', 'import-batch-item__header');
-      const status = el(
-        'span',
-        `import-batch-item__status ${
-          group.fileCount === 0
-            ? 'import-batch-item__status--pending'
-            : 'import-batch-item__status--ok'
-        }`
-      );
-      status.innerHTML = `<span class="material-symbols-rounded" aria-hidden="true">${
-        group.fileCount === 0 ? 'schedule' : 'folder'
-      }</span> ${group.fileCount === 0 ? 'Ignorada' : 'Pronta'}`;
-
-      const info = el('div', 'import-batch-item__info');
-      const name = el('span', 'import-batch-item__name');
-      name.textContent = group.title;
-      const meta = el('span', 'import-batch-item__meta');
-      meta.textContent = `${documentLabel(group.fileCount)} · ${formatFileSize(
-        group.totalBytes
-      )}${
-        group.rejectedCount > 0
-          ? ` · ${group.rejectedCount} ${
-              group.rejectedCount === 1 ? 'rejeitado' : 'rejeitados'
-            }`
-          : ''
-      }`;
-      info.append(name, meta);
-      header.append(status, info);
-      row.appendChild(header);
-      list.appendChild(row);
-    });
-
-    if (options.discoveryErrors && options.discoveryErrors.length > 0) {
-      for (const message of options.discoveryErrors) {
-        const row = el('article', 'import-batch-item import-batch-item--error');
-        row.setAttribute('role', 'listitem');
-        const failure = el('p', 'import-batch-item__failure');
-        failure.textContent = message;
-        row.appendChild(failure);
-        list.appendChild(row);
-      }
-    }
-
     let importing = false;
     let completed = false;
     let cancelRequested = false;
@@ -289,37 +266,138 @@ export function showImportFolderDialog(
         `input[name="import-folder-mode-${uid}"]`
       ),
     ];
+    const subfolderFieldset = dialog.querySelector<HTMLElement>(
+      `#import-folder-subfolders-${uid}`
+    );
+    const subfolderInputs = [
+      ...dialog.querySelectorAll<HTMLInputElement>(
+        `input[name="import-folder-subfolder-mode-${uid}"]`
+      ),
+    ];
     const appendTarget = options.appendTarget ?? null;
+
+    const importableGroupsOf = (
+      groups: ImportFolderDialogGroup[]
+    ): ImportFolderDialogGroup[] =>
+      groups.filter((group) => group.fileCount > 0);
+    const importableFilesOf = (groups: ImportFolderDialogGroup[]): number =>
+      groups.reduce((total, group) => total + group.fileCount, 0);
+
     const selectedMode = (): FolderImportMode =>
       appendTarget &&
       modeInputs.find((input) => input.checked)?.value === 'append'
         ? 'append'
         : 'collections';
+    const selectedSubfolderMode = (): FolderImportSubfolderMode =>
+      subfolderInputs.find((input) => input.checked)?.value === 'merge'
+        ? 'merge'
+        : 'separate';
+    const groupsForDisplay = (): ImportFolderDialogGroup[] =>
+      selectedMode() === 'collections' &&
+      options.hasSubfolders &&
+      selectedSubfolderMode() === 'merge'
+        ? mergeGroups
+        : separateGroups;
+    const pendingGroups = (): ImportFolderDialogGroup[] =>
+      importableGroupsOf(groupsForDisplay());
+    const pendingFiles = (): number => importableFilesOf(groupsForDisplay());
+
     const modeImportLabel = (): string =>
       selectedMode() === 'append'
-        ? `Importar ${documentLabel(importableFiles)}`
-        : `Importar ${collectionLabel(initialPending)}`;
+        ? `Importar ${documentLabel(importableFilesOf(separateGroups))}`
+        : `Importar ${collectionLabel(pendingGroups().length)}`;
+
+    const renderGroupList = (): void => {
+      list.innerHTML = '';
+      groupsForDisplay().forEach((group) => {
+        const row = el('article', 'import-batch-item');
+        row.setAttribute('role', 'listitem');
+
+        const header = el('div', 'import-batch-item__header');
+        const status = el(
+          'span',
+          `import-batch-item__status ${
+            group.fileCount === 0
+              ? 'import-batch-item__status--pending'
+              : 'import-batch-item__status--ok'
+          }`
+        );
+        status.innerHTML = `<span class="material-symbols-rounded" aria-hidden="true">${
+          group.fileCount === 0 ? 'schedule' : 'folder'
+        }</span> ${group.fileCount === 0 ? 'Ignorada' : 'Pronta'}`;
+
+        const info = el('div', 'import-batch-item__info');
+        const name = el('span', 'import-batch-item__name');
+        name.textContent = group.title;
+        const meta = el('span', 'import-batch-item__meta');
+        meta.textContent = `${documentLabel(
+          group.fileCount
+        )} · ${formatFileSize(group.totalBytes)}${
+          group.rejectedCount > 0
+            ? ` · ${group.rejectedCount} ${
+                group.rejectedCount === 1 ? 'rejeitado' : 'rejeitados'
+              }`
+            : ''
+        }`;
+        info.append(name, meta);
+        header.append(status, info);
+        row.appendChild(header);
+        list.appendChild(row);
+      });
+
+      if (options.discoveryErrors && options.discoveryErrors.length > 0) {
+        for (const message of options.discoveryErrors) {
+          const row = el(
+            'article',
+            'import-batch-item import-batch-item--error'
+          );
+          row.setAttribute('role', 'listitem');
+          const failure = el('p', 'import-batch-item__failure');
+          failure.textContent = message;
+          row.appendChild(failure);
+          list.appendChild(row);
+        }
+      }
+    };
+
     const updateModePresentation = (): void => {
-      if (selectedMode() === 'append' && appendTarget) {
+      const append = selectedMode() === 'append' && appendTarget !== null;
+      if (subfolderFieldset) {
+        subfolderFieldset.hidden = append;
+      }
+
+      if (append) {
         description.textContent = `Adicionar ${documentLabel(
-          importableFiles
+          importableFilesOf(separateGroups)
         )} à coleção "${appendTarget.title}".`;
+      } else if (options.hasSubfolders && selectedSubfolderMode() === 'merge') {
+        description.textContent = `Migrar ${documentLabel(
+          pendingFiles()
+        )} das subpastas para ${collectionLabel(
+          pendingGroups().length
+        )} pai. Pastas sem arquivos válidos serão ignoradas.`;
       } else {
         description.textContent = `Criar ${collectionLabel(
-          initialPending
+          pendingGroups().length
         )} a partir de ${documentLabel(
-          importableFiles
+          pendingFiles()
         )}. Pastas sem arquivos válidos serão ignoradas.`;
       }
+
+      totalCount.textContent = append
+        ? documentLabel(importableFilesOf(separateGroups))
+        : collectionLabel(pendingGroups().length);
+
       if (!importing && !completed) {
         confirmLabel.textContent = modeImportLabel();
+        confirm.disabled = pendingFiles() === 0;
       }
-      totalCount.textContent =
-        selectedMode() === 'append'
-          ? documentLabel(importableFiles)
-          : collectionLabel(initialPending);
+      if (!importing) renderGroupList();
     };
     modeInputs.forEach((input) =>
+      input.addEventListener('change', updateModePresentation)
+    );
+    subfolderInputs.forEach((input) =>
       input.addEventListener('change', updateModePresentation)
     );
     updateModePresentation();
@@ -338,6 +416,9 @@ export function showImportFolderDialog(
       confirm.disabled = busy;
       if (dateSwitch) dateSwitch.disabled = busy;
       modeInputs.forEach((input) => {
+        input.disabled = busy;
+      });
+      subfolderInputs.forEach((input) => {
         input.disabled = busy;
       });
       cancel.disabled = busy && completed;
@@ -398,7 +479,7 @@ export function showImportFolderDialog(
         finish(true);
         return;
       }
-      if (importing || initialPending === 0) return;
+      if (importing || pendingFiles() === 0) return;
 
       cancelRequested = false;
       setBusy(true);
@@ -407,6 +488,7 @@ export function showImportFolderDialog(
       try {
         const result = await options.onConfirm(
           selectedMode(),
+          selectedSubfolderMode(),
           Boolean(dateSwitch?.checked),
           applyProgress,
           () => cancelRequested

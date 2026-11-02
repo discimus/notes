@@ -1,9 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import {
+  collectionTitleFromPath,
   filesFromDirectoryInput,
+  folderHasSubfolders,
   folderPathOf,
   folderTitleFromPath,
   groupFilesByFolder,
+  groupFilesByRoot,
   normalizeRelativePath,
   type FolderTextFile,
 } from '@presentation/app/textFolderImport.js';
@@ -75,5 +78,36 @@ describe('textFolderImport', () => {
     expect(groups).toHaveLength(2);
     expect(groups.map((group) => group.title)).toEqual(['docs', 'docs']);
     expect(groups.map((group) => group.folderPath)).toEqual(['A/docs', 'B/docs']);
+  });
+
+  it('prefixa o nome das coleções filhas com o caminho pai', () => {
+    expect(collectionTitleFromPath('Projetos')).toBe('Projetos');
+    expect(collectionTitleFromPath('Projetos/Frontend')).toBe(
+      'Projetos-Frontend'
+    );
+    expect(collectionTitleFromPath('Projetos/Frontend/Components')).toBe(
+      'Projetos-Frontend-Components'
+    );
+  });
+
+  it('detecta subpastas e agrupa o conteúdo por pasta raiz', () => {
+    const files = [
+      entry('raiz.txt', 'MinhaPasta/raiz.txt'),
+      entry('a.txt', 'MinhaPasta/sub/a.txt'),
+      entry('b.txt', 'OutraPasta/b.txt'),
+    ];
+
+    expect(folderHasSubfolders(files)).toBe(true);
+    expect(folderHasSubfolders([files[0]!])).toBe(false);
+
+    const groups = groupFilesByRoot(files);
+    expect(groups.map((group) => group.title)).toEqual([
+      'MinhaPasta',
+      'OutraPasta',
+    ]);
+    expect(groups[0]?.files.map((item) => item.relativePath)).toEqual([
+      'MinhaPasta/raiz.txt',
+      'MinhaPasta/sub/a.txt',
+    ]);
   });
 });

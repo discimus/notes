@@ -42,6 +42,7 @@ describe('ImportFolderDialog', () => {
     const onConfirm = vi.fn(
       async (
         _mode: string,
+        _subfolderMode: string,
         _useDates: boolean,
         onProgress: (progress: FolderImportProgress) => void
       ) => {
@@ -82,6 +83,7 @@ describe('ImportFolderDialog', () => {
 
     expect(onConfirm).toHaveBeenCalledWith(
       'collections',
+      'separate',
       true,
       expect.any(Function),
       expect.any(Function)
@@ -147,6 +149,7 @@ describe('ImportFolderDialog', () => {
 
     expect(onConfirm).toHaveBeenCalledWith(
       'collections',
+      'separate',
       false,
       expect.any(Function),
       expect.any(Function)
@@ -192,6 +195,65 @@ describe('ImportFolderDialog', () => {
 
     expect(onConfirm).toHaveBeenCalledWith(
       'append',
+      'separate',
+      false,
+      expect.any(Function),
+      expect.any(Function)
+    );
+
+    document
+      .querySelector<HTMLButtonElement>('[id^="import-folder-confirm-"]')
+      ?.click();
+
+    await expect(pending).resolves.toBe(true);
+  });
+
+  it('permite escolher entre coleções filhas e migrar para a coleção pai', async () => {
+    const onConfirm = vi.fn(async () => result());
+
+    const pending = showImportFolderDialog({
+      groups: [
+        { title: 'Projetos', fileCount: 1, totalBytes: 5, rejectedCount: 0 },
+        {
+          title: 'Projetos-Frontend',
+          fileCount: 1,
+          totalBytes: 5,
+          rejectedCount: 0,
+        },
+      ],
+      mergeGroups: [
+        { title: 'Projetos', fileCount: 2, totalBytes: 10, rejectedCount: 0 },
+      ],
+      hasSubfolders: true,
+      totalFiles: 2,
+      totalBytes: 10,
+      showDateOption: false,
+      onConfirm,
+    });
+
+    expect(document.body.textContent).toContain('Conteúdo das subpastas');
+    expect(document.body.textContent).toContain('Projetos-Frontend');
+
+    const mergeRadio = document.querySelector<HTMLInputElement>(
+      'input[value="merge"]'
+    )!;
+    mergeRadio.checked = true;
+    mergeRadio.dispatchEvent(new Event('change', { bubbles: true }));
+
+    expect(document.body.textContent).toContain(
+      'Migrar 2 documentos das subpastas para 1 coleção pai.'
+    );
+    expect(document.body.textContent).not.toContain('Projetos-Frontend');
+
+    document
+      .querySelector<HTMLButtonElement>('[id^="import-folder-confirm-"]')
+      ?.click();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(onConfirm).toHaveBeenCalledWith(
+      'collections',
+      'merge',
       false,
       expect.any(Function),
       expect.any(Function)
@@ -212,6 +274,7 @@ describe('ImportFolderDialog', () => {
     const onConfirm = vi.fn(
       (
         _mode: string,
+        _subfolderMode: string,
         _useDates: boolean,
         _onProgress: unknown,
         cancelled: () => boolean

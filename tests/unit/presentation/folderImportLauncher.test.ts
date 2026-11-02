@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { NoteDTO } from '@application/dto/index.js';
+import type { ChainDetailDTO, NoteDTO } from '@application/dto/index.js';
 import { AppController } from '@presentation/pages/AppController.js';
 import { startFolderImport } from '@presentation/app/folderImportLauncher.js';
 import { editorStore } from '@presentation/state/EditorStore.js';
@@ -16,10 +16,24 @@ const importedNote: NoteDTO = {
   updatedAt: '2026-01-01T00:00:00.000Z',
 };
 
-function folderFile(name: string): FolderTextFile {
+function folderFile(name: string, relativePath = `Pasta/${name}`): FolderTextFile {
   return {
     file: new File(['conteudo'], name, { type: 'text/plain', lastModified: 0 }),
-    relativePath: `Pasta/${name}`,
+    relativePath,
+  };
+}
+
+function createdChain(title: string): ChainDetailDTO {
+  return {
+    id: title,
+    displayTitle: title,
+    noteCount: 1,
+    createdAt: '2026-01-01T00:00:00.000Z',
+    updatedAt: '2026-01-01T00:00:00.000Z',
+    tagIds: [],
+    tags: [],
+    headerExcerpt: '',
+    notes: [importedNote],
   };
 }
 
@@ -27,6 +41,13 @@ async function flush(): Promise<void> {
   for (let index = 0; index < 5; index += 1) {
     await new Promise((resolve) => setTimeout(resolve, 0));
   }
+}
+
+async function closeDialog(): Promise<void> {
+  document
+    .querySelector<HTMLButtonElement>('[id^="import-folder-confirm-"]')
+    ?.click();
+  await flush();
 }
 
 describe('folderImportLauncher', () => {
@@ -78,5 +99,70 @@ describe('folderImportLauncher', () => {
       .querySelector<HTMLButtonElement>('[id^="import-folder-confirm-"]')
       ?.click();
     await flush();
+  });
+
+  it('cria coleções filhas prefixadas com o nome da pasta pai', async () => {
+    const importTextFolder = vi
+      .spyOn(AppController, 'importTextFolder')
+      .mockImplementation(async (title) => ({
+        ok: true,
+        status: 'created',
+        chain: createdChain(title),
+        notes: [importedNote],
+        duplicates: 0,
+      }));
+
+    void startFolderImport([
+      folderFile('a.txt', 'Pasta/a.txt'),
+      folderFile('b.txt', 'Pasta/Sub/b.txt'),
+    ]);
+    await flush();
+
+    document
+      .querySelector<HTMLButtonElement>('[id^="import-folder-confirm-"]')
+      ?.click();
+    await flush();
+
+    expect(importTextFolder.mock.calls.map((call) => call[0])).toEqual([
+      'Pasta',
+      'Pasta-Sub',
+    ]);
+
+    await closeDialog();
+  });
+
+  it('migra o conteúdo das subpastas para a coleção pai quando escolhido', async () => {
+    const importTextFolder = vi
+      .spyOn(AppController, 'importTextFolder')
+      .mockImplementation(async (title) => ({
+        ok: true,
+        status: 'created',
+        chain: createdChain(title),
+        notes: [importedNote],
+        duplicates: 0,
+      }));
+
+    void startFolderImport([
+      folderFile('a.txt', 'Pasta/a.txt'),
+      folderFile('b.txt', 'Pasta/Sub/b.txt'),
+    ]);
+    await flush();
+
+    const mergeRadio = document.querySelector<HTMLInputElement>(
+      'input[value="merge"]'
+    )!;
+    mergeRadio.checked = true;
+    mergeRadio.dispatchEvent(new Event('change', { bubbles: true }));
+
+    document
+      .querySelector<HTMLButtonElement>('[id^="import-folder-confirm-"]')
+      ?.click();
+    await flush();
+
+    expect(importTextFolder.mock.calls.map((call) => call[0])).toEqual([
+      'Pasta',
+    ]);
+
+    await closeDialog();
   });
 });
