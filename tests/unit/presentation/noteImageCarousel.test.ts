@@ -119,7 +119,7 @@ describe('Carrossel de imagens na largura da nota', () => {
     view.destroy();
   });
 
-  it('permite arrastar horizontalmente com o mouse', () => {
+  it('permite arrastar horizontalmente com o mouse', async () => {
     const images = [1, 2, 3].map(attachment);
     const view = mountChainDocument(makeTab(images), makeHandlers());
     const wrapper = document.createElement('div');
@@ -170,13 +170,13 @@ describe('Carrossel de imagens na largura da nota', () => {
     ).toBe(true);
 
     window.dispatchEvent(pointer('pointerup', -200));
-    expect(scrollTo).toHaveBeenCalledWith({
-      left: 300,
-      behavior: 'smooth',
+    await vi.waitFor(() => {
+      expect(grid.scrollLeft).toBe(300);
+      expect(
+        grid.classList.contains('chain-note__carousel--dragging')
+      ).toBe(false);
     });
-    expect(
-      grid.classList.contains('chain-note__carousel--dragging')
-    ).toBe(false);
+    expect(scrollTo).not.toHaveBeenCalled();
 
     view.destroy();
   });

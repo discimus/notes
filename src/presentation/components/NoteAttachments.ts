@@ -261,19 +261,26 @@ function mountImageCarousel(
     inertiaFrame = null;
   };
 
-  const startInertia = (initialVelocity: number): void => {
+  const startInertia = (
+    initialVelocity: number,
+    onSettled?: () => void
+  ): void => {
     cancelInertia();
+    const finish = (): void => {
+      inertiaFrame = null;
+      grid.classList.remove('chain-note__carousel--dragging');
+      if (grid.isConnected) onSettled?.();
+    };
     let velocity = Math.max(-4, Math.min(4, initialVelocity));
     if (Math.abs(velocity) < 0.02) {
-      grid.classList.remove('chain-note__carousel--dragging');
+      finish();
       return;
     }
 
     let lastFrame = performance.now();
     const step = (now: number): void => {
       if (!grid.isConnected) {
-        inertiaFrame = null;
-        grid.classList.remove('chain-note__carousel--dragging');
+        finish();
         return;
       }
       const elapsed = Math.min(32, Math.max(1, now - lastFrame));
@@ -289,9 +296,61 @@ function mountImageCarousel(
       if (!atEdge && Math.abs(velocity) > 0.02) {
         inertiaFrame = requestAnimationFrame(step);
       } else {
-        inertiaFrame = null;
-        grid.classList.remove('chain-note__carousel--dragging');
+        finish();
       }
+    };
+    inertiaFrame = requestAnimationFrame(step);
+  };
+
+  const magnetToIndex = (index: number, initialVelocity = 0): void => {
+    cancelInertia();
+    const target = Math.max(0, Math.min(count - 1, index));
+    const targetLeft = grid.clientWidth * target;
+    const finish = (left: number): void => {
+      inertiaFrame = null;
+      grid.scrollLeft = left;
+      grid.classList.remove('chain-note__carousel--dragging');
+    };
+    setActive(target);
+
+    if (
+      typeof window.matchMedia === 'function' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    ) {
+      finish(targetLeft);
+      return;
+    }
+
+    grid.classList.add('chain-note__carousel--dragging');
+    let position = grid.scrollLeft;
+    let velocity = Math.max(
+      -2500,
+      Math.min(2500, -initialVelocity * 1000)
+    );
+    let lastFrame: number | null = null;
+    const stiffness = 170;
+    const damping = 22;
+    const maxScroll = Math.max(0, grid.scrollWidth - grid.clientWidth);
+
+    const step = (now: number): void => {
+      if (!grid.isConnected) {
+        finish(position);
+        return;
+      }
+      if (lastFrame === null) lastFrame = now;
+      const elapsed = Math.min(32, Math.max(1, now - lastFrame)) / 1000;
+      lastFrame = now;
+
+      const acceleration = -stiffness * (position - targetLeft) - damping * velocity;
+      velocity += acceleration * elapsed;
+      position = Math.max(0, Math.min(maxScroll, position + velocity * elapsed));
+      grid.scrollLeft = position;
+
+      if (Math.abs(position - targetLeft) < 0.4 && Math.abs(velocity) < 8) {
+        finish(targetLeft);
+        return;
+      }
+      inertiaFrame = requestAnimationFrame(step);
     };
     inertiaFrame = requestAnimationFrame(step);
   };
@@ -308,17 +367,18 @@ function mountImageCarousel(
       window.setTimeout(() => {
         suppressClick = false;
       }, 0);
-      if (snap && grid.closest('.app-shell--image-column')) {
-        grid.classList.remove('chain-note__carousel--dragging');
+      const isCarousel =
+        snap && Boolean(grid.closest('.app-shell--image-column'));
+      if (isCarousel) {
         const width = Math.max(1, grid.clientWidth);
-        const momentum = Math.max(
-          -width * 0.9,
-          Math.min(width * 0.9, state.velocity * 120)
+        const projected = grid.scrollLeft - state.velocity * 180;
+        magnetToIndex(
+          Math.round(projected / width),
+          state.velocity
         );
-        scrollToIndex(Math.round((grid.scrollLeft - momentum) / width));
-        return;
+      } else {
+        startInertia(state.velocity);
       }
-      startInertia(state.velocity);
       return;
     }
     grid.classList.remove('chain-note__carousel--dragging');
