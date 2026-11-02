@@ -183,6 +183,13 @@ export class Chain {
         : {}),
     });
 
+    const fileNames = new Set(
+      this._notes
+        .map((note) => note.sourceFileName)
+        .filter((name): name is string => Boolean(name))
+    );
+    tail.ensureUniqueSourceFileName(fileNames);
+
     this._notes.push(tail);
     this._updatedAt = now();
     return tail;

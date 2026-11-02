@@ -1,10 +1,31 @@
 import type { UUID, ISODateString } from '@shared/types/index.js';
 import { ValidationError } from '@shared/types/index.js';
 import { NotePosition } from '../value-objects/index.js';
-import { generateId, now } from '@shared/utilities/index.js';
+import {
+  buildNoteFileName,
+  generateId,
+  now,
+  uniqueFileName,
+} from '@shared/utilities/index.js';
 
 export type NoteRole = 'header' | 'tail';
 export type NoteContentType = 'text' | 'code' | 'markdown';
+
+function fileExtension(contentType: NoteContentType): string {
+  return contentType === 'markdown' ? 'md' : 'txt';
+}
+
+function automaticFileName(
+  content: string,
+  contentType: NoteContentType,
+  timestamp: ISODateString
+): string {
+  return buildNoteFileName({
+    content,
+    extension: fileExtension(contentType),
+    timestamp: new Date(timestamp),
+  });
+}
 
 export interface NoteData {
   id: UUID;
@@ -38,7 +59,7 @@ export class Note {
   private _contentType: NoteContentType;
   private _title: string | undefined;
   private _contentHash: string | undefined;
-  private readonly _sourceFileName: string | undefined;
+  private _sourceFileName: string | undefined;
   private readonly _createdAt: ISODateString;
   private _updatedAt: ISODateString;
 
@@ -67,15 +88,17 @@ export class Note {
       throw new ValidationError('O conteúdo da nota não pode ser vazio.');
     }
     const contentType = params.contentType ?? 'text';
+    const content = normalizedContent(params.content, contentType);
     const ts = now();
     return new Note({
       id: generateId(),
-      content: normalizedContent(params.content, contentType),
+      content,
       chainId: params.chainId,
       position: 0,
       role: 'header',
       contentType,
       ...(params.title?.trim() ? { title: params.title.trim() } : {}),
+      sourceFileName: automaticFileName(content, contentType, ts),
       createdAt: ts,
       updatedAt: ts,
     });
@@ -98,16 +121,18 @@ export class Note {
       throw new ValidationError('A posição de uma tail deve ser maior que 0.');
     }
     const contentType = params.contentType ?? 'text';
+    const content = normalizedContent(params.content, contentType);
     const ts = params.createdAt ?? now();
     return new Note({
       id: generateId(),
-      content: normalizedContent(params.content, contentType),
+      content,
       chainId: params.chainId,
       position: params.position,
       role: 'tail',
       contentType,
       ...(params.contentHash ? { contentHash: params.contentHash } : {}),
-      ...(params.sourceFileName ? { sourceFileName: params.sourceFileName } : {}),
+      sourceFileName:
+        params.sourceFileName ?? automaticFileName(content, contentType, ts),
       createdAt: ts,
       updatedAt: ts,
     });
@@ -141,7 +166,22 @@ export class Note {
     if (!content.trim()) {
       throw new ValidationError('O conteúdo da nota não pode ser vazio.');
     }
-    this._content = normalizedContent(content, contentType);
+    const generatedName = automaticFileName(
+      this._content,
+      this._contentType,
+      this._createdAt
+    );
+    const nextContent = normalizedContent(content, contentType);
+
+    if (this._sourceFileName === generatedName) {
+      this._sourceFileName = automaticFileName(
+        nextContent,
+        contentType,
+        this._createdAt
+      );
+    }
+
+    this._content = nextContent;
     this._contentType = contentType;
     this._contentHash = undefined;
     this._updatedAt = now();
@@ -149,6 +189,20 @@ export class Note {
 
   updateContentType(contentType: NoteContentType): void {
     if (this._contentType === contentType) return;
+
+    const generatedName = automaticFileName(
+      this._content,
+      this._contentType,
+      this._createdAt
+    );
+    if (this._sourceFileName === generatedName) {
+      this._sourceFileName = automaticFileName(
+        this._content,
+        contentType,
+        this._createdAt
+      );
+    }
+
     this._contentType = contentType;
     this._updatedAt = now();
   }
@@ -156,6 +210,11 @@ export class Note {
   updateTitle(title: string | undefined): void {
     this._title = title?.trim() || undefined;
     this._updatedAt = now();
+  }
+
+  ensureUniqueSourceFileName(existingNames: ReadonlySet<string>): void {
+    if (!this._sourceFileName) return;
+    this._sourceFileName = uniqueFileName(this._sourceFileName, existingNames);
   }
 
   toData(): NoteData {

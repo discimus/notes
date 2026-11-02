@@ -24,6 +24,15 @@ export class UpdateNoteContent {
     } else {
       note.updateContent(command.content);
     }
+
+    const otherFileNames = new Set(
+      chain.notes
+        .filter((candidate) => candidate.id !== note.id)
+        .map((candidate) => candidate.sourceFileName)
+        .filter((name): name is string => Boolean(name))
+    );
+    note.ensureUniqueSourceFileName(otherFileNames);
+
     await this.chainRepo.saveNote(note);
     await this.chainRepo.saveChainOnly(chain);
 

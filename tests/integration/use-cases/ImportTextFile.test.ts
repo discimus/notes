@@ -45,8 +45,14 @@ describe('ImportTextFile', () => {
     expect(first.note?.id).not.toBe(second.note?.id);
 
     const chain = await chainRepo.findById(chainId);
-    const imported = chain?.notes.filter((note) => note.sourceFileName === 'nota.txt');
+    const imported = chain?.notes.filter((note) =>
+      note.sourceFileName?.startsWith('nota')
+    );
     expect(imported).toHaveLength(2);
+    expect(imported?.map((note) => note.sourceFileName)).toEqual([
+      'nota.txt',
+      'nota-02.txt',
+    ]);
     expect(imported?.map((note) => note.content)).toEqual([
       'conteúdo A',
       'conteúdo B',

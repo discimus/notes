@@ -154,6 +154,19 @@ function renderNote(
     role.textContent = 'Início';
     meta.appendChild(role);
   }
+
+  if (note.sourceFileName) {
+    const file = el('span', 'chain-note__file');
+    file.title = note.sourceFileName;
+    const fileIcon = el('span', 'material-symbols-rounded chain-note__file-icon');
+    fileIcon.setAttribute('aria-hidden', 'true');
+    fileIcon.textContent = 'description';
+    const fileName = el('span', 'chain-note__file-name');
+    fileName.textContent = note.sourceFileName;
+    file.append(fileIcon, fileName);
+    meta.appendChild(file);
+  }
+
   const time = el('time', 'chain-note__time');
   time.dateTime = note.createdAt;
   time.title = formatDateFull(note.createdAt);
