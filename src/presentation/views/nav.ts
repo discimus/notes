@@ -54,9 +54,9 @@ export function renderNavDrawer(): HTMLElement {
 
   const header = el('div', 'nav-drawer__header');
   header.innerHTML = `
-    <div class="nav-drawer__logo" aria-label="ThreadNotes" title="ThreadNotes">
+    <div class="nav-drawer__logo" aria-label="Notes" title="Notes">
       <span class="material-symbols-rounded" aria-hidden="true">account_tree</span>
-      <span>ThreadNotes</span>
+      <span>Notes</span>
     </div>
   `;
   drawer.appendChild(header);

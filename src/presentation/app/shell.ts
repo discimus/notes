@@ -37,7 +37,7 @@ export function renderApp(root: HTMLElement): void {
 
   const viewTitle = el('h1', 'sr-only');
   viewTitle.id = 'app-view-title';
-  viewTitle.textContent = 'ThreadNotes';
+  viewTitle.textContent = 'Notes';
   main.setAttribute('aria-labelledby', viewTitle.id);
   main.appendChild(viewTitle);
 
@@ -115,7 +115,7 @@ function updateViewTitle(element: HTMLElement, state: AppState): void {
   else if (state.view === 'chain-detail' && state.currentChain) {
     element.textContent = state.currentChain.displayTitle;
   } else {
-    element.textContent = 'ThreadNotes';
+    element.textContent = 'Notes';
   }
 }
 

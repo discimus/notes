@@ -10,7 +10,7 @@ import type { AttachmentData } from '@domain/entities/index.js';
 export const DB_NAME = 'thread-notes-db';
 export const DB_VERSION = 6;
 
-export interface ThreadNotesDB {
+export interface NotesDB {
   chains: {
     key: string;
     value: ChainData;
@@ -69,12 +69,12 @@ export interface ThreadNotesDB {
 }
 
 type UpgradeTransaction = IDBPTransaction<
-  ThreadNotesDB,
-  StoreNames<ThreadNotesDB>[],
+  NotesDB,
+  StoreNames<NotesDB>[],
   'versionchange'
 >;
 
-let _db: IDBPDatabase<ThreadNotesDB> | null = null;
+let _db: IDBPDatabase<NotesDB> | null = null;
 
 function isVersionError(error: unknown): boolean {
   return (
@@ -85,7 +85,7 @@ function isVersionError(error: unknown): boolean {
   );
 }
 
-function hasAttachmentSchema(db: IDBPDatabase<ThreadNotesDB>): boolean {
+function hasAttachmentSchema(db: IDBPDatabase<NotesDB>): boolean {
   if (
     !db.objectStoreNames.contains('attachments') ||
     !db.objectStoreNames.contains('attachmentBlobs')
@@ -106,7 +106,7 @@ function hasAttachmentSchema(db: IDBPDatabase<ThreadNotesDB>): boolean {
   }
 }
 
-function hasNoteTagSchema(db: IDBPDatabase<ThreadNotesDB>): boolean {
+function hasNoteTagSchema(db: IDBPDatabase<NotesDB>): boolean {
   if (!db.objectStoreNames.contains('noteTags')) return false;
 
   try {
@@ -124,7 +124,7 @@ function hasNoteTagSchema(db: IDBPDatabase<ThreadNotesDB>): boolean {
 }
 
 function ensureNoteTagStore(
-  db: IDBPDatabase<ThreadNotesDB>,
+  db: IDBPDatabase<NotesDB>,
   transaction: UpgradeTransaction
 ): void {
   if (!db.objectStoreNames.contains('noteTags')) {
@@ -150,7 +150,7 @@ function ensureNoteTagStore(
 }
 
 function ensureAttachmentStores(
-  db: IDBPDatabase<ThreadNotesDB>,
+  db: IDBPDatabase<NotesDB>,
   transaction: UpgradeTransaction
 ): void {
   if (!db.objectStoreNames.contains('attachments')) {
@@ -173,7 +173,7 @@ function ensureAttachmentStores(
 }
 
 function upgradeSchema(
-  db: IDBPDatabase<ThreadNotesDB>,
+  db: IDBPDatabase<NotesDB>,
   oldVersion: number,
   _newVersion: number | null,
   transaction: UpgradeTransaction
@@ -214,7 +214,7 @@ function upgradeSchema(
 const openCallbacks = {
   upgrade: upgradeSchema,
   blocked() {
-    console.warn('[ThreadNotes] Database blocked — fechando abas antigas pode ajudar.');
+    console.warn('[Notes] Database blocked — fechando abas antigas pode ajudar.');
   },
   blocking() {
     _db?.close();
@@ -225,14 +225,14 @@ const openCallbacks = {
   },
 };
 
-function openDatabase(version?: number): Promise<IDBPDatabase<ThreadNotesDB>> {
-  return openDB<ThreadNotesDB>(DB_NAME, version, openCallbacks);
+function openDatabase(version?: number): Promise<IDBPDatabase<NotesDB>> {
+  return openDB<NotesDB>(DB_NAME, version, openCallbacks);
 }
 
-export async function getDatabase(): Promise<IDBPDatabase<ThreadNotesDB>> {
+export async function getDatabase(): Promise<IDBPDatabase<NotesDB>> {
   if (_db) return _db;
 
-  let db: IDBPDatabase<ThreadNotesDB>;
+  let db: IDBPDatabase<NotesDB>;
   try {
     db = await openDatabase(DB_VERSION);
   } catch (error: unknown) {

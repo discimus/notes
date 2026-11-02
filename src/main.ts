@@ -51,11 +51,11 @@ async function bootstrap(): Promise<void> {
     renderApp(root);
     await AppController.init();
   } catch (error) {
-    console.error('[ThreadNotes] Erro ao inicializar:', error);
+    console.error('[Notes] Erro ao inicializar:', error);
     root.innerHTML = `
       <div class="fatal-error">
         <span class="fatal-error__icon material-symbols-rounded" aria-hidden="true">warning</span>
-        <p class="fatal-error__title">Erro ao inicializar o ThreadNotes</p>
+        <p class="fatal-error__title">Erro ao inicializar o Notes</p>
         <p class="fatal-error__body">
           Verifique o console para mais detalhes. Pode ser necessário limpar os dados do site.
         </p>

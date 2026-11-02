@@ -1,4 +1,4 @@
-# AGENTS.md — ThreadNotes
+# AGENTS.md — Notes
 
 SPA vanilla TS + DDD + Clean Architecture. Build: Vite 5, tsc strict. Persist: IndexedDB (`idb`). Uma dependência de runtime: `idb@8.0.1`.
 

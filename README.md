@@ -1,4 +1,4 @@
-# ThreadNotes
+# Notes
 
 Aplicação web de notas pessoais baseada no conceito de **cadeias encadeadas (chains/threads)**.
 

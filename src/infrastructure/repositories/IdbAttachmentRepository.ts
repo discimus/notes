@@ -1,5 +1,5 @@
-import type { IDBPDatabase } from 'idb';
-import type { ThreadNotesDB } from '../persistence/schema.js';
+﻿import type { IDBPDatabase } from 'idb';
+import type { NotesDB } from '../persistence/schema.js';
 import { getDatabase } from '../persistence/schema.js';
 import { Attachment } from '@domain/entities/index.js';
 import type { IAttachmentRepository } from '@domain/repositories/index.js';
@@ -13,7 +13,7 @@ function sortAttachments(attachments: Attachment[]): Attachment[] {
 }
 
 export class IdbAttachmentRepository implements IAttachmentRepository {
-  private async db(): Promise<IDBPDatabase<ThreadNotesDB>> {
+  private async db(): Promise<IDBPDatabase<NotesDB>> {
     return getDatabase();
   }
 

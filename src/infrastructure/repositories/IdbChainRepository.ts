@@ -1,5 +1,5 @@
-import type { IDBPDatabase } from 'idb';
-import type { ThreadNotesDB } from '../persistence/schema.js';
+﻿import type { IDBPDatabase } from 'idb';
+import type { NotesDB } from '../persistence/schema.js';
 import { getDatabase } from '../persistence/schema.js';
 import { Chain, Note } from '@domain/entities/index.js';
 import type { TimelineEntry } from '@domain/entities/index.js';
@@ -22,7 +22,7 @@ import { normalizeText } from '@shared/utilities/index.js';
 export class IdbChainRepository
   implements IChainRepository, ITimelineQueryRepository, ISearchQueryRepository
 {
-  private async db(): Promise<IDBPDatabase<ThreadNotesDB>> {
+  private async db(): Promise<IDBPDatabase<NotesDB>> {
     return getDatabase();
   }
 
@@ -90,7 +90,7 @@ export class IdbChainRepository
       filtered = filtered.filter((c) => chainsWithText.has(c.id));
     }
 
-    // Ordenação
+    // OrdenaÃ§Ã£o
     filtered.sort((a, b) => {
       if (sort === 'title') {
         return (a.title ?? '').localeCompare(b.title ?? '');
