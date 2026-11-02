@@ -69,7 +69,7 @@ export interface ChainDocumentHandlers {
   initialEditorMode?: 'latest' | 'blank' | 'none';
   onNoteInput: (noteTabId: string, value: string) => void;
   onContentTypeChange?: (noteTabId: string, contentType: NoteContentType) => void;
-  onSaveNote: (noteTabId: string) => void;
+  onSaveNote: (noteTabId: string, options?: { closeEditor?: boolean }) => void;
   onEditNote?: (
     noteId: string,
     options?: { focus?: boolean; preview?: boolean }
@@ -1280,7 +1280,7 @@ export function mountChainDocument(
     if (event.key !== 'Enter' || (!event.ctrlKey && !event.metaKey)) return;
     event.preventDefault();
     const active = activeNoteTab();
-    if (active) handlers.onSaveNote(active.id);
+    if (active) handlers.onSaveNote(active.id, { closeEditor: true });
   });
 
   documentAction.addEventListener('click', () => handlers.onNewDocument?.());

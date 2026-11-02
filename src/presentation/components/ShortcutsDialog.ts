@@ -7,8 +7,9 @@ const SHORTCUTS: ReadonlyArray<{ keys: readonly string[]; label: string }> = [
   { keys: ['N'], label: 'Novo documento em branco' },
   { keys: ['Shift', 'N'], label: 'Nova coleção' },
   { keys: ['Ctrl', 'K'], label: 'Pesquisar' },
-  { keys: ['Ctrl', 'S'], label: 'Salvar no editor' },
-  { keys: ['Esc'], label: 'Fechar diálogo ou sair da pesquisa' },
+  { keys: ['Ctrl', 'S'], label: 'Salvar documento ou nota' },
+  { keys: ['Ctrl', 'Enter'], label: 'Salvar nota e fechar o editor' },
+  { keys: ['Esc'], label: 'Fechar diálogo, nota ou sair da pesquisa' },
 ];
 
 export function showShortcutsDialog(): void {

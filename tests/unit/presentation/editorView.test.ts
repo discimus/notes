@@ -235,8 +235,11 @@ describe('EditorView', () => {
     const active = store.getTab(chain.id);
     if (!active || active.kind !== 'chain') throw new Error('Coleção nÃ£o encontrada');
     expect(active.noteTabs).toHaveLength(1);
-    expect(active.noteTabs[0]?.content).toBe('');
-    expect(host.querySelector<HTMLTextAreaElement>('#chain-composer-input')?.value).toBe('');
+    expect(active.noteTabs[0]?.content).toBe('Nova nota');
+    expect(active.noteTabs[0]?.editingNoteId).toBe(note.id);
+    expect(host.querySelector<HTMLTextAreaElement>('#chain-composer-input')?.value).toBe(
+      'Nova nota'
+    );
   });
 
   it('salva todas as notas pendentes ao fechar a aba da coleção', async () => {

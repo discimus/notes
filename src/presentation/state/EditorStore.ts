@@ -497,6 +497,28 @@ export class EditorStore {
     this.notify();
   }
 
+  markChainNoteTabSaved(
+    chainTabId: string,
+    noteTabId: string,
+    note: Pick<NoteDTO, 'id' | 'content' | 'contentType'>
+  ): void {
+    const tab = this.tabs.find((item) => item.id === chainTabId);
+    if (!tab || tab.kind !== 'chain') return;
+    const noteTab = tab.noteTabs.find((item) => item.id === noteTabId);
+    if (!noteTab) return;
+
+    const baseType = contentTypeOf({ contentType: note.contentType });
+    noteTab.content = note.content;
+    noteTab.contentType = baseType;
+    noteTab.editingNoteId = note.id;
+    noteTab.baseContent = note.content;
+    noteTab.baseContentType = baseType;
+    noteTab.preview = false;
+
+    this.persist();
+    this.notify();
+  }
+
   removeChainNoteTab(chainTabId: string, noteTabId: string): void {
     const tab = this.tabs.find((item) => item.id === chainTabId);
     if (!tab || tab.kind !== 'chain') return;

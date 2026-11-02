@@ -377,8 +377,13 @@ export function mountEditorView(
       onContentTypeChange: (noteTabId, contentType) => {
         store.updateChainNoteContentType(tab.id, noteTabId, contentType);
       },
-      onSaveNote: (noteTabId) => {
-        void saveChainNoteTab(tab.id, noteTabId);
+      onSaveNote: (noteTabId, options = {}) => {
+        void (async () => {
+          const saved = await saveChainNoteTab(tab.id, noteTabId);
+          if (saved && options.closeEditor) {
+            store.setChainComposerCollapsed(tab.id, true);
+          }
+        })();
       },
         onEditNote: (noteId, options = {}) => {
           const current = store.getTab(tab.id);
@@ -612,7 +617,8 @@ export function mountEditorView(
 
   const appendChainNoteTab = async (
     chainTabId: string,
-    noteTabId: string
+    noteTabId: string,
+    close = true
   ): Promise<boolean> => {
     const chainTab = store.getTab(chainTabId);
     if (!chainTab || chainTab.kind !== 'chain') return false;
@@ -635,8 +641,12 @@ export function mountEditorView(
     if (!result.ok) return false;
 
     store.appendNoteToChainTab(chainTabId, result.note);
-    store.removeChainNoteTab(chainTabId, noteTabId);
-    store.ensureChainNoteTab(chainTabId);
+    if (close) {
+      store.removeChainNoteTab(chainTabId, noteTabId);
+      store.ensureChainNoteTab(chainTabId);
+    } else {
+      store.markChainNoteTabSaved(chainTabId, noteTabId, result.note);
+    }
     return true;
   };
 
@@ -673,7 +683,8 @@ export function mountEditorView(
 
   const updateChainNoteEditTab = async (
     chainTab: ChainTab,
-    noteTab: ChainNoteTab
+    noteTab: ChainNoteTab,
+    close = true
   ): Promise<boolean> => {
     if (!noteTab.editingNoteId) return false;
 
@@ -685,16 +696,29 @@ export function mountEditorView(
     );
     if (!updated) return false;
 
-    store.removeChainNoteTab(chainTab.id, noteTab.id);
-    store.ensureChainNoteTab(chainTab.id);
+    if (close) {
+      store.removeChainNoteTab(chainTab.id, noteTab.id);
+      store.ensureChainNoteTab(chainTab.id);
+    } else {
+      const current = store.getTab(chainTab.id);
+      const savedNote =
+        current?.kind === 'chain'
+          ? current.notes.find((note) => note.id === noteTab.editingNoteId)
+          : undefined;
+      if (savedNote) {
+        store.markChainNoteTabSaved(chainTab.id, noteTab.id, savedNote);
+      }
+    }
     return true;
   };
 
   const saveChainNoteTab = async (
     chainTabId: string,
-    noteTabId: string
+    noteTabId: string,
+    options: { close?: boolean } = {}
   ): Promise<boolean> => {
     if (saving) return false;
+    const close = options.close !== false;
 
     const chainTab = store.getTab(chainTabId);
     if (!chainTab || chainTab.kind !== 'chain') return false;
@@ -713,8 +737,8 @@ export function mountEditorView(
     try {
       const editing = Boolean(noteTab.editingNoteId);
       const saved = editing
-        ? await updateChainNoteEditTab(chainTab, noteTab)
-        : await appendChainNoteTab(chainTabId, noteTabId);
+        ? await updateChainNoteEditTab(chainTab, noteTab, close)
+        : await appendChainNoteTab(chainTabId, noteTabId, close);
 
       if (saved && !editing) snackbar.success('Nota adicionada à coleção.');
       return saved;
@@ -1049,6 +1073,27 @@ export function mountEditorView(
     }
 
     if (!(event.ctrlKey || event.metaKey) || event.altKey || event.shiftKey) return;
+
+    if (event.key === 'Enter') {
+      if (document.querySelector('.dialog-backdrop')) return;
+      const active = store.getActiveTab();
+      if (active?.kind !== 'chain') return;
+
+      const noteTab = store.getActiveChainNoteTab(active.id);
+      if (!noteTab) {
+        store.ensureChainNoteTab(active.id);
+        focusChainNoteEditor(active.id);
+        return;
+      }
+
+      event.preventDefault();
+      void (async () => {
+        const saved = await saveChainNoteTab(active.id, noteTab.id, { close: true });
+        if (saved) store.setChainComposerCollapsed(active.id, true);
+      })();
+      return;
+    }
+
     if (event.key.toLowerCase() !== 's') return;
 
     event.preventDefault();
@@ -1067,7 +1112,7 @@ export function mountEditorView(
         focusChainNoteEditor(active.id);
         return;
       }
-      void saveChainNoteTab(active.id, noteTab.id);
+      void saveChainNoteTab(active.id, noteTab.id, { close: false });
       return;
     }
 

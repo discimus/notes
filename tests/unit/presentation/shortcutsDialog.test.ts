@@ -21,7 +21,7 @@ describe('ShortcutsDialog', () => {
     expect(document.querySelector('#shortcuts-title')?.textContent).toBe('Atalhos de teclado');
 
     const items = [...document.querySelectorAll('.shortcuts-list__item')];
-    expect(items).toHaveLength(5);
+    expect(items).toHaveLength(6);
     expect(items[0]?.querySelector('.shortcut-key')?.textContent).toBe('N');
     expect(items[0]?.querySelector('.shortcuts-list__label')?.textContent).toBe(
       'Novo documento em branco'
@@ -30,6 +30,12 @@ describe('ShortcutsDialog', () => {
       [...(items[1]?.querySelectorAll('.shortcut-key') ?? [])].map((key) => key.textContent)
     ).toEqual(['Shift', 'N']);
     expect(items[1]?.querySelector('.shortcuts-list__label')?.textContent).toBe('Nova coleção');
+    expect(
+      [...(items[4]?.querySelectorAll('.shortcut-key') ?? [])].map((key) => key.textContent)
+    ).toEqual(['Ctrl', 'Enter']);
+    expect(items[4]?.querySelector('.shortcuts-list__label')?.textContent).toBe(
+      'Salvar nota e fechar o editor'
+    );
     expect(document.querySelector('.shortcuts-dialog__hint')?.textContent).toContain('macOS');
   });
 
