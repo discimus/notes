@@ -427,6 +427,44 @@ function focusDraftTab(tabId: string): void {
   }
 }
 
+function focusChainComposer(tabId: string): void {
+  const focus = (): void => {
+    if (appState.get().view !== 'editor') return;
+    if (editorStore.getActiveTab()?.id !== tabId) return;
+    document.querySelector<HTMLTextAreaElement>('#chain-composer-input')?.focus();
+  };
+
+  if (typeof requestAnimationFrame === 'function') {
+    requestAnimationFrame(() => requestAnimationFrame(focus));
+  } else {
+    setTimeout(focus, 0);
+  }
+}
+
+function clickChainDocumentAction(): boolean {
+  const action = document.querySelector<HTMLButtonElement>(
+    '#chain-action-document'
+  );
+  if (!action) return false;
+  action.click();
+  return true;
+}
+
+function openChainComposer(tabId: string): void {
+  const open = (): void => {
+    if (clickChainDocumentAction()) return;
+    editorStore.setChainComposerCollapsed(tabId, false);
+    if (!editorStore.ensureChainNoteTab(tabId)) return;
+    focusChainComposer(tabId);
+  };
+
+  if (typeof requestAnimationFrame === 'function') {
+    requestAnimationFrame(() => requestAnimationFrame(open));
+  } else {
+    setTimeout(open, 0);
+  }
+}
+
 export const AppController = {
   async init(): Promise<void> {
     await loadChains();
@@ -1361,7 +1399,26 @@ export const AppController = {
   },
 
   openBlankDocument(): void {
-    if (appState.get().view !== 'editor') {
+    const state = appState.get();
+    const active = editorStore.getActiveTab();
+    if (state.view === 'editor' && active?.kind === 'chain') {
+      if (clickChainDocumentAction()) return;
+      editorStore.setChainComposerCollapsed(active.id, false);
+      if (!editorStore.ensureChainNoteTab(active.id)) return;
+      focusChainComposer(active.id);
+      return;
+    }
+
+    const detailChainId =
+      state.view === 'chain-detail' ? state.selectedChainId : null;
+    if (detailChainId) {
+      void AppController.openChainInEditor(detailChainId).then((tabId) => {
+        if (tabId) openChainComposer(tabId);
+      });
+      return;
+    }
+
+    if (state.view !== 'editor') {
       void AppController.navigateTo('editor');
     }
 

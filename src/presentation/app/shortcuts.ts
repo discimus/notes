@@ -67,6 +67,13 @@ const defaultActions: GlobalShortcutActions = {
     void AppController.navigateTo('search');
   },
   openBlankDocument: () => {
+    const documentAction = document.querySelector<HTMLButtonElement>(
+      '#chain-action-document'
+    );
+    if (documentAction) {
+      documentAction.click();
+      return;
+    }
     AppController.openBlankDocument();
   },
   openNewCollection: () => {

@@ -90,6 +90,15 @@ function isEscapeHandledByChild(event: KeyboardEvent): boolean {
   );
 }
 
+function isTextEditingTarget(target: EventTarget | null): boolean {
+  return (
+    target instanceof HTMLElement &&
+    (target.tagName === 'INPUT' ||
+      target.tagName === 'TEXTAREA' ||
+      target.isContentEditable)
+  );
+}
+
 export function mountEditorView(
   container: HTMLElement,
   store: EditorStore = editorStore
@@ -992,7 +1001,38 @@ export function mountEditorView(
   overlay.addEventListener('click', () => setSidebarOpen(false));
 
   const onKeyDown = (event: KeyboardEvent): void => {
+    if (event.defaultPrevented) return;
     if (appState.get().view !== 'editor') return;
+
+    const shortcutKey = event.key.toLowerCase();
+    if (
+      shortcutKey === 'n' &&
+      !event.ctrlKey &&
+      !event.metaKey &&
+      !event.altKey &&
+      !event.shiftKey &&
+      !event.isComposing &&
+      !event.repeat &&
+      !isTextEditingTarget(event.target) &&
+      !document.querySelector('.dialog-backdrop')
+    ) {
+      const active = store.getActiveTab();
+      if (active?.kind === 'chain') {
+        event.preventDefault();
+        const documentAction = document.querySelector<HTMLButtonElement>(
+          '#chain-action-document'
+        );
+        if (documentAction) {
+          documentAction.click();
+          return;
+        }
+
+        store.setChainComposerCollapsed(active.id, false);
+        if (!store.ensureChainNoteTab(active.id)) return;
+        focusChainNoteEditor(active.id);
+        return;
+      }
+    }
 
     if (event.key === 'Escape') {
       if (document.querySelector('.dialog-backdrop, .content-type-menu')) return;
