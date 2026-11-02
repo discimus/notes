@@ -1029,8 +1029,10 @@ function renderEntries(
       container.appendChild(dateSep);
     }
 
-    const row = el('div', 'timeline-entry timeline-entry--chain-color');
+    const row = el('div', 'timeline-entry');
     const selected = previewNoteId === entry.note.id;
+    const accent =
+      colors.get(entry.chainId) ?? 'var(--md-sys-color-outline-variant)';
     row.setAttribute('role', 'article');
     row.tabIndex = 0;
     row.dataset['noteId'] = entry.note.id;
@@ -1038,13 +1040,9 @@ function renderEntries(
     row.setAttribute('aria-current', selected ? 'true' : 'false');
     row.setAttribute(
       'aria-label',
-      `Abrir prévia da nota de ${formatDateFull(entry.note.createdAt)}`
+      `Abrir prAcvia da nota de ${formatDateFull(entry.note.createdAt)}`
     );
-    row.style.setProperty(
-      '--timeline-chain-accent',
-      colors.get(entry.chainId) ?? 'var(--md-sys-color-outline-variant)'
-    );
-
+    row.style.setProperty('--timeline-chain-accent', accent);
     const openPreview = (): void => {
       appState.set({ timelinePreviewNoteId: entry.note.id });
     };
@@ -1069,10 +1067,12 @@ function renderEntries(
     const top = el('div', 'timeline-entry__top');
     const chainLink = el('button', 'timeline-entry__chain');
     chainLink.setAttribute('aria-label', `Abrir cadeia: ${entry.chainTitle}`);
-    const chainDot = el('span', 'timeline-chain-swatch');
+    const chainDot = el(
+      'span',
+      'timeline-chain-swatch timeline-entry__chain-dot'
+    );
     chainDot.setAttribute('aria-hidden', 'true');
-    chainDot.style.backgroundColor =
-      colors.get(entry.chainId) ?? 'var(--md-sys-color-outline-variant)';
+    chainDot.style.backgroundColor = accent;
     const chainLabel = el('span', 'timeline-entry__chain-name');
     chainLabel.textContent = entry.chainTitle;
     chainLink.append(chainDot, chainLabel);
