@@ -245,9 +245,9 @@ function renderDetailPanel(container: HTMLElement, state: AppState): void {
   } else if (state.view === 'chains') {
     container.appendChild(renderEmptyDetail());
   } else if (state.view === 'archived') {
-    container.appendChild(renderEmptyDetail('archive', 'Arquivo', 'Selecione uma coleção arquivada para visualizÃ¡-la.'));
+    container.appendChild(renderEmptyDetail('archive', 'Arquivo', 'Selecione uma coleção arquivada para visualizá-la.'));
   } else if (state.view === 'trash') {
-    container.appendChild(renderEmptyDetail('delete', 'Lixeira', 'Selecione uma coleção na lixeira para gerenciÃ¡-la.'));
+    container.appendChild(renderEmptyDetail('delete', 'Lixeira', 'Selecione uma coleção na lixeira para gerenciá-la.'));
   }
 }
 
