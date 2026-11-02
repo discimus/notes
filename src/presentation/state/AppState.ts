@@ -36,6 +36,7 @@ export interface AppState {
   searchResults: SearchResultDTO[];
   searchSelectedNoteId: string | null;
   editorFocusRequest: { noteId: string; query: string } | null;
+  editorPreviewRequest: { noteId: string; query: string } | null;
   searchLoadedOffset: number;
   searchPageSize: number;
   searchHasMore: boolean;
@@ -74,6 +75,7 @@ class AppStateStore {
     searchResults: [],
     searchSelectedNoteId: null,
     editorFocusRequest: null,
+    editorPreviewRequest: null,
     searchLoadedOffset: 0,
     searchPageSize: 10,
     searchHasMore: false,

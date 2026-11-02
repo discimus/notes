@@ -386,6 +386,27 @@ async function loadTimelinePage(offset: number, mode: 'replace' | 'append'): Pro
   }
 }
 
+async function openNotePreviewInEditor(
+  chainId: string,
+  noteId: string,
+  query: string
+): Promise<void> {
+  try {
+    const detail = await getChainDetails.execute(chainId);
+    const note = detail.notes.find((item) => item.id === noteId);
+    if (!note) throw new Error('Nota nao encontrada.');
+
+    await AppController.openChainInEditor(chainId, detail);
+    appState.set({
+      editorFocusRequest: null,
+      editorPreviewRequest: { noteId, query },
+    });
+  } catch (e: unknown) {
+    appState.set({ editorFocusRequest: null, editorPreviewRequest: null });
+    snackbar.error((e as Error).message);
+  }
+}
+
 async function openNoteInEditor(
   chainId: string,
   noteId: string,
@@ -1150,7 +1171,7 @@ export const AppController = {
   },
 
   async openSearchResult(chainId: string, noteId: string): Promise<void> {
-    await openNoteInEditor(chainId, noteId, appState.get().searchQuery);
+    await openNotePreviewInEditor(chainId, noteId, appState.get().searchQuery);
   },
 
   async openTimelineResult(

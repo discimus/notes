@@ -109,6 +109,7 @@ export interface ChainDocumentView {
   setSaving: (saving: boolean) => void;
   focusNoteEditor: () => void;
   focusSearchMatch: (query: string) => void;
+  previewNote: (noteId: string, query?: string) => void;
   destroy: () => void;
 }
 
@@ -506,6 +507,7 @@ export function mountChainDocument(
 
   let currentTab = tab;
   let previewNoteId: string | null = null;
+  let previewQuery = '';
   let selectionMode = false;
   const selectedNoteIds = new Set<string>();
   const audioRecorder = createInlineAudioRecorder({
@@ -771,6 +773,7 @@ export function mountChainDocument(
       },
       {
         accent,
+        query: previewQuery,
         onClose: () => closePreview(),
         action: {
           label: 'Editar nota',
@@ -787,11 +790,13 @@ export function mountChainDocument(
 
   function closePreview(): void {
     previewNoteId = null;
+    previewQuery = '';
     syncPreview();
   }
 
-  function openPreview(noteId: string): void {
+  function openPreview(noteId: string, query = ''): void {
     previewNoteId = noteId;
+    previewQuery = query;
     syncPreview();
   }
 
@@ -2166,6 +2171,15 @@ export function mountChainDocument(
         composer.scrollTop = Math.max(0, (line - 3) * lineHeight);
       }
       activeLine.refresh();
+    },
+    previewNote: (noteId, query = '') => {
+      ensureHistoryWindowForNote(noteId);
+      openPreview(noteId, query);
+      scrollToSearchTarget(noteId);
+      requestAnimationFrame(() => {
+        if (previewNoteId !== noteId) return;
+        scrollToSearchTarget(noteId);
+      });
     },
     destroy,
   };

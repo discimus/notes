@@ -975,6 +975,24 @@ export function mountEditorView(
     });
   };
 
+  const applyEditorPreviewRequest = (): void => {
+    const request = appState.get().editorPreviewRequest;
+    if (!request) return;
+
+    const active = store.getActiveTab();
+    if (!active || active.kind !== 'chain') return;
+    if (!activeDocument || activeDocument.kind !== 'chain') return;
+    if (activeDocument.id !== active.id) return;
+
+    const documentView = activeDocument.view;
+    appState.set({ editorPreviewRequest: null });
+    requestAnimationFrame(() => {
+      const current = store.getActiveTab();
+      if (!current || current.id !== active.id) return;
+      documentView.previewNote(request.noteId, request.query);
+    });
+  };
+
   const renderSnapshot = (): void => {
     const snapshot = store.getTabsSnapshot();
 
@@ -1031,6 +1049,7 @@ export function mountEditorView(
 
     sidebarView.update(appState.get(), activeChainId(active));
     applyEditorFocusRequest();
+    applyEditorPreviewRequest();
   };
 
   newButton.addEventListener('click', createDraftTab);
@@ -1156,6 +1175,7 @@ export function mountEditorView(
       activeDocument.view.update(active);
     }
     applyEditorFocusRequest();
+    applyEditorPreviewRequest();
   });
 
   renderSnapshot();
