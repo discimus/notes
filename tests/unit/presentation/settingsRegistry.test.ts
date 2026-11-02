@@ -29,7 +29,7 @@ describe('registry de configurações', () => {
     SETTINGS_DEFINITIONS.forEach((setting) => {
       expect(setting.label.length).toBeGreaterThan(0);
       expect(setting.description.length).toBeGreaterThan(0);
-      if (setting.control === 'radio') {
+      if (setting.control === 'radio' || setting.control === 'palette') {
         expect(setting.options.length).toBeGreaterThan(1);
         expect(setting.options.some((option) => option.value === setting.defaultValue)).toBe(
           true
@@ -41,6 +41,7 @@ describe('registry de configurações', () => {
   it('filtra configurações por seção', () => {
     expect(settingsForSection('appearance').map((setting) => setting.id)).toEqual([
       'appearance.theme',
+      'appearance.palette',
       'appearance.compact-mode',
     ]);
     expect(settingsForSection('notes').map((setting) => setting.id)).toEqual([

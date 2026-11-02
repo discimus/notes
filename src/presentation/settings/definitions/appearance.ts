@@ -1,5 +1,12 @@
 import { appState } from '../../state/AppState.js';
 import { updateCompactMode } from '../../app/compactMode.js';
+import {
+  DEFAULT_PALETTE,
+  PALETTES,
+  getStoredPalette,
+  setPalette,
+  type PaletteId,
+} from '../../app/palette.js';
 import { setTheme, type ThemePreference } from '../../app/theme.js';
 import type { SettingDefinition, SettingsSection } from '../types.js';
 
@@ -41,6 +48,23 @@ export const appearanceSettings: readonly SettingDefinition[] = [
     ],
     get: () => appState.get().theme,
     set: (value) => setTheme(value as ThemePreference),
+  },
+  {
+    id: 'appearance.palette',
+    section: 'appearance',
+    control: 'palette',
+    controlId: 'settings-palette',
+    label: 'Paleta de cores',
+    description: 'Escolhe a cor principal da interface.',
+    keywords: ['cor', 'paleta', 'acento', 'tema', 'violeta'],
+    defaultValue: DEFAULT_PALETTE,
+    options: PALETTES.map((palette) => ({
+      value: palette.id,
+      label: palette.label,
+      seed: palette.seed,
+    })),
+    get: getStoredPalette,
+    set: (value) => setPalette(value as PaletteId),
   },
   {
     id: 'appearance.compact-mode',

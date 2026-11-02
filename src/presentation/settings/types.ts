@@ -15,6 +15,12 @@ export interface SettingsRadioOption {
   description?: string;
 }
 
+export interface SettingsPaletteOption {
+  value: string;
+  label: string;
+  seed: string;
+}
+
 interface SettingBase {
   id: string;
   section: SettingsSectionId;
@@ -39,6 +45,15 @@ export interface RadioSettingDefinition extends SettingBase {
   set: (value: string) => void;
 }
 
+export interface PaletteSettingDefinition extends SettingBase {
+  control: 'palette';
+  defaultValue: string;
+  options: readonly SettingsPaletteOption[];
+  get: () => string;
+  set: (value: string) => void;
+}
+
 export type SettingDefinition =
   | ToggleSettingDefinition
-  | RadioSettingDefinition;
+  | RadioSettingDefinition
+  | PaletteSettingDefinition;

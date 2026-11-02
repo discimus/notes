@@ -2,6 +2,7 @@ import { appState } from '../state/AppState.js';
 import type { AppState } from '../state/AppState.js';
 import { el } from '../dom.js';
 import { initTheme } from './theme.js';
+import { initPalette } from './palette.js';
 import { initCompactMode } from './compactMode.js';
 import { initNoteContentDisplay } from './noteContentDisplay.js';
 import { initNoteImageLayout } from './noteImageLayout.js';
@@ -18,6 +19,7 @@ import { initEditorSession, mountEditorView } from '../views/editor.js';
 
 export function renderApp(root: HTMLElement): void {
   initTheme();
+  initPalette();
   initCompactMode();
   initNoteContentDisplay();
   initNoteImageLayout();

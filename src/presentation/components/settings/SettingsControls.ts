@@ -1,5 +1,6 @@
 import { el } from '../../dom.js';
 import type {
+  PaletteSettingDefinition,
   RadioSettingDefinition,
   SettingDefinition,
   ToggleSettingDefinition,
@@ -124,11 +125,72 @@ export function renderRadioSetting(
   return group;
 }
 
+export function renderPaletteSetting(
+  setting: PaletteSettingDefinition,
+  options: SettingsControlOptions
+): HTMLElement {
+  const group = el('fieldset', 'settings-item settings-item--palette');
+  const groupId = controlId(setting);
+  const descriptionId = `${groupId}-description`;
+
+  const legend = el('legend', 'settings-item__title');
+  legend.textContent = setting.label;
+  const description = el('p', 'settings-item__description');
+  description.id = descriptionId;
+  description.textContent = setting.description;
+  group.append(legend, description);
+
+  const grid = el('div', 'settings-palette');
+  const currentValue = setting.get();
+  setting.options.forEach((option, index) => {
+    const optionId = `${groupId}-${option.value}`;
+    const label = el('label', 'settings-palette__option');
+    label.htmlFor = optionId;
+    label.title = option.label;
+    label.style.setProperty('--settings-palette-swatch', option.seed);
+
+    const input = el('input', 'settings-palette__input') as HTMLInputElement;
+    input.type = 'radio';
+    input.id = optionId;
+    input.name = groupId;
+    input.value = option.value;
+    input.checked = option.value === currentValue;
+    input.setAttribute('aria-label', option.label);
+    input.setAttribute('aria-describedby', descriptionId);
+    if (options.autofocus && (input.checked || index === 0)) {
+      input.setAttribute('data-autofocus', '');
+    }
+
+    const swatch = el('span', 'settings-palette__swatch');
+    swatch.setAttribute('aria-hidden', 'true');
+    const check = el('span', 'settings-palette__check material-symbols-rounded');
+    check.setAttribute('aria-hidden', 'true');
+    check.textContent = 'check';
+    swatch.appendChild(check);
+
+    input.addEventListener('change', () => {
+      if (!input.checked) return;
+      setting.set(option.value);
+      options.onChange(`${setting.label}: ${option.label}.`);
+    });
+
+    label.append(input, swatch);
+    grid.appendChild(label);
+  });
+
+  group.appendChild(grid);
+  return group;
+}
+
 export function renderSettingControl(
   setting: SettingDefinition,
   options: SettingsControlOptions
 ): HTMLElement {
-  return setting.control === 'toggle'
-    ? renderToggleSetting(setting, options)
-    : renderRadioSetting(setting, options);
+  if (setting.control === 'toggle') {
+    return renderToggleSetting(setting, options);
+  }
+  if (setting.control === 'radio') {
+    return renderRadioSetting(setting, options);
+  }
+  return renderPaletteSetting(setting, options);
 }
