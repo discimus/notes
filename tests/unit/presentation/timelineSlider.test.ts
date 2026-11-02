@@ -105,7 +105,30 @@ describe('Timeline slider', () => {
     expect(slider.value).toBe('1');
     expect(label.textContent).toContain('Página 2 de 3');
     expect(label.textContent).toContain('·');
+    expect(
+      label.querySelector('.timeline-slider-date__day')?.textContent
+    ).toMatch(/^\d{2}$/);
+    expect(
+      label.querySelector('.timeline-slider-date__month')?.textContent
+    ).toHaveLength(3);
     expect(slider.getAttribute('aria-valuetext')).toBe(label.textContent);
+  });
+
+  it('agrupa label e slider na coluna de notas', () => {
+    const state = makeState();
+    appState.set(state);
+    const layout = renderTimelineLayout(state);
+    const label = layout.querySelector<HTMLElement>('#timeline-page-label')!;
+    const slider = layout.querySelector<HTMLInputElement>('#timeline-slider')!;
+    const scrubber = layout.querySelector<HTMLElement>('.timeline-scrubber')!;
+    const column = layout.querySelector<HTMLElement>('.timeline-list-column')!;
+    const list = layout.querySelector<HTMLElement>('#timeline-list')!;
+
+    expect(scrubber.contains(label)).toBe(true);
+    expect(scrubber.contains(slider)).toBe(true);
+    expect(scrubber.parentElement).toBe(column);
+    expect(list.parentElement).toBe(column);
+    expect(scrubber.nextElementSibling).toBe(list);
   });
 
   it('carrega a página ao mexer no slider e reposiciona a lista', () => {

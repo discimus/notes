@@ -4,7 +4,6 @@ import type { NoteContentType } from '@application/dto/index.js';
 import { AppController } from '../pages/AppController.js';
 import { el, qs } from '../dom.js';
 import {
-  formatDateCompact,
   formatDateFull,
   formatTime,
   normalizeText,
@@ -28,6 +27,7 @@ import { snackbar } from '../components/Snackbar.js';
 import { enableMagneticDragScroll } from '../components/dragScroll.js';
 
 let queryTimer: ReturnType<typeof setTimeout> | null = null;
+let timelineOutsideClickCleanup: (() => void) | null = null;
 
 const TIMELINE_VISIBLE_TAGS = 3;
 
@@ -106,6 +106,28 @@ export function renderTimelineLayout(state: AppState): HTMLElement {
 
   const layout = el('div', 'timeline-panel');
   layout.setAttribute('id', 'timeline-layout');
+
+  timelineOutsideClickCleanup?.();
+  const onDocumentClick = (event: MouseEvent): void => {
+    if (!layout.isConnected) return;
+    const current = appState.get();
+    if (current.view !== 'timeline' || current.timelinePreviewNoteId === null) {
+      return;
+    }
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+    if (!target.closest('#timeline-list')) return;
+    if (
+      target.closest('#timeline-preview') ||
+      target.closest('.timeline-entry')
+    ) {
+      return;
+    }
+    appState.set({ timelinePreviewNoteId: null });
+  };
+  document.addEventListener('click', onDocumentClick);
+  timelineOutsideClickCleanup = () =>
+    document.removeEventListener('click', onDocumentClick);
 
   const header = el('div', 'timeline-panel__header');
   header.setAttribute('role', 'search');
@@ -226,12 +248,6 @@ export function renderTimelineLayout(state: AppState): HTMLElement {
 
     <div class="timeline-active-filters" id="timeline-active-filters"
       aria-label="Filtros ativos"></div>
-
-    <div class="timeline-slider-row" hidden>
-      <span class="timeline-slider-label" id="timeline-page-label">Todas as coleções</span>
-      <input type="range" id="timeline-slider" class="timeline-slider" min="0" max="0"
-        step="1" value="0" aria-label="Navegar pelas páginas da timeline" disabled />
-    </div>
   `;
 
   const searchRow = header.querySelector<HTMLElement>('.timeline-search-row')!;
@@ -250,6 +266,32 @@ export function renderTimelineLayout(state: AppState): HTMLElement {
   layout.appendChild(header);
 
   const content = el('div', 'timeline-panel__content');
+  const listColumn = el('div', 'timeline-list-column');
+  const scrubber = el('div', 'timeline-scrubber');
+  scrubber.setAttribute('role', 'group');
+  scrubber.setAttribute('aria-label', 'Navegação por páginas da timeline');
+
+  const pageLabel = el('span', 'timeline-slider-label');
+  pageLabel.id = 'timeline-page-label';
+  pageLabel.textContent = 'Todas as coleções';
+
+  const sliderRow = el('div', 'timeline-slider-row');
+  sliderRow.hidden = true;
+  const slider = el('input', 'timeline-slider');
+  slider.type = 'range';
+  slider.id = 'timeline-slider';
+  slider.min = '0';
+  slider.max = '0';
+  slider.step = '1';
+  slider.value = '0';
+  slider.disabled = true;
+  slider.setAttribute(
+    'aria-label',
+    'Navegar pelas páginas da timeline'
+  );
+  sliderRow.appendChild(slider);
+  scrubber.append(pageLabel, sliderRow);
+
   const list = el('div', 'timeline-panel__list');
   list.setAttribute('id', 'timeline-list');
   list.setAttribute('aria-live', 'polite');
@@ -259,7 +301,8 @@ export function renderTimelineLayout(state: AppState): HTMLElement {
   preview.setAttribute('aria-label', 'Prévia da nota');
   preview.hidden = true;
 
-  content.append(list, preview);
+  listColumn.append(scrubber, list);
+  content.append(listColumn, preview);
   layout.appendChild(content);
 
   const query = header.querySelector<HTMLInputElement>('#timeline-query')!;
@@ -287,8 +330,6 @@ export function renderTimelineLayout(state: AppState): HTMLElement {
   const chainSelector = header.querySelector<HTMLElement>('#timeline-chain-selector')!;
   const chainSearch = header.querySelector<HTMLInputElement>('#timeline-chain-search')!;
   const chainAll = header.querySelector<HTMLButtonElement>('#timeline-chain-all')!;
-  const slider = header.querySelector<HTMLInputElement>('#timeline-slider')!;
-  const pageLabel = header.querySelector<HTMLElement>('#timeline-page-label')!;
   const savedButton = header.querySelector<HTMLButtonElement>(
     '#timeline-saved-search'
   )!;
@@ -735,22 +776,31 @@ export function updateTimelineLayout(content: HTMLElement, state: AppState): voi
   const list = qs('#timeline-list', content);
   if (!header || !list) return;
 
+  const preview = qs<HTMLElement>('#timeline-preview', content);
+  const previewChanged =
+    timelinePreviewId(list) !== state.timelinePreviewNoteId;
+  if (preview && previewChanged && timelineEntriesMatch(list, state)) {
+    updateTimelineEntrySelection(list, state.timelinePreviewNoteId);
+    renderTimelinePreview(preview, state);
+    return;
+  }
+
   renderTimelineFilters(header, state);
   const chainSelector = qs<HTMLElement>('#timeline-chain-selector', header);
   const chainSearch = qs<HTMLInputElement>('#timeline-chain-search', header);
   if (chainSelector) {
     renderChainSelector(chainSelector, state, chainSearch?.value ?? '');
   }
-  updateTimelineEntries(list, state);
+  const previewAnchor = captureTimelinePreviewAnchor(list, state);
+  if (preview) renderTimelinePreview(preview, state);
+  updateTimelineEntries(list, state, previewAnchor);
   updateTimelineSummary(header, state);
-  const slider = qs<HTMLInputElement>('#timeline-slider', header);
-  const pageLabel = qs<HTMLElement>('#timeline-page-label', header);
+  const slider = qs<HTMLInputElement>('#timeline-slider', content);
+  const pageLabel = qs<HTMLElement>('#timeline-page-label', content);
   if (slider && pageLabel) {
     updateTimelineSlider(slider, pageLabel, state);
     syncTimelineSliderFromScroll(list, slider, pageLabel, state);
   }
-  const preview = qs<HTMLElement>('#timeline-preview', content);
-  if (preview) renderTimelinePreview(preview, state);
 }
 
 function renderTimelineFilters(header: HTMLElement, state: AppState): void {
@@ -1111,9 +1161,10 @@ function renderTimelinePreview(host: HTMLElement, state: AppState): void {
 
   if (!entry) {
     host.hidden = true;
-    host.replaceChildren();
+    host.setAttribute('inert', '');
     return;
   }
+  host.removeAttribute('inert');
 
   const colors = getTimelineChainColors(
     state.chainSummaries.map((chain) => chain.id)
@@ -1147,18 +1198,64 @@ function updateTimelineSliderProgress(slider: HTMLInputElement): void {
   slider.style.setProperty('--timeline-slider-progress', `${progress}%`);
 }
 
+type TimelineSliderPeriod = {
+  start: string;
+  end?: string;
+};
+
+function timelineSliderDateElement(iso: string): HTMLElement {
+  const date = new Date(iso);
+  const wrapper = el('span', 'timeline-slider-date');
+  const day = el('span', 'timeline-slider-date__day');
+  const month = el('span', 'timeline-slider-date__month');
+
+  day.textContent = String(date.getDate()).padStart(2, '0');
+  month.textContent = date
+    .toLocaleDateString('pt-BR', { month: 'short' })
+    .replace('.', '');
+  wrapper.append(day, document.createTextNode(' '), month);
+
+  if (date.getFullYear() !== new Date().getFullYear()) {
+    const year = el('span', 'timeline-slider-date__year');
+    year.textContent = String(date.getFullYear());
+    wrapper.append(document.createTextNode(' '), year);
+  }
+
+  return wrapper;
+}
+
 function setTimelineSliderLabel(
   slider: HTMLInputElement,
   label: HTMLElement,
   pageIndex: number,
   totalPages: number,
-  period = ''
+  period: TimelineSliderPeriod | null = null
 ): void {
-  label.textContent = `Página ${pageIndex + 1} de ${totalPages}${
-    period ? ` · ${period}` : ''
-  }`;
-  slider.setAttribute('aria-valuetext', label.textContent);
-  slider.title = label.textContent;
+  const page = el('span', 'timeline-slider-page');
+  page.textContent = `Página ${pageIndex + 1} de ${totalPages}`;
+  label.replaceChildren(page);
+
+  if (period) {
+    const separator = el('span', 'timeline-slider-label__separator');
+    separator.textContent = ' · ';
+    const periodElement = el('span', 'timeline-slider-period');
+    periodElement.appendChild(timelineSliderDateElement(period.start));
+
+    if (period.end && period.end !== period.start) {
+      const dash = el('span', 'timeline-slider-period__dash');
+      dash.textContent = ' – ';
+      periodElement.append(
+        dash,
+        timelineSliderDateElement(period.end)
+      );
+    }
+
+    label.append(separator, periodElement);
+  }
+
+  const text = label.textContent?.trim() ?? '';
+  slider.setAttribute('aria-valuetext', text);
+  slider.title = text;
   updateTimelineSliderProgress(slider);
 }
 
@@ -1197,19 +1294,21 @@ function updateTimelineSlider(
 
   const first = state.timelineEntries[0];
   const last = state.timelineEntries[state.timelineEntries.length - 1];
-  const range =
-    first && last
-      ? ` • ${formatDateCompact(first.note.createdAt)} – ${formatDateCompact(
-          last.note.createdAt
-        )}`
-      : '';
+  const period = first
+    ? {
+        start: first.note.createdAt,
+        ...(last && last !== first
+          ? { end: last.note.createdAt }
+          : {}),
+      }
+    : null;
 
   setTimelineSliderLabel(
     slider,
     label,
     state.timelinePageIndex,
     totalPages,
-    range
+    period
   );
 }
 
@@ -1257,11 +1356,91 @@ function syncTimelineSliderFromScroll(
     label,
     pageIndex,
     totalPages,
-    entry ? formatDateCompact(entry.note.createdAt) : ''
+    entry ? { start: entry.note.createdAt } : null
   );
 }
 
-function updateTimelineEntries(container: HTMLElement, state: AppState): void {
+type TimelinePreviewAnchor = {
+  noteId: string;
+  offset: number;
+};
+
+function timelinePreviewId(container: HTMLElement): string | null {
+  return (
+    container.querySelector<HTMLElement>('.timeline-entry--selected')
+      ?.dataset['noteId'] ?? null
+  );
+}
+
+function timelineFilterSignature(state: AppState): string {
+  return JSON.stringify({
+    filters: state.timelineFilters,
+    chains: state.timelineSelectedChainIds,
+    offset: state.timelineLoadedOffset,
+    pageSize: state.timelinePageSize,
+    total: state.timelineTotal,
+  });
+}
+
+function timelineEntriesMatch(
+  container: HTMLElement,
+  state: AppState
+): boolean {
+  if (
+    container.dataset['filterSignature'] !== timelineFilterSignature(state)
+  ) {
+    return false;
+  }
+
+  const rows = container.querySelectorAll<HTMLElement>('.timeline-entry');
+  if (rows.length !== state.timelineEntries.length) return false;
+
+  return state.timelineEntries.every(
+    (entry, index) => rows[index]?.dataset['noteId'] === entry.note.id
+  );
+}
+
+function updateTimelineEntrySelection(
+  container: HTMLElement,
+  previewNoteId: string | null
+): void {
+  container.querySelectorAll<HTMLElement>('.timeline-entry').forEach((row) => {
+    const selected = row.dataset['noteId'] === previewNoteId;
+    row.classList.toggle('timeline-entry--selected', selected);
+    row.setAttribute('aria-current', selected ? 'true' : 'false');
+  });
+}
+
+function captureTimelinePreviewAnchor(
+  container: HTMLElement,
+  state: AppState
+): TimelinePreviewAnchor | null {
+  const currentId =
+    container.querySelector<HTMLElement>('.timeline-entry--selected')?.dataset[
+      'noteId'
+    ] ?? null;
+  if (currentId === state.timelinePreviewNoteId) return null;
+
+  const noteId = state.timelinePreviewNoteId ?? currentId;
+  if (!noteId) return null;
+
+  const row = Array.from(
+    container.querySelectorAll<HTMLElement>('.timeline-entry')
+  ).find((item) => item.dataset['noteId'] === noteId);
+  if (!row) return null;
+
+  return {
+    noteId,
+    offset: row.getBoundingClientRect().top -
+      container.getBoundingClientRect().top,
+  };
+}
+
+function updateTimelineEntries(
+  container: HTMLElement,
+  state: AppState,
+  previewAnchor: TimelinePreviewAnchor | null = null
+): void {
   const previousScroll = container.scrollTop;
   const previousHeight = container.scrollHeight;
   const previousOffset = Number(
@@ -1283,6 +1462,7 @@ function updateTimelineEntries(container: HTMLElement, state: AppState): void {
 
   container.innerHTML = '';
   container.dataset['loadedOffset'] = String(state.timelineLoadedOffset);
+  container.dataset['filterSignature'] = timelineFilterSignature(state);
 
   if (state.isLoading && state.timelineEntries.length === 0) {
     container.appendChild(renderLoadingState());
@@ -1361,6 +1541,21 @@ function updateTimelineEntries(container: HTMLElement, state: AppState): void {
     container.scrollTop = container.scrollHeight;
   } else {
     container.scrollTop = previousScroll;
+  }
+
+  if (previewAnchor) {
+    const nextAnchor = Array.from(
+      container.querySelectorAll<HTMLElement>('.timeline-entry')
+    ).find((row) => row.dataset['noteId'] === previewAnchor.noteId);
+    if (nextAnchor) {
+      const nextOffset =
+        nextAnchor.getBoundingClientRect().top -
+        container.getBoundingClientRect().top;
+      container.scrollTop = Math.max(
+        0,
+        container.scrollTop + nextOffset - previewAnchor.offset
+      );
+    }
   }
 }
 
