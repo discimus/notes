@@ -404,18 +404,16 @@ export class EditorStore {
     }
 
     let insertIndex = -1;
-    if (preview) {
-      const previewIndex = tab.noteTabs.findIndex((item) => item.preview === true);
-      if (previewIndex >= 0) {
-        const previewTab = tab.noteTabs[previewIndex];
-        if (previewTab && isChainNoteTabDirty(previewTab)) {
-          previewTab.preview = false;
-        } else {
-          const removed = tab.noteTabs.splice(previewIndex, 1)[0];
-          insertIndex = previewIndex;
-          if (removed && tab.activeNoteTabId === removed.id) {
-            tab.activeNoteTabId = null;
-          }
+    const previewIndex = tab.noteTabs.findIndex((item) => item.preview === true);
+    if (previewIndex >= 0) {
+      const previewTab = tab.noteTabs[previewIndex];
+      if (previewTab && isChainNoteTabDirty(previewTab)) {
+        previewTab.preview = false;
+      } else {
+        const removed = tab.noteTabs.splice(previewIndex, 1)[0];
+        insertIndex = previewIndex;
+        if (removed && tab.activeNoteTabId === removed.id) {
+          tab.activeNoteTabId = null;
         }
       }
     }

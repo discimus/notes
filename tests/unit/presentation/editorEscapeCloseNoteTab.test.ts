@@ -200,13 +200,23 @@ describe('Editor close note edit tab with Escape', () => {
       expect(findEditTab(store, chainId, 'note-1')).toMatchObject({ preview: false });
     });
 
+    host
+      .querySelector<HTMLButtonElement>(
+        '[data-note-id="note-2"] .chain-note__edit'
+      )
+      ?.click();
+
+    await vi.waitFor(() => {
+      expect(findEditTab(store, chainId, 'note-2')).toMatchObject({ preview: false });
+    });
+
     pressEscape(composer);
 
     await vi.waitFor(() => {
-      expect(findEditTab(store, chainId, 'note-1')).toBeNull();
+      expect(findEditTab(store, chainId, 'note-2')).toBeNull();
     });
 
-    expect(findEditTab(store, chainId, 'note-2')).toMatchObject({ preview: true });
+    expect(findEditTab(store, chainId, 'note-1')).toMatchObject({ preview: false });
     const tab = store.getTab(chainId);
     if (!tab || tab.kind !== 'chain') throw new Error('Cadeia não encontrada');
     expect(tab.composerCollapsed).toBe(false);

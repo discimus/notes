@@ -148,7 +148,7 @@ describe('Chain note history outside click', () => {
     expect(findEditTab(store, chainId, 'note-2')).toBeNull();
   });
 
-  it('não fecha a aba ao usar o botão de editar de outra nota', async () => {
+  it('remove a prévia automática ao editar outra nota', async () => {
     const { store, host, chainId } = mountWithNotes([first, second]);
 
     await vi.waitFor(() => {
@@ -165,7 +165,7 @@ describe('Chain note history outside click', () => {
       expect(findEditTab(store, chainId, 'note-1')).toMatchObject({ preview: false });
     });
 
-    expect(findEditTab(store, chainId, 'note-2')).toMatchObject({ preview: true });
+    expect(findEditTab(store, chainId, 'note-2')).toBeNull();
   });
 
   it('fecha a aba de novo documento ao clicar fora do corpo', async () => {

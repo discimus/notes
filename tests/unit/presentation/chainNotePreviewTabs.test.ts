@@ -197,7 +197,12 @@ describe('Chain note preview tabs', () => {
     });
 
     expect(findEditTab(store, chainId, 'note-1')).toMatchObject({ preview: false });
-    expect(findEditTab(store, chainId, 'note-2')).toMatchObject({ preview: true });
+    expect(findEditTab(store, chainId, 'note-2')).toBeNull();
+    const chainTab = store.getTab(chainId);
+    if (!chainTab || chainTab.kind !== 'chain') {
+      throw new Error('Cadeia não encontrada');
+    }
+    expect(chainTab.noteTabs).toHaveLength(1);
   });
 
   it('promove a prévia ao editar o conteúdo e remove a marcação visual', async () => {
