@@ -16,11 +16,23 @@ import { pushNavigation } from '../app/navigation.js';
 import { getSettings } from '../app/settings.js';
 import { getAutoOpenBlankEditor } from '../app/autoOpenBlankEditor.js';
 import {
+  planTextImportBatch as planTextFileBatch,
   prepareTextImport as prepareTextFile,
-  prepareTextImportBatch as prepareTextFileBatch,
   type PreparedTextImport,
   type PreparedTextImportBatch,
+  type TextImportItem,
 } from '../app/textFileImport.js';
+import {
+  processTextImportQueue,
+  type TextImportQueueResult,
+  type TextImportQueueSnapshot,
+} from '../app/textImportQueue.js';
+import {
+  STORAGE_PERSIST_THRESHOLD_BYTES,
+  isQuotaExceededError,
+  requestPersistentStorage,
+  storageErrorMessage,
+} from '../app/storageQuota.js';
 import type {
   AddNoteAttachmentCommand,
   AttachmentDTO,
@@ -164,6 +176,7 @@ export interface AttachmentMutationSuccess {
 export type AttachmentMutationResult = AttachmentMutationSuccess | EditorSaveFailure;
 
 function editorErrorMessage(error: unknown): string {
+  if (isQuotaExceededError(error)) return storageErrorMessage(error);
   return error instanceof Error && error.message
     ? error.message
     : 'Não foi possível salvar o documento.';
@@ -770,6 +783,9 @@ export const AppController = {
     sourceCreatedAt?: ISODateString
   ): Promise<EditorAppendResult> {
     try {
+      if (content.length >= STORAGE_PERSIST_THRESHOLD_BYTES) {
+        await requestPersistentStorage();
+      }
       const note = await importTextNoteUseCase.execute({
         chainId,
         content,
@@ -797,7 +813,7 @@ export const AppController = {
     files: File[]
   ): Promise<TextImportBatchPreparationResult> {
     try {
-      return { ok: true, data: await prepareTextFileBatch(files) };
+      return { ok: true, data: await planTextFileBatch(files) };
     } catch (error: unknown) {
       return {
         ok: false,
@@ -807,6 +823,59 @@ export const AppController = {
             : 'Não foi possível preparar os documentos para importação.',
       };
     }
+  },
+
+  async importTextFileQueue(
+    chainId: string,
+    items: TextImportItem[],
+    useSourceDates: boolean,
+    onProgress?: (snapshot: TextImportQueueSnapshot) => void
+  ): Promise<TextImportQueueResult> {
+    const importedNotes: NoteDTO[] = [];
+
+    const result = await processTextImportQueue(items, {
+      importFile: async (file) => {
+        const note = await importTextNoteUseCase.execute({
+          chainId,
+          content: file.content,
+          ...(useSourceDates && file.sourceModifiedAt
+            ? { sourceCreatedAt: file.sourceModifiedAt }
+            : {}),
+        });
+        importedNotes.push(note);
+      },
+      ...(onProgress ? { onProgress } : {}),
+    });
+
+    if (importedNotes.length > 0) {
+      await Promise.allSettled([loadChains()]);
+      const chainTab = editorStore.findChainTab(chainId);
+      if (chainTab) editorStore.appendNotesToChainTab(chainTab.id, importedNotes);
+    }
+
+    if (result.succeeded > 0) {
+      snackbar.success(
+        `${result.succeeded} ${
+          result.succeeded === 1 ? 'documento importado' : 'documentos importados'
+        }.`,
+        {
+          label: 'Abrir coleção',
+          onClick: () => {
+            void AppController.openChainInEditor(chainId);
+          },
+        }
+      );
+    }
+
+    if (result.failed > 0) {
+      snackbar.error(
+        `${result.failed} ${
+          result.failed === 1 ? 'documento não foi importado' : 'documentos não foram importados'
+        }.`
+      );
+    }
+
+    return result;
   },
 
   async importTextNotes(

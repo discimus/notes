@@ -1,9 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  MAX_TEXT_IMPORT_BATCH_BYTES,
-  MAX_TEXT_IMPORT_FILES,
-  prepareTextImportBatch,
-} from '@presentation/app/textFileImport.js';
+import { prepareTextImportBatch } from '@presentation/app/textFileImport.js';
 
 function file(content: string | Uint8Array, name: string): File {
   return new File([content], name, { lastModified: Date.UTC(2024, 2, 12, 14, 30) });
@@ -34,17 +30,24 @@ describe('prepareTextImportBatch', () => {
     expect(result.valid[0]?.hasMoreLines).toBe(true);
   });
 
-  it('rejeita lote acima da quantidade máxima', async () => {
-    const files = Array.from({ length: MAX_TEXT_IMPORT_FILES + 1 }, (_, index) =>
+  it('processa lotes com mais de dez arquivos', async () => {
+    const files = Array.from({ length: 25 }, (_, index) =>
       file('texto', `${index}.txt`)
     );
 
-    await expect(prepareTextImportBatch(files)).rejects.toThrow('no máximo');
+    const result = await prepareTextImportBatch(files);
+
+    expect(result.valid).toHaveLength(25);
+    expect(result.rejected).toHaveLength(0);
   });
 
-  it('rejeita lote acima do tamanho total', async () => {
-    await expect(
-      prepareTextImportBatch([file('a'.repeat(MAX_TEXT_IMPORT_BATCH_BYTES + 1), 'grande.txt')])
-    ).rejects.toThrow('limite');
+  it('não rejeita o lote por tamanho total', async () => {
+    const result = await prepareTextImportBatch([
+      file('a'.repeat(600 * 1024), 'a.txt'),
+      file('b'.repeat(600 * 1024), 'b.txt'),
+    ]);
+
+    expect(result.valid).toHaveLength(2);
+    expect(result.rejected).toHaveLength(0);
   });
 });

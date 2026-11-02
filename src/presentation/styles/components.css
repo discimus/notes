@@ -4038,6 +4038,47 @@
   color: var(--md-sys-color-error);
   font-size: var(--md-sys-typescale-body-small-size);
 }
+.import-batch-item__status--pending {
+  color: var(--md-sys-color-on-surface-variant);
+}
+.import-batch-item--duplicate {
+  border-color: color-mix(in srgb, var(--md-sys-color-outline) 56%, var(--md-sys-color-outline-variant));
+  background-color: var(--md-sys-color-surface-container-low);
+}
+.import-queue-progress {
+  margin-bottom: var(--spacing-4);
+}
+.import-queue-progress__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-2);
+  margin-bottom: var(--spacing-2);
+}
+.import-queue-progress__label {
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: var(--md-sys-typescale-label-medium-size);
+}
+.import-queue-progress__bytes {
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: var(--md-sys-typescale-label-medium-size);
+}
+.import-queue-progress__track {
+  overflow: hidden;
+  height: 6px;
+  border-radius: var(--md-sys-shape-corner-full);
+  background-color: var(--md-sys-color-surface-container-highest);
+}
+.import-queue-progress__fill {
+  width: 0;
+  height: 100%;
+  border-radius: inherit;
+  background-color: var(--md-sys-color-primary);
+  transition: width var(--md-sys-motion-duration-short3) var(--md-sys-motion-easing-standard);
+}
+.import-queue-progress .import-dialog__support {
+  margin-bottom: 0;
+}
 @media (max-width: 768px) {
   .import-batch-list {
     max-height: 40vh;

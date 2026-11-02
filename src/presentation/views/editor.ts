@@ -30,6 +30,7 @@ import { showAppendToChainDialog } from '../components/AppendToChainDialog.js';
 import { showCloseTabDialog } from '../components/CloseTabDialog.js';
 import { showImportTextDialog } from '../components/ImportTextDialog.js';
 import { showImportTextFilesDialog } from '../components/ImportTextFilesDialog.js';
+import { showImportTextQueueDialog } from '../components/ImportTextQueueDialog.js';
 import { extensionForAudioMime } from '../components/audioRecorder.js';
 import type { RecordedAudio } from '../components/audioRecorder.js';
 import { readImageDimensions } from '../components/imageAttachmentInput.js';
@@ -144,6 +145,22 @@ export function mountEditorView(
       const prepared = await AppController.prepareTextImportBatch(files);
       if (!prepared.ok) {
         snackbar.error(prepared.error);
+        return;
+      }
+
+      const items = prepared.data.items;
+      if (items) {
+        await showImportTextQueueDialog({
+          chainTitle,
+          items,
+          run: (useSourceDates, onProgress) =>
+            AppController.importTextFileQueue(
+              chainId,
+              items,
+              useSourceDates,
+              onProgress
+            ),
+        });
         return;
       }
 

@@ -1,11 +1,10 @@
 import type { ISODateString } from '@shared/types/index.js';
 import { ValidationError } from '@shared/types/index.js';
 
-export const MAX_TEXT_IMPORT_BYTES = 256 * 1024;
-export const MAX_TEXT_IMPORT_FILES = 10;
-export const MAX_TEXT_IMPORT_BATCH_BYTES = 1024 * 1024;
+export const MAX_TEXT_IMPORT_BYTES = 50 * 1024 * 1024;
 export const TEXT_IMPORT_PREVIEW_CHARS = 12_000;
 export const TEXT_IMPORT_HEAD_LINES = 5;
+export const TEXT_IMPORT_CONCURRENCY = 5;
 
 export interface PreparedTextImport {
   fileName: string;
@@ -25,10 +24,27 @@ export interface RejectedTextImport {
   error: string;
 }
 
+export type TextImportItemStatus =
+  | 'pending'
+  | 'processing'
+  | 'imported'
+  | 'failed'
+  | 'duplicate';
+
+export interface TextImportItem {
+  index: number;
+  file: File;
+  fileName: string;
+  byteSize: number;
+  status: TextImportItemStatus;
+  error?: string | undefined;
+}
+
 export interface PreparedTextImportBatch {
   valid: PreparedTextImport[];
   rejected: RejectedTextImport[];
   totalBytes: number;
+  items?: TextImportItem[] | undefined;
 }
 
 function sourceModifiedAt(file: File): ISODateString | undefined {
@@ -46,9 +62,14 @@ export function formatFileSize(bytes: number): string {
       maximumFractionDigits: 1,
     })} KB`;
   }
-  return `${(bytes / (1024 * 1024)).toLocaleString('pt-BR', {
+  if (bytes < 1024 * 1024 * 1024) {
+    return `${(bytes / (1024 * 1024)).toLocaleString('pt-BR', {
+      maximumFractionDigits: 1,
+    })} MB`;
+  }
+  return `${(bytes / (1024 * 1024 * 1024)).toLocaleString('pt-BR', {
     maximumFractionDigits: 1,
-  })} MB`;
+  })} GB`;
 }
 
 export async function prepareTextImport(file: File): Promise<PreparedTextImport> {
@@ -98,50 +119,105 @@ export async function prepareTextImport(file: File): Promise<PreparedTextImport>
   };
 }
 
+function fileSignature(file: File): string {
+  return `${file.name.toLowerCase()}|${file.size}|${file.lastModified}`;
+}
+
+export async function planTextImportBatch(
+  files: File[]
+): Promise<PreparedTextImportBatch> {
+  if (files.length === 0) {
+    throw new ValidationError('Selecione pelo menos um documento.');
+  }
+
+  const seen = new Map<string, string>();
+  const items: TextImportItem[] = [];
+  const rejected: RejectedTextImport[] = [];
+  let totalBytes = 0;
+
+  files.forEach((file, index) => {
+    const fileName = file.name || 'documento.txt';
+    totalBytes += file.size;
+
+    let status: TextImportItemStatus = 'pending';
+    let error: string | undefined;
+
+    if (file.size <= 0) {
+      status = 'failed';
+      error = 'O arquivo está vazio.';
+    } else if (file.size > MAX_TEXT_IMPORT_BYTES) {
+      status = 'failed';
+      error = `O arquivo excede o limite de ${formatFileSize(MAX_TEXT_IMPORT_BYTES)}.`;
+    } else {
+      const signature = fileSignature(file);
+      const original = seen.get(signature);
+      if (original) {
+        status = 'duplicate';
+        error = `Arquivo duplicado de "${original}".`;
+      } else {
+        seen.set(signature, fileName);
+      }
+    }
+
+    const item: TextImportItem = {
+      index,
+      file,
+      fileName,
+      byteSize: file.size,
+      status,
+      ...(error ? { error } : {}),
+    };
+    items.push(item);
+
+    if (status !== 'pending') {
+      rejected.push({
+        fileName,
+        byteSize: file.size,
+        error: error ?? 'Não foi possível importar este documento.',
+      });
+    }
+  });
+
+  return { valid: [], rejected, totalBytes, items };
+}
+
 export async function prepareTextImportBatch(
   files: File[]
 ): Promise<PreparedTextImportBatch> {
   if (files.length === 0) {
     throw new ValidationError('Selecione pelo menos um documento.');
   }
-  if (files.length > MAX_TEXT_IMPORT_FILES) {
-    throw new ValidationError(
-      `Selecione no máximo ${MAX_TEXT_IMPORT_FILES} documentos por vez.`
-    );
-  }
 
   const totalBytes = files.reduce((total, file) => total + file.size, 0);
-  if (totalBytes > MAX_TEXT_IMPORT_BATCH_BYTES) {
-    throw new ValidationError(
-      `O lote excede o limite de ${formatFileSize(MAX_TEXT_IMPORT_BATCH_BYTES)}.`
-    );
-  }
-
-  const results = await Promise.all(
-    files.map(async (file) => {
-      try {
-        return { ok: true as const, data: await prepareTextImport(file) };
-      } catch (error: unknown) {
-        return {
-          ok: false as const,
-          rejected: {
-            fileName: file.name || 'documento.txt',
-            byteSize: file.size,
-            error:
-              error instanceof Error
-                ? error.message
-                : 'Não foi possível ler este documento.',
-          },
-        };
-      }
-    })
-  );
-
   const valid: PreparedTextImport[] = [];
   const rejected: RejectedTextImport[] = [];
-  for (const result of results) {
-    if (result.ok) valid.push(result.data);
-    else rejected.push(result.rejected);
+
+  for (let start = 0; start < files.length; start += TEXT_IMPORT_CONCURRENCY) {
+    const batch = files.slice(start, start + TEXT_IMPORT_CONCURRENCY);
+    const results = await Promise.all(
+      batch.map(async (file) => {
+        try {
+          return { ok: true as const, data: await prepareTextImport(file) };
+        } catch (error: unknown) {
+          return {
+            ok: false as const,
+            rejected: {
+              fileName: file.name || 'documento.txt',
+              byteSize: file.size,
+              error:
+                error instanceof Error
+                  ? error.message
+                  : 'Não foi possível ler este documento.',
+            },
+          };
+        }
+      })
+    );
+
+    for (const result of results) {
+      if (result.ok) valid.push(result.data);
+      else rejected.push(result.rejected);
+    }
   }
 
   return { valid, rejected, totalBytes };
