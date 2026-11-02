@@ -150,9 +150,18 @@ export class Chain {
   appendImportedText(
     content: string,
     createdAt?: ISODateString,
-    metadata?: { contentHash?: string; sourceFileName?: string }
+    metadata?: {
+      contentHash?: string;
+      sourceFileName?: string;
+      contentType?: NoteContentType;
+    }
   ): Note {
-    return this.appendNoteInternal(content, 'text', createdAt, metadata);
+    return this.appendNoteInternal(
+      content,
+      metadata?.contentType ?? 'text',
+      createdAt,
+      metadata
+    );
   }
 
   addExistingNote(note: Note): Note {

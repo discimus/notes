@@ -6,6 +6,7 @@ import type {
 import { NotFoundError } from '@shared/types/index.js';
 import { mapNoteToDTO } from '../mappers/index.js';
 import { normalizeImportedDate } from './importDate.js';
+import { importContentTypeFromFileName } from './importContentType.js';
 
 function isUniqueConstraintError(error: unknown): boolean {
   return (
@@ -41,6 +42,7 @@ export class ImportTextFile {
         ...(command.sourceFileName
           ? { sourceFileName: command.sourceFileName }
           : {}),
+        contentType: importContentTypeFromFileName(command.sourceFileName),
       }
     );
 

@@ -7,6 +7,7 @@ import type {
 import { NotFoundError, ValidationError } from '@shared/types/index.js';
 import { mapNoteToDTO } from '../mappers/index.js';
 import { normalizeImportedDate } from './importDate.js';
+import { importContentTypeFromFileName } from './importContentType.js';
 
 export class ImportTextNotes {
   constructor(private readonly chainRepo: IChainRepository) {}
@@ -48,6 +49,7 @@ export class ImportTextNotes {
           ...(document.sourceFileName
             ? { sourceFileName: document.sourceFileName }
             : {}),
+          contentType: importContentTypeFromFileName(document.sourceFileName),
         }
       )
     );

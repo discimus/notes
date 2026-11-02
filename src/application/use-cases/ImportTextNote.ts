@@ -3,6 +3,7 @@ import type { ImportTextNoteCommand, NoteDTO } from '../dto/index.js';
 import { NotFoundError } from '@shared/types/index.js';
 import { mapNoteToDTO } from '../mappers/index.js';
 import { normalizeImportedDate } from './importDate.js';
+import { importContentTypeFromFileName } from './importContentType.js';
 
 export class ImportTextNote {
   constructor(private readonly chainRepo: IChainRepository) {}
@@ -17,6 +18,7 @@ export class ImportTextNote {
       {
         ...(command.contentHash ? { contentHash: command.contentHash } : {}),
         ...(command.sourceFileName ? { sourceFileName: command.sourceFileName } : {}),
+        contentType: importContentTypeFromFileName(command.sourceFileName),
       }
     );
     await this.chainRepo.saveNote(note);

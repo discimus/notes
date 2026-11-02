@@ -8,6 +8,7 @@ import type {
 import { ValidationError } from '@shared/types/index.js';
 import { mapChainToDetail, mapNoteToDTO } from '../mappers/index.js';
 import { normalizeImportedDate } from './importDate.js';
+import { importContentTypeFromFileName } from './importContentType.js';
 
 export class ImportTextFolder {
   constructor(private readonly chainRepo: IChainRepository) {}
@@ -49,6 +50,7 @@ export class ImportTextFolder {
           ...(document.sourceFileName
             ? { sourceFileName: document.sourceFileName }
             : {}),
+          contentType: importContentTypeFromFileName(document.sourceFileName),
         }
       )
     );
