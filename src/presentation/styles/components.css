@@ -3218,6 +3218,26 @@
   height: 112px;
   object-fit: cover;
 }
+.app-shell--compact
+  .chain-note
+  .chain-note__attachment-grid
+  .chain-attachment__preview {
+  cursor: grab;
+}
+.app-shell--compact
+  .chain-note
+  .chain-note__attachment-grid.chain-note__carousel--dragging {
+  scroll-snap-type: none;
+  scroll-behavior: auto;
+  cursor: grabbing;
+  user-select: none;
+}
+.app-shell--compact
+  .chain-note
+  .chain-note__attachment-grid.chain-note__carousel--dragging
+  .chain-attachment__preview {
+  cursor: grabbing;
+}
 .app-shell--compact .chain-note__attachment-more {
   display: none;
 }

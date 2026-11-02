@@ -253,13 +253,53 @@ function mountImageCarousel(
   };
 
   let drag: DragState | null = null;
+  let inertiaFrame: number | null = null;
   let suppressClick = false;
+
+  const cancelInertia = (): void => {
+    if (inertiaFrame !== null) cancelAnimationFrame(inertiaFrame);
+    inertiaFrame = null;
+  };
+
+  const startInertia = (initialVelocity: number): void => {
+    cancelInertia();
+    let velocity = Math.max(-4, Math.min(4, initialVelocity));
+    if (Math.abs(velocity) < 0.02) {
+      grid.classList.remove('chain-note__carousel--dragging');
+      return;
+    }
+
+    let lastFrame = performance.now();
+    const step = (now: number): void => {
+      if (!grid.isConnected) {
+        inertiaFrame = null;
+        grid.classList.remove('chain-note__carousel--dragging');
+        return;
+      }
+      const elapsed = Math.min(32, Math.max(1, now - lastFrame));
+      lastFrame = now;
+      const maxScroll = Math.max(0, grid.scrollWidth - grid.clientWidth);
+      const next = Math.max(
+        0,
+        Math.min(maxScroll, grid.scrollLeft - velocity * elapsed)
+      );
+      grid.scrollLeft = next;
+      velocity *= Math.pow(0.93, elapsed / 16.67);
+      const atEdge = next === 0 || next === maxScroll;
+      if (!atEdge && Math.abs(velocity) > 0.02) {
+        inertiaFrame = requestAnimationFrame(step);
+      } else {
+        inertiaFrame = null;
+        grid.classList.remove('chain-note__carousel--dragging');
+      }
+    };
+    inertiaFrame = requestAnimationFrame(step);
+  };
 
   const endDrag = (snap: boolean): void => {
     if (!drag) return;
     const state = drag;
     drag = null;
-    grid.classList.remove('chain-note__carousel--dragging');
     window.removeEventListener('pointermove', onPointerMove);
     window.removeEventListener('pointerup', onPointerUp);
     window.removeEventListener('pointercancel', onPointerUp);
@@ -268,15 +308,20 @@ function mountImageCarousel(
       window.setTimeout(() => {
         suppressClick = false;
       }, 0);
-      if (snap) {
+      if (snap && grid.closest('.app-shell--image-column')) {
+        grid.classList.remove('chain-note__carousel--dragging');
         const width = Math.max(1, grid.clientWidth);
         const momentum = Math.max(
           -width * 0.9,
           Math.min(width * 0.9, state.velocity * 120)
         );
         scrollToIndex(Math.round((grid.scrollLeft - momentum) / width));
+        return;
       }
+      startInertia(state.velocity);
+      return;
     }
+    grid.classList.remove('chain-note__carousel--dragging');
   };
 
   const onPointerMove = (event: PointerEvent): void => {
@@ -299,7 +344,8 @@ function mountImageCarousel(
       grid.classList.add('chain-note__carousel--dragging');
     } else {
       const elapsed = Math.max(1, now - drag.lastTime);
-      drag.velocity = (event.clientX - drag.lastX) / elapsed;
+      const instantVelocity = (event.clientX - drag.lastX) / elapsed;
+      drag.velocity = drag.velocity * 0.55 + instantVelocity * 0.45;
       drag.lastX = event.clientX;
       drag.lastTime = now;
     }
@@ -318,7 +364,6 @@ function mountImageCarousel(
       drag ||
       event.button !== 0 ||
       event.pointerType === 'touch' ||
-      !grid.closest('.app-shell--image-column') ||
       grid.scrollWidth <= grid.clientWidth + 1
     ) {
       return;
@@ -328,6 +373,7 @@ function mountImageCarousel(
       return;
     }
 
+    cancelInertia();
     drag = {
       pointerId: event.pointerId,
       startX: event.clientX,
