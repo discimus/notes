@@ -79,6 +79,7 @@ export function mapChainToSummary(
     createdAt: chain.createdAt,
     updatedAt: chain.updatedAt,
     ...(chain.archivedAt ? { archivedAt: chain.archivedAt } : {}),
+    ...(chain.deletedAt ? { deletedAt: chain.deletedAt } : {}),
     tagIds,
     tags: tags as TagDTO[],
     headerExcerpt: headerNote ? excerpt(headerNote.content, 100) : '',

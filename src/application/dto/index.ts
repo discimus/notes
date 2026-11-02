@@ -69,6 +69,7 @@ export interface ChainSummaryDTO {
   createdAt: ISODateString;
   updatedAt: ISODateString;
   archivedAt?: ISODateString | undefined;
+  deletedAt?: ISODateString | undefined;
   tagIds: UUID[];
   tags: TagDTO[];
   headerExcerpt: string;
