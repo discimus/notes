@@ -1,6 +1,8 @@
 import type { AppState } from '../state/AppState.js';
+import type { TagDTO } from '@application/dto/index.js';
 import { AppController } from '../pages/AppController.js';
 import { showInputDialog } from '../components/Dialog.js';
+import { showTagMenu } from '../components/TagMenu.js';
 import { el, qs } from '../dom.js';
 import { escapeHtml } from '@shared/utilities/index.js';
 import { renderEmptyDetail } from '../components/states.js';
@@ -22,55 +24,80 @@ export function updateTagsLayout(content: HTMLElement, state: AppState): void {
 }
 
 function renderTagsContent(container: HTMLElement, state: AppState): void {
+  const page = el('div', 'tags-page');
+  const tags = [...state.allTags].sort((a, b) =>
+    a.name.localeCompare(b.name, 'pt-BR', { sensitivity: 'base' })
+  );
+
   const header = el('div', 'tags-header');
   header.appendChild(renderNavToggle());
-  container.appendChild(header);
+  const heading = el('div', 'tags-header__heading');
+  const title = el('h1', 'tags-header__title');
+  title.textContent = 'Tags';
+  const subtitle = el('p', 'tags-header__subtitle');
+  subtitle.textContent = `${tags.length} ${tags.length === 1 ? 'tag' : 'tags'}`;
+  heading.append(title, subtitle);
+  header.appendChild(heading);
+  page.appendChild(header);
 
-  if (state.allTags.length === 0) {
-    container.appendChild(renderEmptyDetail('label_off', 'Nenhuma tag ainda', 'Tags são criadas ao associá-las a cadeias ou notas no editor.'));
+  if (tags.length === 0) {
+    page.appendChild(
+      renderEmptyDetail(
+        'label_off',
+        'Nenhuma tag ainda',
+        'Tags são criadas ao associá-las a cadeias ou notas no editor.'
+      )
+    );
+    container.appendChild(page);
     return;
   }
 
-  const grid = el('div', 'tags-grid');
+  const list = el('div', 'tags-list');
+  list.setAttribute('role', 'list');
+  list.setAttribute('aria-label', 'Tags');
 
-  state.allTags.forEach((tag) => {
-    const card = el('div', 'tag-card card card--outlined');
-
-    card.innerHTML = `
-      <span class="material-symbols-rounded tag-card__icon" aria-hidden="true">label</span>
-      <div class="tag-card__content">
-        <p class="tag-card__name">${escapeHtml(tag.name)}</p>
-        <p class="tag-card__count">${tag.chainCount} cadeia${tag.chainCount !== 1 ? 's' : ''}</p>
-      </div>
-    `;
-
-    const actionsDiv = el('div', 'tag-card__actions');
-
-    const editBtn = el('button', 'btn-icon');
-    editBtn.setAttribute('aria-label', `Renomear tag ${tag.name}`);
-    editBtn.setAttribute('title', 'Renomear');
-    editBtn.innerHTML = '<span class="material-symbols-rounded" aria-hidden="true">edit</span>';
-    editBtn.addEventListener('click', async () => {
-      const newName = await showInputDialog({
-        title: 'Renomear tag',
-        label: 'Novo nome',
-        initialValue: tag.name,
-      });
-      if (newName) AppController.renameTag(tag.id, newName);
-    });
-
-    const deleteBtn = el('button', 'btn-icon tag-card__delete');
-    deleteBtn.setAttribute('aria-label', `Excluir tag ${tag.name}`);
-    deleteBtn.setAttribute('title', 'Excluir');
-    deleteBtn.innerHTML = '<span class="material-symbols-rounded" aria-hidden="true">delete</span>';
-    deleteBtn.addEventListener('click', () => AppController.deleteTagById(tag.id));
-
-    actionsDiv.appendChild(editBtn);
-    actionsDiv.appendChild(deleteBtn);
-    card.appendChild(actionsDiv);
-
-    grid.appendChild(card);
+  tags.forEach((tag) => {
+    list.appendChild(renderTagRow(tag));
   });
 
-  container.appendChild(grid);
+  page.appendChild(list);
+  container.appendChild(page);
+}
+
+function renderTagRow(tag: TagDTO): HTMLElement {
+  const row = el('div', 'tag-row');
+  row.setAttribute('role', 'listitem');
+  row.dataset['tagId'] = tag.id;
+
+  row.innerHTML = `
+    <span class="material-symbols-rounded tag-row__icon" aria-hidden="true">label</span>
+    <span class="tag-row__name">${escapeHtml(tag.name)}</span>
+    <span class="tag-row__count">${tag.chainCount} ${tag.chainCount === 1 ? 'cadeia' : 'cadeias'}</span>
+  `;
+
+  const menuButton = el('button', 'btn-icon tag-row__menu');
+  menuButton.type = 'button';
+  menuButton.setAttribute('aria-label', `Ações da tag ${tag.name}`);
+  menuButton.setAttribute('aria-haspopup', 'menu');
+  menuButton.setAttribute('aria-expanded', 'false');
+  menuButton.innerHTML =
+    '<span class="material-symbols-rounded" aria-hidden="true">more_vert</span>';
+  menuButton.addEventListener('click', (event) => {
+    showTagMenu(event, tag.name, {
+      onRename: () => renameTag(tag),
+      onDelete: () => void AppController.deleteTagById(tag.id),
+    });
+  });
+  row.appendChild(menuButton);
+
+  return row;
+}
+
+async function renameTag(tag: TagDTO): Promise<void> {
+  const newName = await showInputDialog({
+    title: 'Renomear tag',
+    label: 'Novo nome',
+    initialValue: tag.name,
+  });
+  if (newName) void AppController.renameTag(tag.id, newName);
 }

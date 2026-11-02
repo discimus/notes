@@ -1069,28 +1069,6 @@
 .icon-sm { font-size: 14px; }
 .icon-md { font-size: 16px; }
 .icon-lg { font-size: 20px; }
-.tag-card {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-3);
-  padding: var(--spacing-3) var(--spacing-4);
-  min-width: 180px;
-}
-.tag-card__icon { color: var(--md-sys-color-secondary); }
-.tag-card__content { flex: 1; min-width: 0; }
-.tag-card__name {
-  font-weight: 500;
-  font-size: 14px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.tag-card__count {
-  font-size: 12px;
-  color: var(--md-sys-color-on-surface-variant);
-}
-.tag-card__actions { display: flex; gap: 4px; }
-.tag-card__delete { color: var(--md-sys-color-error); }
 .composer__hint {
   font-size: 11px;
   color: var(--md-sys-color-on-surface-variant);
