@@ -20,7 +20,7 @@ describe('Tags em notas', () => {
     tagRepo = new InMemoryTagRepository();
   });
 
-  it('associa tag a uma nota e retorna na leitura da cadeia', async () => {
+  it('associa tag a uma nota e retorna na leitura da coleção', async () => {
     const create = new CreateChainWithHeader(chainRepo, tagRepo);
     const append = new AppendNoteToChain(chainRepo);
     const assign = new AssignTagToNote(chainRepo, tagRepo);
@@ -42,7 +42,7 @@ describe('Tags em notas', () => {
     expect(loaded.tags).toEqual([]);
   });
 
-  it('conta cadeias distintas quando a mesma tag está na cadeia e na nota', async () => {
+  it('conta coleções distintas quando a mesma tag está na coleção e na nota', async () => {
     const create = new CreateChainWithHeader(chainRepo, tagRepo);
     const assignChain = new AssignTagToChain(chainRepo, tagRepo);
     const assignNote = new AssignTagToNote(chainRepo, tagRepo);
@@ -84,7 +84,7 @@ describe('Tags em notas', () => {
     expect((await getAllTags(tagRepo)).find((item) => item.id === tag.id)).toBeTruthy();
   });
 
-  it('rejeita nota que não pertence à cadeia', async () => {
+  it('rejeita nota que não pertence à coleção', async () => {
     const create = new CreateChainWithHeader(chainRepo, tagRepo);
     const assign = new AssignTagToNote(chainRepo, tagRepo);
 

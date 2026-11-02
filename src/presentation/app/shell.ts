@@ -47,8 +47,8 @@ export function renderApp(root: HTMLElement): void {
 
   const fab = el('button', 'fab fab--fixed');
   fab.id = 'fab-new-chain';
-  fab.setAttribute('aria-label', 'Nova cadeia');
-  fab.setAttribute('title', 'Nova cadeia (N)');
+  fab.setAttribute('aria-label', 'Nova coleção');
+  fab.setAttribute('title', 'Nova coleção (N)');
   fab.innerHTML = '<span class="material-symbols-rounded" aria-hidden="true">add</span>';
   fab.addEventListener('click', () => showComposerModal());
   main.appendChild(fab);
@@ -106,7 +106,7 @@ function updateFab(fab: HTMLElement, state: AppState): void {
 
 function updateViewTitle(element: HTMLElement, state: AppState): void {
   if (state.view === 'editor') element.textContent = 'Editor';
-  else if (state.view === 'chains') element.textContent = 'Todas as cadeias';
+  else if (state.view === 'chains') element.textContent = 'Todas as coleções';
   else if (state.view === 'archived') element.textContent = 'Arquivo';
   else if (state.view === 'trash') element.textContent = 'Lixeira';
   else if (state.view === 'tags') element.textContent = 'Tags';

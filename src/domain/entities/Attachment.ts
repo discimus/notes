@@ -46,7 +46,7 @@ export interface CreateAudioAttachmentParams extends BaseAttachmentParams {
 
 function validateCommon(params: BaseAttachmentParams, maxBytes: number, label: string): void {
   if (!params.noteId) throw new ValidationError('O anexo precisa pertencer a uma nota.');
-  if (!params.chainId) throw new ValidationError('O anexo precisa pertencer a uma cadeia.');
+  if (!params.chainId) throw new ValidationError('O anexo precisa pertencer a uma coleção.');
   if (!params.fileName.trim()) throw new ValidationError('O nome do arquivo é obrigatório.');
   if (!Number.isFinite(params.byteSize) || params.byteSize <= 0) {
     throw new ValidationError('O tamanho do arquivo é inválido.');

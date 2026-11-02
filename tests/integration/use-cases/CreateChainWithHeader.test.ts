@@ -17,7 +17,7 @@ describe('Use cases — integração com repositórios em memória', () => {
   });
 
   describe('CreateChainWithHeader', () => {
-    it('deve criar cadeia com header e persistir', async () => {
+    it('deve criar coleção com header e persistir', async () => {
       const useCase = new CreateChainWithHeader(chainRepo, tagRepo);
       const result = await useCase.execute({ content: 'Minha primeira ideia' });
 
@@ -27,13 +27,13 @@ describe('Use cases — integração com repositórios em memória', () => {
       expect(result.notes[0]!.content).toBe('Minha primeira ideia');
     });
 
-    it('deve criar cadeia com título', async () => {
+    it('deve criar coleção com título', async () => {
       const useCase = new CreateChainWithHeader(chainRepo, tagRepo);
       const result = await useCase.execute({ content: 'Conteúdo', title: 'Meu Projeto' });
       expect(result.displayTitle).toBe('Meu Projeto');
     });
 
-    it('deve criar cadeia com tags', async () => {
+    it('deve criar coleção com tags', async () => {
       const useCase = new CreateChainWithHeader(chainRepo, tagRepo);
       const result = await useCase.execute({
         content: 'Ideia com tags',
@@ -45,8 +45,8 @@ describe('Use cases — integração com repositórios em memória', () => {
 
     it('deve reutilizar tag existente ao criar com mesmo nome', async () => {
       const useCase = new CreateChainWithHeader(chainRepo, tagRepo);
-      await useCase.execute({ content: 'Cadeia 1', tagNames: ['projeto'] });
-      await useCase.execute({ content: 'Cadeia 2', tagNames: ['projeto'] });
+      await useCase.execute({ content: 'Coleção 1', tagNames: ['projeto'] });
+      await useCase.execute({ content: 'Coleção 2', tagNames: ['projeto'] });
       const allTags = await tagRepo.findAll();
       expect(allTags).toHaveLength(1);
     });
@@ -58,7 +58,7 @@ describe('Use cases — integração com repositórios em memória', () => {
   });
 
   describe('AppendNoteToChain', () => {
-    it('deve anexar tail a cadeia existente', async () => {
+    it('deve anexar tail a coleção existente', async () => {
       const createUC = new CreateChainWithHeader(chainRepo, tagRepo);
       const appendUC = new AppendNoteToChain(chainRepo);
       const getUC = new GetChainDetails(chainRepo, tagRepo);
@@ -89,19 +89,19 @@ describe('Use cases — integração com repositórios em memória', () => {
       expect(detail.notes.map((n) => n.position)).toEqual([0, 1, 2, 3]);
     });
 
-    it('deve lançar erro para cadeia inexistente', async () => {
+    it('deve lançar erro para coleção inexistente', async () => {
       const appendUC = new AppendNoteToChain(chainRepo);
       await expect(appendUC.execute({ chainId: 'invalid', content: 'Tail' })).rejects.toThrow(NotFoundError);
     });
   });
 
   describe('AssignTagToChain', () => {
-    it('deve associar tag a uma cadeia', async () => {
+    it('deve associar tag a uma coleção', async () => {
       const createUC = new CreateChainWithHeader(chainRepo, tagRepo);
       const assignUC = new AssignTagToChain(chainRepo, tagRepo);
       const getUC = new GetChainDetails(chainRepo, tagRepo);
 
-      const { id } = await createUC.execute({ content: 'Cadeia sem tag' });
+      const { id } = await createUC.execute({ content: 'Coleção sem tag' });
       await assignUC.execute({ chainId: id, tagName: 'nova-tag' });
 
       const detail = await getUC.execute(id);
@@ -124,7 +124,7 @@ describe('Use cases — integração com repositórios em memória', () => {
   });
 
   describe('Archive / Delete', () => {
-    it('deve arquivar cadeia e não listá-la como ativa', async () => {
+    it('deve arquivar coleção e não listá-la como ativa', async () => {
       const createUC = new CreateChainWithHeader(chainRepo, tagRepo);
       const { ArchiveChain } = await import('../../../src/application/use-cases/ArchiveChain.js');
       const getUC = new GetChainDetails(chainRepo, tagRepo);

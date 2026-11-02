@@ -168,11 +168,11 @@ function editorErrorMessage(error: unknown): string {
 function chainTitleById(chainId: string): string {
   return (
     appState.get().chainSummaries.find((chain) => chain.id === chainId)?.displayTitle ??
-    'Cadeia'
+    'Coleção'
   );
 }
 
-/** Carrega a lista de cadeias conforme a view atual */
+/** Carrega a lista de coleções conforme a view atual */
 async function loadChains(): Promise<void> {
   const state = appState.get();
   appState.set({ isLoading: true, error: null });
@@ -196,7 +196,7 @@ async function loadTags(): Promise<void> {
   appState.set({ allTags: tags });
 }
 
-/** Abre uma cadeia e carrega seus detalhes */
+/** Abre uma coleção e carrega seus detalhes */
 async function openChain(chainId: string, push = true): Promise<void> {
   if (push) pushNavigation('chain-detail', chainId);
   appState.set({ isLoading: true, selectedChainId: chainId, view: 'chain-detail' });
@@ -205,7 +205,7 @@ async function openChain(chainId: string, push = true): Promise<void> {
     appState.set({ currentChain: detail, isLoading: false });
   } catch (e) {
     appState.set({ isLoading: false, error: String(e) });
-    snackbar.error('Não foi possível abrir a cadeia.');
+    snackbar.error('Não foi possível abrir a coleção.');
   }
 }
 
@@ -228,7 +228,7 @@ async function loadEditorChainTab(
   } catch (error: unknown) {
     editorStore.setChainTabError(tabId);
     snackbar.error(
-      error instanceof Error ? error.message : 'Não foi possível carregar a cadeia.'
+      error instanceof Error ? error.message : 'Não foi possível carregar a coleção.'
     );
   }
 }
@@ -396,7 +396,7 @@ export const AppController = {
       const result = await createEmptyChain.execute({ title });
       DraftStore.clear();
       appState.set({ chainFilterQuery: '' });
-      snackbar.success('Cadeia criada.');
+      snackbar.success('Coleção criada.');
       await loadChains();
       await AppController.openChainInEditor(result.id, result);
     } catch (e: unknown) {
@@ -450,7 +450,7 @@ export const AppController = {
   async deleteNote(chainId: string, noteId: string): Promise<boolean> {
     const confirmed = await showConfirmDialog({
       title: 'Excluir nota?',
-      body: 'A nota será removida permanentemente da cadeia, incluindo suas tags e anexos.',
+      body: 'A nota será removida permanentemente da coleção, incluindo suas tags e anexos.',
       icon: 'delete',
       confirmLabel: 'Excluir',
       destructive: true,
@@ -560,7 +560,7 @@ export const AppController = {
 
       const header = result.notes.find((note) => note.role === 'header') ?? result.notes[0];
       if (!header) {
-        throw new Error('A nova cadeia foi criada sem uma nota inicial.');
+        throw new Error('A nova coleção foi criada sem uma nota inicial.');
       }
 
       const target: EditorTarget = {
@@ -721,7 +721,7 @@ export const AppController = {
 
       const chainTitle = chainTitleById(chainId);
       snackbar.success('Documento importado.', {
-        label: 'Abrir cadeia',
+        label: 'Abrir coleção',
         onClick: () => {
           void AppController.openChainInEditor(chainId);
         },
@@ -772,7 +772,7 @@ export const AppController = {
       snackbar.success(
         `${notes.length} ${notes.length === 1 ? 'documento importado' : 'documentos importados'}.`,
         {
-          label: 'Abrir cadeia',
+          label: 'Abrir coleção',
           onClick: () => {
             void AppController.openChainInEditor(chainId);
           },
@@ -794,7 +794,7 @@ export const AppController = {
     const title =
       detail?.displayTitle ??
       appState.get().chainSummaries.find((chain) => chain.id === chainId)?.displayTitle ??
-      'Cadeia';
+      'Coleção';
 
     const tab = editorStore.openChainTab(chainId, title, {
       composerCollapsed: true,
@@ -919,8 +919,8 @@ export const AppController = {
 
   async archiveChain(chainId: string): Promise<void> {
     const confirmed = await showConfirmDialog({
-      title: 'Arquivar cadeia?',
-      body: 'A cadeia será movida para o arquivo. Você pode restaurá-la a qualquer momento.',
+      title: 'Arquivar coleção?',
+      body: 'A coleção será movida para o arquivo. Você pode restaurá-la a qualquer momento.',
       icon: 'archive',
       confirmLabel: 'Arquivar',
     });
@@ -929,7 +929,7 @@ export const AppController = {
     try {
       await archiveChain.execute(chainId);
       editorStore.closeChainTabs(chainId);
-      snackbar.success('Cadeia arquivada.', {
+      snackbar.success('Coleção arquivada.', {
         label: 'Desfazer',
         onClick: () => AppController.restoreChain(chainId),
       });
@@ -949,7 +949,7 @@ export const AppController = {
   async restoreChain(chainId: string): Promise<void> {
     try {
       await restoreChain.execute(chainId);
-      snackbar.success('Cadeia restaurada.');
+      snackbar.success('Coleção restaurada.');
       await loadChains();
     } catch (e: unknown) {
       snackbar.error((e as Error).message);
@@ -960,7 +960,7 @@ export const AppController = {
     if (getSettings().confirmBeforeTrash) {
       const confirmed = await showConfirmDialog({
         title: 'Mover para a lixeira?',
-        body: 'A cadeia será movida para a lixeira. Você pode restaurá-la ou excluí-la permanentemente.',
+        body: 'A coleção será movida para a lixeira. Você pode restaurá-la ou excluí-la permanentemente.',
         icon: 'delete',
         confirmLabel: 'Mover para lixeira',
         destructive: true,
@@ -971,7 +971,7 @@ export const AppController = {
     try {
       await deleteChain.execute(chainId, false);
       editorStore.closeChainTabs(chainId);
-      snackbar.success('Cadeia movida para a lixeira.', {
+      snackbar.success('Coleção movida para a lixeira.', {
         label: 'Desfazer',
         onClick: () => AppController.restoreFromTrash(chainId),
       });
@@ -991,7 +991,7 @@ export const AppController = {
   async permanentDelete(chainId: string): Promise<void> {
     const confirmed = await showConfirmDialog({
       title: 'Excluir permanentemente?',
-      body: 'Esta ação não pode ser desfeita. A cadeia e todas as suas notas serão removidas definitivamente.',
+      body: 'Esta ação não pode ser desfeita. A coleção e todas as suas notas serão removidas definitivamente.',
       icon: 'delete_forever',
       confirmLabel: 'Excluir',
       destructive: true,
@@ -1000,7 +1000,7 @@ export const AppController = {
     try {
       await deleteChain.execute(chainId, true);
       editorStore.closeChainTabs(chainId);
-      snackbar.success('Cadeia excluída permanentemente.');
+      snackbar.success('Coleção excluída permanentemente.');
       appState.set({ selectedChainId: null, currentChain: null });
       await loadChains();
     } catch (e: unknown) {
@@ -1011,7 +1011,7 @@ export const AppController = {
   async restoreFromTrash(chainId: string): Promise<void> {
     try {
       await restoreFromTrash.execute(chainId);
-      snackbar.success('Cadeia restaurada da lixeira.');
+      snackbar.success('Coleção restaurada da lixeira.');
       await loadChains();
     } catch (e: unknown) {
       snackbar.error((e as Error).message);
@@ -1168,7 +1168,7 @@ export const AppController = {
   async deleteTagById(tagId: string): Promise<void> {
     const confirmed = await showConfirmDialog({
       title: 'Remover tag?',
-      body: 'A tag será removida de todas as cadeias e notas, mas as cadeias não serão excluídas.',
+      body: 'A tag será removida de todas as coleções e notas, mas as coleções não serão excluídas.',
       icon: 'label_off',
       confirmLabel: 'Remover',
       destructive: true,

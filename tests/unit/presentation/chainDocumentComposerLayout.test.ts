@@ -39,7 +39,7 @@ function makeHandlers() {
   };
 }
 
-describe('Layout do compositor da cadeia', () => {
+describe('Layout do compositor da coleção', () => {
   let view: ChainDocumentView | null = null;
 
   beforeEach(() => {

@@ -45,7 +45,7 @@ function renderTagsContent(container: HTMLElement, state: AppState): void {
       renderEmptyDetail(
         'label_off',
         'Nenhuma tag ainda',
-        'Tags são criadas ao associá-las a cadeias ou notas no editor.'
+        'Tags são criadas ao associá-las a coleções ou notas no editor.'
       )
     );
     container.appendChild(page);
@@ -72,7 +72,7 @@ function renderTagRow(tag: TagDTO): HTMLElement {
   row.innerHTML = `
     <span class="material-symbols-rounded tag-row__icon" aria-hidden="true">label</span>
     <span class="tag-row__name">${escapeHtml(tag.name)}</span>
-    <span class="tag-row__count">${tag.chainCount} ${tag.chainCount === 1 ? 'cadeia' : 'cadeias'}</span>
+    <span class="tag-row__count">${tag.chainCount} ${tag.chainCount === 1 ? 'coleção' : 'coleções'}</span>
   `;
 
   const menuButton = el('button', 'btn-icon tag-row__menu');

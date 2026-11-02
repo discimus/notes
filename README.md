@@ -1,6 +1,6 @@
 # Notes
 
-Aplicação web de notas pessoais baseada no conceito de **cadeias encadeadas (chains/threads)**.
+Aplicação web de notas pessoais baseada no conceito de **coleções encadeadas (chains/threads)**.
 
 ## Pré-requisitos
 
@@ -40,7 +40,7 @@ npm run test:coverage
 
 | Atalho | Ação |
 |--------|------|
-| `N` | Nova cadeia (fora de campos de texto) |
+| `N` | Nova coleção (fora de campos de texto) |
 | `Ctrl+K` | Abrir pesquisa |
 | `Ctrl+Enter` | Salvar nota no compositor |
 | `Escape` | Fechar modal / voltar à lista |
@@ -61,15 +61,15 @@ src/
 - `Chain` é o agregado raiz — garante invariantes de unicidade do header
 - `NotePosition` é um Value Object que assegura ordenação determinística
 - `TagName` normaliza nomes insensíveis a maiúsculas e acentos
-- `TimelineView` é um modelo de leitura — não altera as cadeias originais
+- `TimelineView` é um modelo de leitura — não altera as coleções originais
 - `INoteClassifier` é o ponto de extensão para classificadores IA futuros
 
 ### Invariantes implementadas
 
-1. Toda cadeia possui exatamente um header
+1. Toda coleção possui exatamente um header
 2. Tails são sempre adicionadas ao final (posição = notes.length)
-3. Uma nota pertence a exatamente uma cadeia
-4. Cadeias arquivadas não aceitam novas notas
+3. Uma nota pertence a exatamente uma coleção
+4. Coleções arquivadas não aceitam novas notas
 5. Tags são normalizadas (sem duplicatas por capitalização/acentos)
 6. Tags associadas a headers, não diretamente a tails
 
@@ -92,4 +92,4 @@ Stores: `chains`, `notes`, `tags`, `chainTags`.
 3. Adicionar exportação/importação JSON
 4. Implementar sincronização de estado entre abas (BroadcastChannel)
 5. Adicionar suporte a Markdown no conteúdo das notas
-6. Implementar relações entre cadeias (referências cruzadas)
+6. Implementar relações entre coleções (referências cruzadas)

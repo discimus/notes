@@ -61,7 +61,7 @@ describe('entradas móveis da navegação', () => {
     expect(host.querySelector('.editor-tabbar > .nav-toggle')).not.toBeNull();
   });
 
-  it('mantém o toggle e as ações no header do detalhe da cadeia', () => {
+  it('mantém o toggle e as ações no header do detalhe da coleção', () => {
     const host = document.getElementById('host') as HTMLElement;
     appState.set({
       view: 'chain-detail',

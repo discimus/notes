@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { NoteTag } from '@domain/entities/index.js';
 
 describe('NoteTag', () => {
-  it('cria associação entre nota, cadeia e tag', () => {
+  it('cria associação entre nota, coleção e tag', () => {
     const noteTag = NoteTag.create('note-1', 'chain-1', 'tag-1');
 
     expect(noteTag.noteId).toBe('note-1');

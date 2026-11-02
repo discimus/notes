@@ -37,7 +37,7 @@ describe('EditorSidebar file drop', () => {
     document.body.innerHTML = '';
   });
 
-  it('destaca a cadeia e encaminha o arquivo externo', () => {
+  it('destaca a coleção e encaminha o arquivo externo', () => {
     const onImportFiles = vi.fn();
     const view = mountEditorSidebar({
       onOpenChain: vi.fn(),

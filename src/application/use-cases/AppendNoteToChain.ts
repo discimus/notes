@@ -4,7 +4,7 @@ import { NotFoundError, InvariantViolationError } from '@shared/types/index.js';
 import { mapNoteToDTO } from '../mappers/index.js';
 
 /**
- * Caso de uso: Anexa uma nota ao final de uma cadeia existente.
+ * Caso de uso: Anexa uma nota ao final de uma coleção existente.
  */
 export class AppendNoteToChain {
   constructor(private readonly chainRepo: IChainRepository) {}
@@ -15,7 +15,7 @@ export class AppendNoteToChain {
       throw new NotFoundError('Chain', command.chainId);
     }
     if (chain.isDeleted()) {
-      throw new InvariantViolationError('Não é possível adicionar notas a uma cadeia excluída.');
+      throw new InvariantViolationError('Não é possível adicionar notas a uma coleção excluída.');
     }
 
     const note = chain.appendNote(command.content, command.contentType);

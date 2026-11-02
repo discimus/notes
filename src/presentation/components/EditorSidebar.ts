@@ -21,20 +21,20 @@ export interface EditorSidebarView {
 export function mountEditorSidebar(handlers: EditorSidebarHandlers): EditorSidebarView {
   const sidebar = el('aside', 'editor-sidebar');
   sidebar.id = 'editor-sidebar';
-  sidebar.setAttribute('aria-label', 'Cadeias');
+  sidebar.setAttribute('aria-label', 'Coleções');
 
   const header = el('div', 'editor-sidebar__header');
   header.innerHTML = `
     <div class="editor-sidebar__title-row">
-      <h2 class="editor-sidebar__title">Cadeias</h2>
-      <button class="btn-icon btn-icon--primary" id="editor-new-chain" type="button" aria-label="Nova cadeia (N)" title="Nova cadeia (N)">
+      <h2 class="editor-sidebar__title">Coleções</h2>
+      <button class="btn-icon btn-icon--primary" id="editor-new-chain" type="button" aria-label="Nova coleção (N)" title="Nova coleção (N)">
         <span class="material-symbols-rounded" aria-hidden="true">add</span>
       </button>
     </div>
     <div class="search-bar editor-sidebar__search">
       <span class="search-bar__icon material-symbols-rounded" aria-hidden="true">search</span>
       <input type="search" class="search-bar__input" id="editor-sidebar-search"
-        placeholder="Filtrar cadeias…" aria-label="Filtrar cadeias" autocomplete="off" />
+        placeholder="Filtrar coleções…" aria-label="Filtrar coleções" autocomplete="off" />
       <button class="btn-icon search-bar__clear" id="editor-sidebar-clear" type="button" aria-label="Limpar filtro" hidden>
         <span class="material-symbols-rounded" aria-hidden="true">close</span>
       </button>
@@ -45,7 +45,7 @@ export function mountEditorSidebar(handlers: EditorSidebarHandlers): EditorSideb
   const list = el('div', 'editor-sidebar__list');
   list.id = 'editor-sidebar-list';
   list.setAttribute('role', 'list');
-  list.setAttribute('aria-label', 'Lista de cadeias');
+  list.setAttribute('aria-label', 'Lista de coleções');
   sidebar.appendChild(list);
 
   const search = header.querySelector<HTMLInputElement>('#editor-sidebar-search')!;
@@ -132,8 +132,8 @@ export function mountEditorSidebar(handlers: EditorSidebarHandlers): EditorSideb
       list.appendChild(
         renderEmptyDetail(
           'account_tree',
-          'Nenhuma cadeia ainda',
-          'Crie sua primeira cadeia pelo botão + acima.'
+          'Nenhuma coleção ainda',
+          'Crie sua primeira coleção pelo botão + acima.'
         )
       );
       return;
@@ -148,7 +148,7 @@ export function mountEditorSidebar(handlers: EditorSidebarHandlers): EditorSideb
       list.appendChild(
         renderEmptyDetail(
           'search_off',
-          'Nenhuma cadeia encontrada',
+          'Nenhuma coleção encontrada',
           `Nada corresponde a "${state.chainFilterQuery}".`
         )
       );

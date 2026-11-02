@@ -15,7 +15,7 @@ describe('GetTimelinePage', () => {
     tagRepo = new InMemoryTagRepository();
   });
 
-  it('retorna página vazia sem cadeias', async () => {
+  it('retorna página vazia sem coleções', async () => {
     const uc = new GetTimelinePage(chainRepo, tagRepo);
     const result = await uc.execute({ chainIds: [], offset: 0, limit: 50 });
 

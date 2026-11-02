@@ -66,9 +66,9 @@ describe('Anexos de nota', () => {
     expect(await getBlob.execute(image.id)).toBeNull();
   });
 
-  it('anexa ao final da cadeia quando noteId não é informado', async () => {
+  it('anexa ao final da coleção quando noteId não é informado', async () => {
     const chain = await chainRepo.findById(chainId);
-    if (!chain) throw new Error('Cadeia não encontrada');
+    if (!chain) throw new Error('Coleção não encontrada');
     const firstTail = chain.appendNote('Primeira tail');
     const lastTail = chain.appendNote('Última tail');
     await chainRepo.save(chain, [firstTail, lastTail]);
@@ -96,7 +96,7 @@ describe('Anexos de nota', () => {
 
   it('anexa mídia a uma nota antiga sem criar uma nova nota', async () => {
     const chain = await chainRepo.findById(chainId);
-    if (!chain) throw new Error('Cadeia não encontrada');
+    if (!chain) throw new Error('Coleção não encontrada');
     const tail = chain.appendNote('Nota mais recente');
     await chainRepo.save(chain, [tail]);
 
@@ -111,7 +111,7 @@ describe('Anexos de nota', () => {
     });
 
     const after = await chainRepo.findById(chainId);
-    if (!after) throw new Error('Cadeia não encontrada');
+    if (!after) throw new Error('Coleção não encontrada');
     expect(after.notes).toHaveLength(2);
     expect(after.notes.find((note) => note.id === noteId)?.content).toBe(
       'Nota com anexos'
@@ -149,9 +149,9 @@ describe('Anexos de nota', () => {
     });
   });
 
-  it('não anexa em cadeia arquivada', async () => {
+  it('não anexa em coleção arquivada', async () => {
     const chain = await chainRepo.findById(chainId);
-    if (!chain) throw new Error('Cadeia não encontrada');
+    if (!chain) throw new Error('Coleção não encontrada');
     chain.archive();
     await chainRepo.saveChainOnly(chain);
 

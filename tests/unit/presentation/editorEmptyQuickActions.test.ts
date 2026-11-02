@@ -34,7 +34,7 @@ describe('Editor empty state quick actions', () => {
     return host;
   }
 
-  it('substitui o botão único pelas ações rápidas da cadeia', () => {
+  it('substitui o botão único pelas ações rápidas da coleção', () => {
     const host = mountEmpty(new EditorStore());
     const panel = host.querySelector<HTMLElement>('#editor-panel');
     const group = panel?.querySelector<HTMLElement>('.chain-quick-actions');

@@ -16,15 +16,15 @@ Repositórios aqui são **interfaces**. Implementações concretas ficam em `src
 `Chain` é o único agregado. Todas as operações sobre `Note` passam por ele.
 
 **Invariantes obrigatórias:**
-1. Cadeias com `headerNoteId` têm **exatamente um** header (`role: 'header'`, `position: 0`).
-2. Cadeias novas criadas por `Chain.create({ title })` são **headerless**: zero headers e `headerNoteId` ausente.
-3. Tails têm `position > 0` e são sempre adicionadas ao final. Em cadeia headerless, a primeira tail usa posição `1`.
-4. Uma cadeia arquivada (`archivedAt` definido) não aceita novas notas.
-5. Uma cadeia excluída (`deletedAt` definido) não aceita novas notas nem pode ser arquivada.
+1. Coleções com `headerNoteId` têm **exatamente um** header (`role: 'header'`, `position: 0`).
+2. Coleções novas criadas por `Chain.create({ title })` são **headerless**: zero headers e `headerNoteId` ausente.
+3. Tails têm `position > 0` e são sempre adicionadas ao final. Em coleção headerless, a primeira tail usa posição `1`.
+4. Uma coleção arquivada (`archivedAt` definido) não aceita novas notas.
+5. Uma coleção excluída (`deletedAt` definido) não aceita novas notas nem pode ser arquivada.
 
 **Criação — via fábrica estática:**
 ```typescript
-// ✅ cadeia nova apenas com título — headerless
+// ✅ coleção nova apenas com título — headerless
 const chain = Chain.create({ title });
 
 // ✅ fluxo legado/interno — cria chain + header atomicamente
@@ -63,7 +63,7 @@ Não existe transição direta `arquivado → lixeira`. O código lança `Invari
 
 - `Chain.appendImportedText(content, createdAt?)` cria sempre uma tail `text`.
 - `Note.createTail` aceita `createdAt` opcional para importação; `updatedAt` usa a mesma data.
-- A posição continua sendo o final da cadeia; a data de origem não altera `position`.
+- A posição continua sendo o final da coleção; a data de origem não altera `position`.
 - `createdAt` inválido, futuro ou ausente deve ser normalizado pela camada de aplicação/importação.
 - `ImportTextNotes` anexa múltiplas tails na ordem recebida e persiste o lote uma única vez.
 

@@ -135,7 +135,7 @@ describe('EditorView', () => {
     );
   });
 
-  it('recolhe o rodapÃ© de notas e amplia a leitura da cadeia', () => {
+  it('recolhe o rodapÃ© de notas e amplia a leitura da coleção', () => {
     const store = new EditorStore();
     const host = mount(store);
     const chain = store.openChainTab('chain-1', 'Projeto principal');
@@ -162,7 +162,7 @@ describe('EditorView', () => {
     ).toBe(false);
   });
 
-  it('pede uma cadeia no primeiro salvamento e vincula o rascunho', async () => {
+  it('pede uma coleção no primeiro salvamento e vincula o rascunho', async () => {
     const store = new EditorStore();
     const host = mount(store);
     const textarea = host.querySelector<HTMLTextAreaElement>('#draft-textarea');
@@ -205,7 +205,7 @@ describe('EditorView', () => {
     );
   });
 
-  it('abre cadeia do store e adiciona nota pelo compositor', async () => {
+  it('abre coleção do store e adiciona nota pelo compositor', async () => {
     const store = new EditorStore();
     const host = mount(store);
 
@@ -233,13 +233,13 @@ describe('EditorView', () => {
 
     expect(append).toHaveBeenCalledWith('chain-1', 'Nova nota');
     const active = store.getTab(chain.id);
-    if (!active || active.kind !== 'chain') throw new Error('Cadeia nÃ£o encontrada');
+    if (!active || active.kind !== 'chain') throw new Error('Coleção nÃ£o encontrada');
     expect(active.noteTabs).toHaveLength(1);
     expect(active.noteTabs[0]?.content).toBe('');
     expect(host.querySelector<HTMLTextAreaElement>('#chain-composer-input')?.value).toBe('');
   });
 
-  it('salva todas as notas pendentes ao fechar a aba da cadeia', async () => {
+  it('salva todas as notas pendentes ao fechar a aba da coleção', async () => {
     const store = new EditorStore();
     const host = mount(store);
     const chain = store.openChainTab('chain-1', 'Projeto principal');

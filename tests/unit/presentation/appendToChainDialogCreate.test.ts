@@ -22,18 +22,18 @@ function typeSearch(value: string): HTMLInputElement {
   return search;
 }
 
-describe('AppendToChainDialog — criar cadeia', () => {
+describe('AppendToChainDialog — criar coleção', () => {
   beforeEach(() => {
     document.body.innerHTML = '';
   });
 
-  it('oferece criar com o texto digitado e retorna a nova cadeia', async () => {
+  it('oferece criar com o texto digitado e retorna a nova coleção', async () => {
     const result = showAppendToChainDialog({ chains: [chain] });
     typeSearch('Nova ideia');
 
     const create = document.querySelector<HTMLButtonElement>('.save-chain-create');
     expect(create).not.toBeNull();
-    expect(create?.textContent).toContain('Criar cadeia');
+    expect(create?.textContent).toContain('Criar coleção');
     expect(create?.textContent).toContain('Nova ideia');
 
     create?.click();
@@ -62,7 +62,7 @@ describe('AppendToChainDialog — criar cadeia', () => {
 
   it('cria com Enter quando não há correspondência exata', async () => {
     const result = showAppendToChainDialog({ chains: [chain] });
-    const search = typeSearch('Outra cadeia');
+    const search = typeSearch('Outra coleção');
 
     search.dispatchEvent(
       new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })
@@ -70,14 +70,14 @@ describe('AppendToChainDialog — criar cadeia', () => {
 
     await expect(result).resolves.toEqual({
       chainId: null,
-      chainTitle: 'Outra cadeia',
-      createTitle: 'Outra cadeia',
+      chainTitle: 'Outra coleção',
+      createTitle: 'Outra coleção',
     });
   });
 
-  it('permite criar quando não existe nenhuma cadeia', async () => {
+  it('permite criar quando não existe nenhuma coleção', async () => {
     const result = showAppendToChainDialog({ chains: [] });
-    const search = typeSearch('  Primeira cadeia  ');
+    const search = typeSearch('  Primeira coleção  ');
 
     expect(document.querySelector('.save-chain-create')).not.toBeNull();
     search.dispatchEvent(
@@ -86,8 +86,8 @@ describe('AppendToChainDialog — criar cadeia', () => {
 
     await expect(result).resolves.toEqual({
       chainId: null,
-      chainTitle: 'Primeira cadeia',
-      createTitle: 'Primeira cadeia',
+      chainTitle: 'Primeira coleção',
+      createTitle: 'Primeira coleção',
     });
   });
 });

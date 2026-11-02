@@ -55,7 +55,7 @@ describe('ChainDocument file import', () => {
     });
   });
 
-  it('oferece seletor acessível e aceita drop na área da cadeia', () => {
+  it('oferece seletor acessível e aceita drop na área da coleção', () => {
     const onImportFiles = vi.fn();
     const view = mountChainDocument(makeTab(), {
       onNoteInput: vi.fn(),
@@ -67,7 +67,7 @@ describe('ChainDocument file import', () => {
     });
 
     const importButton = view.element.querySelector<HTMLButtonElement>(
-      '[aria-label="Importar documento para esta cadeia"]'
+      '[aria-label="Importar documento para esta coleção"]'
     );
     const fileInput = view.element.querySelector<HTMLInputElement>('#chain-file-input');
     expect(importButton).not.toBeNull();

@@ -4,12 +4,12 @@ import type { Chain } from '../entities/index.js';
 
 /**
  * Serviço de domínio: TimelineService.
- * Combina notas de múltiplas cadeias em uma visualização cronológica.
+ * Combina notas de múltiplas coleções em uma visualização cronológica.
  * Operação de leitura — não altera estruturas originais.
  */
 export class TimelineService {
   /**
-   * Cria uma visualização combinada a partir de múltiplas cadeias.
+   * Cria uma visualização combinada a partir de múltiplas coleções.
    * As notas são ordenadas por createdAt com desempate por chainId+noteId.
    */
   createCombinedView(chains: Chain[], filter: TimelineFilter): TimelineView {

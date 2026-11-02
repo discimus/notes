@@ -294,17 +294,17 @@ export function mountChainDocument(
   const root = el('section', 'chain-document');
   root.id = 'editor-panel';
   root.setAttribute('role', 'tabpanel');
-  root.setAttribute('aria-label', `Cadeia ${tab.title}`);
+  root.setAttribute('aria-label', `Coleção ${tab.title}`);
   root.setAttribute('aria-labelledby', `editor-tab-${tab.id}`);
 
   root.innerHTML = `
     <header class="chain-document__header">
       <div class="chain-document__meta">
-        <div class="chain-document__tags" id="chain-tags" aria-label="Tags da cadeia"></div>
+        <div class="chain-document__tags" id="chain-tags" aria-label="Tags da coleção"></div>
         <span class="chain-document__count" id="chain-note-count"></span>
         <div class="chain-document__actions">
           <button class="btn-icon" id="chain-import-file" type="button"
-            aria-label="Importar documento para esta cadeia" title="Importar documento">
+            aria-label="Importar documento para esta coleção" title="Importar documento">
             <span class="material-symbols-rounded" aria-hidden="true">upload_file</span>
           </button>
           <input id="chain-file-input" type="file" multiple hidden />
@@ -331,12 +331,12 @@ export function mountChainDocument(
 
         <div class="chain-note-editor" id="chain-note-panel" role="tabpanel">
           <textarea class="chain-composer__input" id="chain-composer-input"
-            placeholder="Escreva uma nova nota para esta cadeia..."
+            placeholder="Escreva uma nova nota para esta coleção..."
             aria-label="Conteúdo da nota"></textarea>
           <div class="chain-note-empty" id="chain-note-empty" hidden>
             <span class="material-symbols-rounded chain-note-empty__icon" aria-hidden="true">edit_note</span>
             <p class="chain-note-empty__title">Nenhuma nota em edição</p>
-            <p class="chain-note-empty__body">Crie um novo documento para adicionar à cadeia.</p>
+            <p class="chain-note-empty__body">Crie um novo documento para adicionar à coleção.</p>
             <button class="btn btn-tonal" id="chain-note-empty-new" type="button">
               <span class="material-symbols-rounded" aria-hidden="true">add</span>
               Novo documento
@@ -377,7 +377,7 @@ export function mountChainDocument(
 
     <div class="chain-document__drop-overlay" id="chain-drop-overlay" hidden aria-hidden="true">
       <span class="material-symbols-rounded chain-document__drop-icon" aria-hidden="true">upload_file</span>
-      <span class="chain-document__drop-text">Solte para importar nesta cadeia</span>
+      <span class="chain-document__drop-text">Solte para importar nesta coleção</span>
     </div>
   `;
 
@@ -842,7 +842,7 @@ export function mountChainDocument(
       history.innerHTML = '';
       const error = renderEmptyDetail(
         'error',
-        'Não foi possível carregar a cadeia',
+        'Não foi possível carregar a coleção',
         'Verifique a conexão com os dados locais e tente novamente.'
       );
       const retry = el('button', 'btn btn-text');
@@ -938,10 +938,10 @@ export function mountChainDocument(
     quickAudio.disabled = !hasNotes;
 
     if (hasNotes) {
-      quickImage.title = 'Adicionar imagem ao final da cadeia';
-      quickImage.setAttribute('aria-label', 'Adicionar imagem ao final da cadeia');
-      quickAudio.title = 'Gravar áudio para o final da cadeia';
-      quickAudio.setAttribute('aria-label', 'Gravar áudio para o final da cadeia');
+      quickImage.title = 'Adicionar imagem ao final da coleção';
+      quickImage.setAttribute('aria-label', 'Adicionar imagem ao final da coleção');
+      quickAudio.title = 'Gravar áudio para o final da coleção';
+      quickAudio.setAttribute('aria-label', 'Gravar áudio para o final da coleção');
     } else {
       quickImage.title = 'Em breve';
       quickImage.setAttribute('aria-label', 'Imagem, em breve');
@@ -1098,7 +1098,7 @@ export function mountChainDocument(
           : 'Escreva uma nota em Markdown...'
         : editing
           ? 'Edite a nota...'
-          : 'Escreva uma nova nota para esta cadeia...';
+          : 'Escreva uma nova nota para esta coleção...';
     panel.setAttribute('aria-labelledby', `editor-tab-${noteTab.id}`);
     save.disabled = savingState;
     composer.disabled = savingState;
@@ -1330,7 +1330,7 @@ export function mountChainDocument(
       periodStatus.textContent = '';
     }
     currentTab = tabValue;
-    root.setAttribute('aria-label', `Cadeia ${tabValue.title}`);
+    root.setAttribute('aria-label', `Coleção ${tabValue.title}`);
     root.dataset['chainId'] = tabValue.chainId;
 
     syncComposerState(tabValue);

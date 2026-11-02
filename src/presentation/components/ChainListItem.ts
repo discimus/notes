@@ -22,7 +22,7 @@ export function renderChainListItem(
   item.dataset['chainId'] = chain.id;
   item.setAttribute('role', 'listitem');
   item.setAttribute('tabindex', '0');
-  item.setAttribute('aria-label', `Cadeia: ${chain.displayTitle}${pinnedLabel}`);
+  item.setAttribute('aria-label', `Coleção: ${chain.displayTitle}${pinnedLabel}`);
   item.setAttribute('aria-current', isActive ? 'true' : 'false');
   item.title = options.onOpenPinned
     ? `${chain.displayTitle} — clique duas vezes para manter a aba aberta`
@@ -46,8 +46,8 @@ export function renderChainListItem(
     const pin = el('button', 'chain-item__pin');
     pin.type = 'button';
     pin.setAttribute('aria-pressed', pinned ? 'true' : 'false');
-    pin.setAttribute('aria-label', `${pinned ? 'Desafixar' : 'Fixar'} cadeia ${chain.displayTitle}`);
-    pin.title = pinned ? 'Desafixar cadeia' : 'Fixar cadeia';
+    pin.setAttribute('aria-label', `${pinned ? 'Desafixar' : 'Fixar'} coleção ${chain.displayTitle}`);
+    pin.title = pinned ? 'Desafixar coleção' : 'Fixar coleção';
     pin.innerHTML =
       '<span class="material-symbols-rounded" aria-hidden="true">push_pin</span>';
     pin.addEventListener('click', (event) => {

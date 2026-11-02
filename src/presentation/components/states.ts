@@ -3,8 +3,8 @@ import { el } from '../dom.js';
 
 export function renderEmptyDetail(
   icon = 'notes',
-  title = 'Selecione uma cadeia',
-  body = 'Escolha uma cadeia na lista ou crie uma nova para começar.'
+  title = 'Selecione uma coleção',
+  body = 'Escolha uma coleção na lista ou crie uma nova para começar.'
 ): HTMLElement {
   const empty = el('div', 'empty-state empty-state--fill');
   empty.setAttribute('aria-label', title);

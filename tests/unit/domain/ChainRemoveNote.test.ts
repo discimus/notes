@@ -19,7 +19,7 @@ describe('Chain.removeNote', () => {
     expect(chain.headerNoteId).toBe(chain.notes[0]?.id);
   });
 
-  it('remove o header e mantém a cadeia headerless com tails a partir de 1', () => {
+  it('remove o header e mantém a coleção headerless com tails a partir de 1', () => {
     const { chain, header } = Chain.createWithHeader({
       content: 'Header',
       title: 'Projeto',
@@ -36,7 +36,7 @@ describe('Chain.removeNote', () => {
     expect(chain.displayTitle).toBe('Projeto');
   });
 
-  it('rejeita uma nota que não pertence à cadeia', () => {
+  it('rejeita uma nota que não pertence à coleção', () => {
     const { chain } = Chain.createWithHeader({ content: 'Header' });
 
     expect(() => chain.removeNote('missing-note')).toThrow(

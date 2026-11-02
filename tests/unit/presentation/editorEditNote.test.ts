@@ -88,7 +88,7 @@ describe('Editor edit note in composer', () => {
     host.querySelector<HTMLButtonElement>('.chain-note__edit')?.click();
 
     const chainWithEdit = store.getTab(chainId);
-    if (!chainWithEdit || chainWithEdit.kind !== 'chain') throw new Error('Cadeia não encontrada');
+    if (!chainWithEdit || chainWithEdit.kind !== 'chain') throw new Error('Coleção não encontrada');
     const editTab = chainWithEdit.noteTabs.find((tab) => tab.editingNoteId === note.id);
     expect(editTab).toBeDefined();
 
@@ -114,12 +114,12 @@ describe('Editor edit note in composer', () => {
         'text'
       );
       const after = store.getTab(chainId);
-      if (!after || after.kind !== 'chain') throw new Error('Cadeia não encontrada');
+      if (!after || after.kind !== 'chain') throw new Error('Coleção não encontrada');
       expect(after.noteTabs.some((tab) => tab.editingNoteId === note.id)).toBe(false);
     });
 
     const afterSave = store.getTab(chainId);
-    if (!afterSave || afterSave.kind !== 'chain') throw new Error('Cadeia não encontrada');
+    if (!afterSave || afterSave.kind !== 'chain') throw new Error('Coleção não encontrada');
     expect(afterSave.noteTabs.some((tab) => !tab.editingNoteId && !tab.content)).toBe(true);
     expect(saveLabel?.textContent).toBe('Adicionar');
   });
@@ -134,7 +134,7 @@ describe('Editor edit note in composer', () => {
     host.querySelector<HTMLButtonElement>('.chain-note__edit')?.click();
 
     const chainWithEdit = store.getTab(chainId);
-    if (!chainWithEdit || chainWithEdit.kind !== 'chain') throw new Error('Cadeia não encontrada');
+    if (!chainWithEdit || chainWithEdit.kind !== 'chain') throw new Error('Coleção não encontrada');
     const editTab = chainWithEdit.noteTabs.find((tab) => tab.editingNoteId === note.id);
     expect(editTab?.contentType).toBe('code');
 
@@ -161,7 +161,7 @@ describe('Editor edit note in composer', () => {
     host.querySelector<HTMLButtonElement>('.chain-note__edit')?.click();
 
     const chainWithEdit = store.getTab(chainId);
-    if (!chainWithEdit || chainWithEdit.kind !== 'chain') throw new Error('Cadeia não encontrada');
+    if (!chainWithEdit || chainWithEdit.kind !== 'chain') throw new Error('Coleção não encontrada');
     const editTab = chainWithEdit.noteTabs.find((tab) => tab.editingNoteId === note.id);
     if (!editTab) throw new Error('Aba de edição não encontrada');
 
@@ -186,7 +186,7 @@ describe('Editor edit note in composer', () => {
 
     await vi.waitFor(() => {
       const afterDiscard = store.getTab(chainId);
-      if (!afterDiscard || afterDiscard.kind !== 'chain') throw new Error('Cadeia não encontrada');
+      if (!afterDiscard || afterDiscard.kind !== 'chain') throw new Error('Coleção não encontrada');
       expect(
         afterDiscard.noteTabs.some((tab) => tab.editingNoteId === note.id)
       ).toBe(false);

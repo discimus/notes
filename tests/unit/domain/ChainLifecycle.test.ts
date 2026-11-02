@@ -3,7 +3,7 @@ import { Chain } from '@domain/entities/Chain.js';
 import { InvariantViolationError } from '@shared/types/index.js';
 
 describe('Chain — ciclo de vida', () => {
-  it('move uma cadeia ativa para a lixeira', () => {
+  it('move uma coleção ativa para a lixeira', () => {
     const { chain } = Chain.createWithHeader({ content: 'Header' });
 
     chain.softDelete();
@@ -12,7 +12,7 @@ describe('Chain — ciclo de vida', () => {
     expect(chain.deletedAt).toBeTruthy();
   });
 
-  it('não move uma cadeia arquivada para a lixeira', () => {
+  it('não move uma coleção arquivada para a lixeira', () => {
     const { chain } = Chain.createWithHeader({ content: 'Header' });
     chain.archive();
 
@@ -20,7 +20,7 @@ describe('Chain — ciclo de vida', () => {
     expect(chain.isDeleted()).toBe(false);
   });
 
-  it('restaura uma cadeia da lixeira', () => {
+  it('restaura uma coleção da lixeira', () => {
     const { chain } = Chain.createWithHeader({ content: 'Header' });
     chain.softDelete();
 
@@ -30,7 +30,7 @@ describe('Chain — ciclo de vida', () => {
     expect(chain.deletedAt).toBeUndefined();
   });
 
-  it('não arquiva uma cadeia excluída', () => {
+  it('não arquiva uma coleção excluída', () => {
     const { chain } = Chain.createWithHeader({ content: 'Header' });
     chain.softDelete();
 

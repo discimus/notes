@@ -16,7 +16,7 @@ describe('CreateChain', () => {
     tagRepo = new InMemoryTagRepository();
   });
 
-  it('cria e persiste cadeia apenas com título', async () => {
+  it('cria e persiste coleção apenas com título', async () => {
     const result = await new CreateChain(chainRepo).execute({ title: 'Projeto' });
 
     expect(result.displayTitle).toBe('Projeto');

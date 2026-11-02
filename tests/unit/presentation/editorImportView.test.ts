@@ -166,7 +166,7 @@ describe('Editor import view', () => {
     });
   });
 
-  it('aceita drop na área da cadeia aberta', async () => {
+  it('aceita drop na área da coleção aberta', async () => {
     const store = new EditorStore();
     const host = mount(store);
     store.openChainTab('chain-1', 'Projeto');

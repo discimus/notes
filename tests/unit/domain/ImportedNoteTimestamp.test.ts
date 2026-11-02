@@ -17,7 +17,7 @@ describe('Imported note timestamps', () => {
     expect(note.contentType).toBe('text');
   });
 
-  it('anexa texto importado ao final da cadeia', () => {
+  it('anexa texto importado ao final da coleção', () => {
     const { chain } = Chain.createWithHeader({ content: 'Header' });
     const note = chain.appendImportedText('Documento importado', createdAt);
 

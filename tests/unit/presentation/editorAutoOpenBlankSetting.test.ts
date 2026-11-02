@@ -29,7 +29,7 @@ const detail: ChainDetailDTO = {
 
 let cleanup: (() => void) | null = null;
 
-describe('Configuração de editor em branco ao acessar a cadeia', () => {
+describe('Configuração de editor em branco ao acessar a coleção', () => {
   beforeEach(() => {
     localStorage.clear();
     sessionStorage.clear();
@@ -89,7 +89,7 @@ describe('Configuração de editor em branco ao acessar a cadeia', () => {
     const tab = store.getTab(chainTabId);
 
     expect(tab?.kind === 'chain' && tab.composerCollapsed).toBe(false);
-    if (!tab || tab.kind !== 'chain') throw new Error('Cadeia não encontrada');
+    if (!tab || tab.kind !== 'chain') throw new Error('Coleção não encontrada');
     const active = tab.noteTabs.find(
       (noteTab) => noteTab.id === tab.activeNoteTabId
     );
@@ -97,7 +97,7 @@ describe('Configuração de editor em branco ao acessar a cadeia', () => {
     expect(active?.editingNoteId).toBeUndefined();
   });
 
-  it('aplica a opção ao reabrir uma cadeia que já estava aberta', async () => {
+  it('aplica a opção ao reabrir uma coleção que já estava aberta', async () => {
     for (const tab of editorStore.getSnapshot().tabs) {
       editorStore.closeTab(tab.id);
     }
@@ -110,7 +110,7 @@ describe('Configuração de editor em branco ao acessar a cadeia', () => {
 
     const after = store.getTab(chainTabId);
     expect(after?.kind === 'chain' && after.composerCollapsed).toBe(false);
-    if (!after || after.kind !== 'chain') throw new Error('Cadeia não encontrada');
+    if (!after || after.kind !== 'chain') throw new Error('Coleção não encontrada');
     const active = after.noteTabs.find(
       (noteTab) => noteTab.id === after.activeNoteTabId
     );

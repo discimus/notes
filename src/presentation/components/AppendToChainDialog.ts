@@ -51,9 +51,9 @@ export function showAppendToChainDialog(
     dialog.innerHTML = `
       <div class="dialog__header">
         <div>
-          <h2 id="${titleId}" class="dialog__title dialog__title--left">Adicionar à cadeia</h2>
+          <h2 id="${titleId}" class="dialog__title dialog__title--left">Adicionar à coleção</h2>
           <p id="${descriptionId}" class="dialog__body dialog__body--left">
-            Escolha uma cadeia existente ou crie uma nova com o título digitado.
+            Escolha uma coleção existente ou crie uma nova com o título digitado.
           </p>
         </div>
         <button class="btn-icon" id="append-chain-close-${uid}" type="button" aria-label="Fechar" title="Fechar">
@@ -62,13 +62,13 @@ export function showAppendToChainDialog(
       </div>
 
       <div class="editor-field">
-        <label class="editor-field__label" for="${searchId}">Cadeia</label>
+        <label class="editor-field__label" for="${searchId}">Coleção</label>
         <input class="editor-field__input" id="${searchId}" type="search" autocomplete="off"
-          placeholder="Buscar ou criar cadeia..." data-autofocus />
+          placeholder="Buscar ou criar coleção..." data-autofocus />
       </div>
 
       <div id="${createSlotId}"></div>
-      <div class="save-chain-list" id="${listId}" role="radiogroup" aria-label="Cadeias disponíveis"></div>
+      <div class="save-chain-list" id="${listId}" role="radiogroup" aria-label="Coleções disponíveis"></div>
       <p class="editor-field__support" id="${statusId}" aria-live="polite"></p>
 
       <div class="dialog__actions">
@@ -113,12 +113,12 @@ export function showAppendToChainDialog(
       if (selectedChainId !== null || exact) {
         status.textContent = '';
       } else if (creatableTitle) {
-        status.textContent = 'Pressione Enter para criar esta cadeia.';
+        status.textContent = 'Pressione Enter para criar esta coleção.';
       } else if (options.chains.length === 0) {
         status.textContent =
-          'Crie uma cadeia pela lateral ou digite um título para criá-la aqui.';
+          'Crie uma coleção pela lateral ou digite um título para criá-la aqui.';
       } else {
-        status.textContent = 'Selecione uma cadeia para continuar.';
+        status.textContent = 'Selecione uma coleção para continuar.';
       }
     };
 
@@ -129,11 +129,11 @@ export function showAppendToChainDialog(
       const title = creatableTitle;
       const button = el('button', 'save-chain-create');
       button.type = 'button';
-      button.setAttribute('aria-label', `Criar cadeia ${title}`);
+      button.setAttribute('aria-label', `Criar coleção ${title}`);
       button.innerHTML = `
         <span class="save-chain-create__icon material-symbols-rounded" aria-hidden="true">add</span>
         <span class="save-chain-create__content">
-          <span class="save-chain-create__title">Criar cadeia</span>
+          <span class="save-chain-create__title">Criar coleção</span>
           <span class="save-chain-create__meta">“${escapeHtml(title)}”</span>
         </span>
         <span class="save-chain-create__arrow material-symbols-rounded" aria-hidden="true">arrow_forward</span>
@@ -163,8 +163,8 @@ export function showAppendToChainDialog(
         const empty = el('p', 'save-chain-list__empty');
         empty.textContent =
           options.chains.length === 0
-            ? 'Nenhuma cadeia ativa disponível.'
-            : 'Nenhuma cadeia encontrada.';
+            ? 'Nenhuma coleção ativa disponível.'
+            : 'Nenhuma coleção encontrada.';
         list.appendChild(empty);
         updateValidation();
         return;

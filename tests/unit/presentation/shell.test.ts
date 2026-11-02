@@ -26,7 +26,7 @@ describe('renderApp', () => {
     expect(root.querySelector('#nav-drawer')).not.toBeNull();
     expect(root.querySelector('#app-topbar')).toBeNull();
     expect(root.querySelector('#app-view-title')?.textContent).toBe(
-      'Todas as cadeias'
+      'Todas as coleções'
     );
     expect(root.querySelector('.nav-toggle')).not.toBeNull();
     expect(root.querySelector('#app-content')).not.toBeNull();

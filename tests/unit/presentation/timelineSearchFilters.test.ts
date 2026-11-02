@@ -95,7 +95,7 @@ describe('Timeline como busca', () => {
     document.body.innerHTML = '';
   });
 
-  it('colore notas por cadeia, cria legenda e exibe tags', () => {
+  it('colore notas por coleção, cria legenda e exibe tags', () => {
     const state = makeState({
       timelineEntries: [
         entry('note-1', 'chain-1', 'Projeto'),

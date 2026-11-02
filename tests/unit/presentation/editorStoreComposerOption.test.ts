@@ -6,7 +6,7 @@ describe('EditorStore composer option', () => {
     sessionStorage.clear();
   });
 
-  it('abre a cadeia com o compositor recolhido quando solicitado', () => {
+  it('abre a coleção com o compositor recolhido quando solicitado', () => {
     const store = new EditorStore();
     const tab = store.openChainTab('chain-1', 'Projeto', {
       composerCollapsed: true,

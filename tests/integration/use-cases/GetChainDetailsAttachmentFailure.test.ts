@@ -21,7 +21,7 @@ const failingRepository: IAttachmentRepository = {
 };
 
 describe('GetChainDetails com falha de anexos', () => {
-  it('continua abrindo a cadeia quando o store de anexos está indisponível', async () => {
+  it('continua abrindo a coleção quando o store de anexos está indisponível', async () => {
     const chainRepo = new InMemoryChainRepository();
     const { chain, header } = Chain.createWithHeader({
       content: 'Conteúdo da nota',

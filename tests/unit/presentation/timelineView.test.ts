@@ -62,7 +62,7 @@ describe('TimelineView', () => {
     vi.restoreAllMocks();
   });
 
-  it('renderiza filtros dinâmicos e seleção de cadeias', () => {
+  it('renderiza filtros dinâmicos e seleção de coleções', () => {
     const layout = renderTimelineLayout(makeState());
 
     expect(layout.querySelector('#timeline-query')).not.toBeNull();
@@ -71,7 +71,7 @@ describe('TimelineView', () => {
     expect(layout.textContent).not.toContain('Ver cronologia');
   });
 
-  it('atualiza a seleção ao clicar em uma cadeia', () => {
+  it('atualiza a seleção ao clicar em uma coleção', () => {
     const layout = renderTimelineLayout(makeState());
     layout.querySelector<HTMLElement>('[data-chain-id="chain-1"]')?.click();
 

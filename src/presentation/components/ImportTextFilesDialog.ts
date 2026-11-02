@@ -104,7 +104,7 @@ export function showImportTextFilesDialog(
             <span class="md-switch__label">Usar datas dos arquivos</span>
           </label>
           <p class="import-dialog__support">
-            Cada nota será anexada ao final da cadeia, mas aparecerá no histórico e na timeline na data do respectivo arquivo.
+            Cada nota será anexada ao final da coleção, mas aparecerá no histórico e na timeline na data do respectivo arquivo.
           </p>
         </div>
       `

@@ -40,7 +40,7 @@ function renderList(chains: ChainSummaryDTO[], selectedChainId: string | null = 
   return layout;
 }
 
-describe('lista compacta de cadeias', () => {
+describe('lista compacta de coleções', () => {
   beforeEach(() => {
     document.body.innerHTML = '';
   });
@@ -60,7 +60,7 @@ describe('lista compacta de cadeias', () => {
     expect(first.textContent).not.toContain('Primeira ideia');
     expect(first.querySelector('.chain-item__tag')).toBeNull();
     expect(first.title).toBe('Projeto Alpha');
-    expect(items[1]?.getAttribute('aria-label')).toBe('Cadeia: Rotina');
+    expect(items[1]?.getAttribute('aria-label')).toBe('Coleção: Rotina');
   });
 
   it('marca o item selecionado e expÃµe o estado acessÃ­vel', () => {

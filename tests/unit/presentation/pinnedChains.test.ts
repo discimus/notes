@@ -6,7 +6,7 @@ import {
 } from '@presentation/app/pinnedChains.js';
 import { appState } from '@presentation/state/AppState.js';
 
-describe('cadeias fixadas', () => {
+describe('coleções fixadas', () => {
   beforeEach(() => {
     localStorage.clear();
     appState.set({ pinnedChainIds: [] });

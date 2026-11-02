@@ -22,7 +22,7 @@ describe('EditorSidebar preview tabs', () => {
     document.body.innerHTML = '';
   });
 
-  it('diferencia clique simples de duplo clique na cadeia', () => {
+  it('diferencia clique simples de duplo clique na coleção', () => {
     const onOpenChain = vi.fn();
     const onOpenChainPinned = vi.fn();
     const view = mountEditorSidebar({

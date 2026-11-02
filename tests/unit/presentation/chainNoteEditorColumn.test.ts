@@ -102,7 +102,7 @@ describe('Chain right editor column', () => {
 
     await vi.waitFor(() => {
       const tab = store.getTab(chainId);
-      if (!tab || tab.kind !== 'chain') throw new Error('Cadeia não encontrada');
+      if (!tab || tab.kind !== 'chain') throw new Error('Coleção não encontrada');
       expect(tab.composerCollapsed).toBe(false);
       expect(
         tab.noteTabs.find((noteTab) => noteTab.id === tab.activeNoteTabId)
@@ -116,7 +116,7 @@ describe('Chain right editor column', () => {
     });
 
     const chainTab = store.getTab(chainId);
-    if (!chainTab || chainTab.kind !== 'chain') throw new Error('Cadeia não encontrada');
+    if (!chainTab || chainTab.kind !== 'chain') throw new Error('Coleção não encontrada');
     const activeTab = chainTab.noteTabs.find(
       (noteTab) => noteTab.id === chainTab.activeNoteTabId
     );
@@ -140,7 +140,7 @@ describe('Chain right editor column', () => {
 
     await vi.waitFor(() => {
       const tab = store.getTab(chainId);
-      if (!tab || tab.kind !== 'chain') throw new Error('Cadeia não encontrada');
+      if (!tab || tab.kind !== 'chain') throw new Error('Coleção não encontrada');
       expect(
         tab.noteTabs.find((noteTab) => noteTab.id === tab.activeNoteTabId)
           ?.editingNoteId
@@ -153,7 +153,7 @@ describe('Chain right editor column', () => {
 
     await vi.waitFor(() => {
       const tab = store.getTab(chainId);
-      if (!tab || tab.kind !== 'chain') throw new Error('Cadeia não encontrada');
+      if (!tab || tab.kind !== 'chain') throw new Error('Coleção não encontrada');
       expect(
         tab.noteTabs.find((noteTab) => noteTab.id === tab.activeNoteTabId)
           ?.editingNoteId
@@ -187,7 +187,7 @@ describe('Chain right editor column', () => {
 
     await vi.waitFor(() => {
       const tab = store.getTab(chainId);
-      if (!tab || tab.kind !== 'chain') throw new Error('Cadeia não encontrada');
+      if (!tab || tab.kind !== 'chain') throw new Error('Coleção não encontrada');
       expect(
         tab.noteTabs.find((noteTab) => noteTab.id === tab.activeNoteTabId)
           ?.editingNoteId

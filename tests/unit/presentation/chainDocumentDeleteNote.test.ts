@@ -26,7 +26,7 @@ const tab: ChainTab = {
   status: 'loaded',
 };
 
-describe('Exclusão de nota no documento da cadeia', () => {
+describe('Exclusão de nota no documento da coleção', () => {
   beforeEach(() => {
     document.body.innerHTML = '';
     appState.set({

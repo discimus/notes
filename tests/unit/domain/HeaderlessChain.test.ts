@@ -3,7 +3,7 @@ import { Chain, Note } from '../../../src/domain/entities/index.js';
 import { ValidationError } from '../../../src/shared/types/index.js';
 
 describe('Headerless Chain', () => {
-  it('cria cadeia apenas com título e sem notas', () => {
+  it('cria coleção apenas com título e sem notas', () => {
     const chain = Chain.create({ title: '  Projeto novo  ' });
 
     expect(chain.title).toBe('Projeto novo');
@@ -29,7 +29,7 @@ describe('Headerless Chain', () => {
     expect(chain.headerNoteId).toBeUndefined();
   });
 
-  it('importa texto como tail em cadeia headerless', () => {
+  it('importa texto como tail em coleção headerless', () => {
     const chain = Chain.create({ title: 'Importados' });
     const note = chain.appendImportedText(
       'Documento',
@@ -41,7 +41,7 @@ describe('Headerless Chain', () => {
     expect(note.createdAt).toBe('2024-03-12T14:30:00.000Z');
   });
 
-  it('reconstitui cadeia vazia e cadeia headerless com tails', () => {
+  it('reconstitui coleção vazia e coleção headerless com tails', () => {
     const empty = Chain.create({ title: 'Vazia' });
     const restoredEmpty = Chain.reconstitute(empty.toData(), []);
     expect(restoredEmpty.notes).toHaveLength(0);

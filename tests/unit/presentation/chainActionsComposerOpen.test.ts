@@ -78,7 +78,7 @@ describe('Chain quick actions with composer open', () => {
     now = 200;
 
     const scroll = view.element.querySelector<HTMLElement>('#chain-document-scroll');
-    if (!scroll) throw new Error('Scroll da cadeia não encontrado');
+    if (!scroll) throw new Error('Scroll da coleção não encontrado');
 
     return { view, scroll };
   }

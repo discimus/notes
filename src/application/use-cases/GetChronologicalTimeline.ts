@@ -5,7 +5,7 @@ import { now } from '@shared/utilities/index.js';
 
 /**
  * Caso de uso: Gera a visualização cronológica combinada.
- * Operação de leitura — não altera as cadeias originais.
+ * Operação de leitura — não altera as coleções originais.
  */
 export class GetChronologicalTimeline {
   private readonly timelineService = new TimelineService();

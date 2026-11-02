@@ -68,7 +68,7 @@ describe('EditorStore persistent pending cache', () => {
 
     const restoredChain = restored.getTab(chain.id);
     if (!restoredChain || restoredChain.kind !== 'chain') {
-      throw new Error('Cadeia pendente não restaurada');
+      throw new Error('Coleção pendente não restaurada');
     }
     expect(restoredChain.noteTabs[0]?.content).toBe('Nota pendente persistente');
     expect(restoredChain.status).toBe('idle');

@@ -11,7 +11,7 @@ function result(index: number): SearchResultDTO {
   return {
     noteId: `note-${index}`,
     chainId: `chain-${index}`,
-    chainTitle: `Cadeia ${index}`,
+    chainTitle: `Coleção ${index}`,
     snippet: `Resultado ${index}`,
     noteCreatedAt: '2026-01-01T00:00:00.000Z',
     noteRole: 'header',

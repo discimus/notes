@@ -50,9 +50,9 @@ Use os aliases. Nunca use caminhos relativos que cruzem camadas (ex: `../../doma
 
 | Entidade | Arquivo | Store IDB | Significado |
 |---|---|---|---|
-| `Chain` | `src/domain/entities/Chain.ts` | `chains` | Agregado raiz — cadeia de notas |
+| `Chain` | `src/domain/entities/Chain.ts` | `chains` | Agregado raiz — coleção de notas |
 | `Note` | `src/domain/entities/Note.ts` | `notes` | Nota individual (header ou tail) |
-| `Tag` | `src/domain/entities/Tag.ts` | `tags` | Tag associada a cadeias |
+| `Tag` | `src/domain/entities/Tag.ts` | `tags` | Tag associada a coleções |
 | `ChainTag` | `src/domain/entities/ChainTag.ts` | `chainTags` | Relação N:N entre Chain e Tag |
 
 ## Política de testes

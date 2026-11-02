@@ -13,14 +13,14 @@ describe('CreateChainWithNote', () => {
     tagRepo = new InMemoryTagRepository();
   });
 
-  it('cria cadeia e primeira nota em uma única operação', async () => {
+  it('cria coleção e primeira nota em uma única operação', async () => {
     const result = await new CreateChainWithNote(chainRepo).execute({
-      title: 'Nova cadeia',
+      title: 'Nova coleção',
       content: 'const value = 1;',
       contentType: 'code',
     });
 
-    expect(result.chain.displayTitle).toBe('Nova cadeia');
+    expect(result.chain.displayTitle).toBe('Nova coleção');
     expect(result.chain.noteCount).toBe(1);
     expect(result.note.role).toBe('tail');
     expect(result.note.position).toBe(1);
@@ -33,7 +33,7 @@ describe('CreateChainWithNote', () => {
     expect(detail.notes[0]?.id).toBe(result.note.id);
   });
 
-  it('não persiste cadeia parcial se o salvamento falhar', async () => {
+  it('não persiste coleção parcial se o salvamento falhar', async () => {
     vi.spyOn(chainRepo, 'save').mockRejectedValueOnce(new Error('falha'));
 
     await expect(

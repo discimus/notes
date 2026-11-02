@@ -34,7 +34,7 @@ describe('Empty chain document', () => {
     });
   });
 
-  it('renderiza cadeia com zero notas e compositor pronto', () => {
+  it('renderiza coleção com zero notas e compositor pronto', () => {
     const view = mountChainDocument(tab, {
       onNoteInput: vi.fn(),
       onSaveNote: vi.fn(),

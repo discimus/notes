@@ -51,7 +51,7 @@ describe('metadados de anexos nas abas', () => {
     });
 
     const updated = store.getTab(chain.id);
-    if (!updated || updated.kind !== 'chain') throw new Error('Cadeia não encontrada');
+    if (!updated || updated.kind !== 'chain') throw new Error('Coleção não encontrada');
     expect(updated.notes[0]?.attachments).toMatchObject([{ id: 'image-1' }]);
   });
 });

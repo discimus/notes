@@ -44,7 +44,7 @@ describe('Tags view', () => {
       )
     ).toEqual(['Arquivo', 'estudos']);
     expect(layout.querySelector('.tag-row__count')?.textContent).toBe(
-      '3 cadeias'
+      '3 coleções'
     );
   });
 
@@ -56,7 +56,7 @@ describe('Tags view', () => {
     const layout = renderTagsLayout(appState.get());
 
     expect(layout.querySelector('.tag-row__count')?.textContent).toBe(
-      '1 cadeia'
+      '1 coleção'
     );
 
     appState.set({ allTags: [] });

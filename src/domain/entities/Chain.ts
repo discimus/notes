@@ -19,9 +19,9 @@ export interface ChainData {
  * ResponsÃ¡vel por manter a integridade de suas notas.
  *
  * Invariantes:
- * 1. Cadeias com headerNoteId possuem exatamente um header correspondente.
- * 2. Cadeias criadas apenas com título são headerless.
- * 3. Cadeias headerless aceitam apenas tails, começando na posição 1.
+ * 1. Coleções com headerNoteId possuem exatamente um header correspondente.
+ * 2. Coleções criadas apenas com título são headerless.
+ * 3. Coleções headerless aceitam apenas tails, começando na posição 1.
  * 4. Notas têm ordem determinística por posição.
  * 5. Tails são sempre adicionadas ao final.
  */
@@ -50,7 +50,7 @@ export class Chain {
   static create(params: { title: string }): Chain {
     const title = params.title.trim();
     if (!title) {
-      throw new ValidationError('O título da cadeia não pode ser vazio.');
+      throw new ValidationError('O título da coleção não pode ser vazio.');
     }
 
     const ts = now();
@@ -63,7 +63,7 @@ export class Chain {
   }
 
   /**
-   * Cria uma nova cadeia com seu header.
+   * Cria uma nova coleção com seu header.
    * Retorna o Chain e a Note (header) para persistA�ncia.
    */
   static createWithHeader(params: {
@@ -104,12 +104,12 @@ export class Chain {
     if (data.headerNoteId) {
       if (headers.length !== 1 || headers[0]?.id !== data.headerNoteId) {
         throw new InvariantViolationError(
-          `Cadeia ${data.id} deve ter exatamente um header correspondente ao headerNoteId.`
+          `Coleção ${data.id} deve ter exatamente um header correspondente ao headerNoteId.`
         );
       }
     } else if (headers.length > 0) {
       throw new InvariantViolationError(
-        `Cadeia ${data.id} possui header sem headerNoteId.`
+        `Coleção ${data.id} possui header sem headerNoteId.`
       );
     }
 
@@ -129,7 +129,7 @@ export class Chain {
   get header(): Note {
     const h = this._notes.find((n) => n.isHeader());
     if (!h) {
-      throw new InvariantViolationError(`Cadeia ${this._id} nÃ£o possui header carregado.`);
+      throw new InvariantViolationError(`Coleção ${this._id} nÃ£o possui header carregado.`);
     }
     return h;
   }
@@ -140,8 +140,8 @@ export class Chain {
   isDeleted(): boolean { return this._deletedAt !== undefined; }
 
   /**
-   * OperaÃ§Ã£o central: anexa uma nota ao final da cadeia.
-   * Garante posiÃ§Ã£o correta e atualiza o timestamp da cadeia.
+   * OperaÃ§Ã£o central: anexa uma nota ao final da coleção.
+   * Garante posiÃ§Ã£o correta e atualiza o timestamp da coleção.
    */
   appendNote(content: string, contentType?: NoteContentType): Note {
     return this.appendNoteInternal(content, contentType);
@@ -157,10 +157,10 @@ export class Chain {
     createdAt?: ISODateString
   ): Note {
     if (this.isArchived()) {
-      throw new InvariantViolationError('NÃ£o Ã© possÃ­vel adicionar notas a uma cadeia arquivada.');
+      throw new InvariantViolationError('NÃ£o Ã© possÃ­vel adicionar notas a uma coleção arquivada.');
     }
     if (this.isDeleted()) {
-      throw new InvariantViolationError('NÃ£o Ã© possÃ­vel adicionar notas a uma cadeia excluÃ­da.');
+      throw new InvariantViolationError('NÃ£o Ã© possÃ­vel adicionar notas a uma coleção excluÃ­da.');
     }
 
     const nextPosition = this._headerNoteId
@@ -183,7 +183,7 @@ export class Chain {
     const index = this._notes.findIndex((note) => note.id === noteId);
     if (index < 0) {
       throw new InvariantViolationError(
-        `A nota ${noteId} não pertence à cadeia ${this._id}.`
+        `A nota ${noteId} não pertence à coleção ${this._id}.`
       );
     }
 
@@ -216,7 +216,7 @@ export class Chain {
 
   archive(): void {
     if (this.isDeleted()) {
-      throw new InvariantViolationError('NÃ£o Ã© possÃ­vel arquivar uma cadeia excluÃ­da.');
+      throw new InvariantViolationError('NÃ£o Ã© possÃ­vel arquivar uma coleção excluÃ­da.');
     }
     this._archivedAt = now();
     this._updatedAt = now();
@@ -230,7 +230,7 @@ export class Chain {
   softDelete(): void {
     if (this.isArchived()) {
       throw new InvariantViolationError(
-        'NÃ£o Ã© possÃ­vel mover uma cadeia arquivada para a lixeira. Restaure-a antes.'
+        'NÃ£o Ã© possÃ­vel mover uma coleção arquivada para a lixeira. Restaure-a antes.'
       );
     }
     this._deletedAt = now();

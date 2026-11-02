@@ -201,7 +201,7 @@ export class IdbChainRepository
         const header = chain.headerNoteId
           ? await db.get('notes', chain.headerNoteId)
           : undefined;
-        const title = chain.title ?? header?.title ?? header?.content.split(/\r?\n/)[0] ?? 'Cadeia';
+        const title = chain.title ?? header?.title ?? header?.content.split(/\r?\n/)[0] ?? 'Coleção';
         chainTitles.set(chain.id, title);
       })
     );
@@ -290,7 +290,7 @@ export class IdbChainRepository
           chain.title ??
           header?.title ??
           header?.content.split(/\r?\n/)[0] ??
-          'Cadeia';
+          'Coleção';
         chainTitles.set(chain.id, title);
       })
     );

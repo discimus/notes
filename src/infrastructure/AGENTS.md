@@ -59,26 +59,26 @@ Ao adicionar campo obrigatÃ³rio a uma entidade existente:
 
 ## Note.contentType
 
-- `contentType` é opcional no registro persistido; notas antigas são lidas como `text` por `Note.reconstitute`.
-- Não é necessário incrementar `DB_VERSION`: não há índice nem store novo.
-- Novas notas e atualizações gravam o campo via `Note.toData()`.
+- `contentType` ï¿½ opcional no registro persistido; notas antigas sï¿½o lidas como `text` por `Note.reconstitute`.
+- Nï¿½o ï¿½ necessï¿½rio incrementar `DB_VERSION`: nï¿½o hï¿½ ï¿½ndice nem store novo.
+- Novas notas e atualizaï¿½ï¿½es gravam o campo via `Note.toData()`.
 
-## Importação de texto
+## Importaï¿½ï¿½o de texto
 
-- `ImportTextNote` usa `saveNote` e `saveChainOnly`; não há store nem índice novo.
-- `createdAt`/`updatedAt` de importação reaproveitam os campos existentes em `NoteData`.
-- Notas importadas continuam ordenadas por `position` para append e por `createdAt` nas views de timeline/histórico.
+- `ImportTextNote` usa `saveNote` e `saveChainOnly`; nï¿½o hï¿½ store nem ï¿½ndice novo.
+- `createdAt`/`updatedAt` de importaï¿½ï¿½o reaproveitam os campos existentes em `NoteData`.
+- Notas importadas continuam ordenadas por `position` para append e por `createdAt` nas views de timeline/histï¿½rico.
 
-## Importação em lote
+## Importaï¿½ï¿½o em lote
 
-- `ImportTextNotes` usa `chainRepo.save(chain, notes)` uma única vez para persistir o lote.
-- `IdbChainRepository.save` grava cadeia e notas na mesma transação.
+- `ImportTextNotes` usa `chainRepo.save(chain, notes)` uma ï¿½nica vez para persistir o lote.
+- `IdbChainRepository.save` grava coleÃ§Ã£o e notas na mesma transaï¿½ï¿½o.
 - `InMemoryChainRepository.save` faz merge das notas existentes e ordena por `position`, alinhado ao IDB.
-- Não há store, índice ou migração novos.
+- Nï¿½o hï¿½ store, ï¿½ndice ou migraï¿½ï¿½o novos.
 
-## Cadeias headerless
+## ColeÃ§Ãµes headerless
 
-- `ChainData.headerNoteId` é opcional; cadeias antigas continuam com header.
-- Cadeias criadas por `CreateChain` gravam sem header e com zero notas.
+- `ChainData.headerNoteId` ï¿½ opcional; coleÃ§Ãµes antigas continuam com header.
+- ColeÃ§Ãµes criadas por `CreateChain` gravam sem header e com zero notas.
 - `IdbChainRepository.findTimelinePage` consulta o header apenas quando `headerNoteId` existe.
-- Não é necessário incrementar `DB_VERSION`: o campo não é indexado.
+- Nï¿½o ï¿½ necessï¿½rio incrementar `DB_VERSION`: o campo nï¿½o ï¿½ indexado.

@@ -40,7 +40,7 @@ describe('EditorStore edit note tabs', () => {
     });
 
     const chainWithEdit = store.getTab(chain.id);
-    if (!chainWithEdit || chainWithEdit.kind !== 'chain') throw new Error('Cadeia não encontrada');
+    if (!chainWithEdit || chainWithEdit.kind !== 'chain') throw new Error('Coleção não encontrada');
     expect(chainWithEdit.composerCollapsed).toBe(false);
     expect(chainWithEdit.activeNoteTabId).toBe(editTab!.id);
     expect(isChainNoteTabDirty(editTab!)).toBe(false);
@@ -68,7 +68,7 @@ describe('EditorStore edit note tabs', () => {
 
     expect(second.id).toBe(first.id);
     const chainWithEdit = store.getTab(chain.id);
-    if (!chainWithEdit || chainWithEdit.kind !== 'chain') throw new Error('Cadeia não encontrada');
+    if (!chainWithEdit || chainWithEdit.kind !== 'chain') throw new Error('Coleção não encontrada');
     expect(chainWithEdit.noteTabs.filter((tab) => tab.editingNoteId === note.id)).toHaveLength(1);
   });
 
@@ -83,7 +83,7 @@ describe('EditorStore edit note tabs', () => {
 
     const restored = new EditorStore();
     const chainTab = restored.getTab(chain.id);
-    if (!chainTab || chainTab.kind !== 'chain') throw new Error('Cadeia não restaurada');
+    if (!chainTab || chainTab.kind !== 'chain') throw new Error('Coleção não restaurada');
 
     const restoredEdit = chainTab.noteTabs.find((tab) => tab.id === editTab.id);
     expect(restoredEdit).toMatchObject({

@@ -51,20 +51,20 @@ describe('GetChronologicalTimeline', () => {
     const createUC = new CreateChainWithHeader(chainRepo, tagRepo);
     const timelineUC = new GetChronologicalTimeline(chainRepo);
 
-    const { id: idA } = await createUC.execute({ content: 'A', title: 'Cadeia A' });
+    const { id: idA } = await createUC.execute({ content: 'A', title: 'Coleção A' });
     await sleep(5);
-    const { id: idB } = await createUC.execute({ content: 'B', title: 'Cadeia B' });
+    const { id: idB } = await createUC.execute({ content: 'B', title: 'Coleção B' });
 
     const result = await timelineUC.execute({ chainIds: [idA, idB] });
 
     const entryA = result.entries.find((e) => e.chainId === idA);
     const entryB = result.entries.find((e) => e.chainId === idB);
 
-    expect(entryA?.chainTitle).toBe('Cadeia A');
-    expect(entryB?.chainTitle).toBe('Cadeia B');
+    expect(entryA?.chainTitle).toBe('Coleção A');
+    expect(entryB?.chainTitle).toBe('Coleção B');
   });
 
-  it('deve ignorar cadeia inválida', async () => {
+  it('deve ignorar coleção inválida', async () => {
     const createUC = new CreateChainWithHeader(chainRepo, tagRepo);
     const timelineUC = new GetChronologicalTimeline(chainRepo);
 

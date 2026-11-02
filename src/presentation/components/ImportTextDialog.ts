@@ -91,7 +91,7 @@ export function showImportTextDialog(options: ImportTextDialogOptions): Promise<
             <span class="md-switch__label">Usar data do arquivo</span>
           </label>
           <p class="import-dialog__support">
-            A nota será anexada ao final da cadeia, mas aparecerá no histórico e na timeline na data do arquivo.
+            A nota será anexada ao final da coleção, mas aparecerá no histórico e na timeline na data do arquivo.
           </p>
         </div>
       `

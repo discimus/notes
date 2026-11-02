@@ -1,7 +1,7 @@
 import { ValidationError } from '@shared/types/index.js';
 
 /**
- * Value Object: Posição de uma nota dentro de uma cadeia.
+ * Value Object: Posição de uma nota dentro de uma coleção.
  * A posição começa em 0 (header) e incrementa sequencialmente.
  * Garante ordenação determinística.
  */

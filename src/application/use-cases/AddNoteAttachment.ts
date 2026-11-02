@@ -20,10 +20,10 @@ export class AddNoteAttachment {
     const chain = await this.chainRepo.findById(command.chainId);
     if (!chain) throw new NotFoundError('Chain', command.chainId);
     if (chain.isDeleted()) {
-      throw new InvariantViolationError('Não é possível anexar mídia a uma cadeia excluída.');
+      throw new InvariantViolationError('Não é possível anexar mídia a uma coleção excluída.');
     }
     if (chain.isArchived()) {
-      throw new InvariantViolationError('Não é possível anexar mídia a uma cadeia arquivada.');
+      throw new InvariantViolationError('Não é possível anexar mídia a uma coleção arquivada.');
     }
 
     const note = command.noteId
@@ -34,7 +34,7 @@ export class AddNoteAttachment {
     if (!note) {
       if (command.noteId) throw new NotFoundError('Note', command.noteId);
       throw new InvariantViolationError(
-        'Não há nota no final da cadeia para receber o anexo.'
+        'Não há nota no final da coleção para receber o anexo.'
       );
     }
 

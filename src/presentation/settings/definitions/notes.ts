@@ -29,7 +29,7 @@ export const notesSettings: readonly SettingDefinition[] = [
     controlId: 'settings-full-note-content',
     label: 'Conteúdo completo das notas',
     description:
-      'Exibe todo o conteúdo no histórico da cadeia, sem limite de linhas.',
+      'Exibe todo o conteúdo no histórico da coleção, sem limite de linhas.',
     keywords: ['texto', 'código', 'linhas', 'histórico'],
     defaultValue: false,
     get: () => appState.get().fullNoteContent,
@@ -66,8 +66,8 @@ export const notesSettings: readonly SettingDefinition[] = [
     controlId: 'settings-auto-open-blank-editor',
     label: 'Abrir editor em branco',
     description:
-      'Ao acessar uma cadeia, abre automaticamente um documento em branco no editor.',
-    keywords: ['editor', 'documento', 'branco', 'cadeia', 'abrir'],
+      'Ao acessar uma coleção, abre automaticamente um documento em branco no editor.',
+    keywords: ['editor', 'documento', 'branco', 'coleção', 'abrir'],
     defaultValue: false,
     get: getAutoOpenBlankEditor,
     set: setAutoOpenBlankEditor,

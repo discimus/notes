@@ -44,7 +44,7 @@ describe('EditorStore — Markdown', () => {
 
     const restoredChain = restored.getTab(chain.id);
     if (!restoredChain || restoredChain.kind !== 'chain') {
-      throw new Error('Cadeia restaurada não encontrada');
+      throw new Error('Coleção restaurada não encontrada');
     }
     expect(contentTypeOf(restoredChain.noteTabs[0]!)).toBe('markdown');
   });

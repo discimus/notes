@@ -5,7 +5,7 @@ import { InvariantViolationError, ValidationError } from '../../../src/shared/ty
 
 describe('Chain', () => {
   describe('createWithHeader', () => {
-    it('deve criar cadeia com header válido', () => {
+    it('deve criar coleção com header válido', () => {
       const { chain, header } = Chain.createWithHeader({ content: 'Minha ideia inicial' });
       expect(chain.id).toBeTruthy();
       expect(chain.headerNoteId).toBe(header.id);
@@ -14,7 +14,7 @@ describe('Chain', () => {
       expect(chain.notes).toHaveLength(1);
     });
 
-    it('deve criar cadeia com título', () => {
+    it('deve criar coleção com título', () => {
       const { chain } = Chain.createWithHeader({ content: 'Conteúdo', title: 'Meu Projeto' });
       expect(chain.title).toBe('Meu Projeto');
       expect(chain.displayTitle).toBe('Meu Projeto');
@@ -50,13 +50,13 @@ describe('Chain', () => {
       expect(positions).toEqual([0, 1, 2, 3]);
     });
 
-    it('deve lançar erro ao anexar em cadeia arquivada', () => {
+    it('deve lançar erro ao anexar em coleção arquivada', () => {
       const { chain } = Chain.createWithHeader({ content: 'Header' });
       chain.archive();
       expect(() => chain.appendNote('Nova tail')).toThrow(InvariantViolationError);
     });
 
-    it('deve lançar erro ao anexar em cadeia excluída', () => {
+    it('deve lançar erro ao anexar em coleção excluída', () => {
       const { chain } = Chain.createWithHeader({ content: 'Header' });
       chain.softDelete();
       expect(() => chain.appendNote('Nova tail')).toThrow(InvariantViolationError);
@@ -98,7 +98,7 @@ describe('Chain', () => {
       expect(chain.isDeleted()).toBe(true);
     });
 
-    it('deve lançar erro ao arquivar cadeia excluída', () => {
+    it('deve lançar erro ao arquivar coleção excluída', () => {
       const { chain } = Chain.createWithHeader({ content: 'Header' });
       chain.softDelete();
       expect(() => chain.archive()).toThrow(InvariantViolationError);

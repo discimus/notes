@@ -18,7 +18,7 @@ export const behaviorSettings: readonly SettingDefinition[] = [
     controlId: 'settings-confirm-trash',
     label: 'Confirmar antes de excluir',
     description:
-      'Pede confirmação ao mover uma cadeia para a lixeira. A exclusão permanente continua exigindo confirmação.',
+      'Pede confirmação ao mover uma coleção para a lixeira. A exclusão permanente continua exigindo confirmação.',
     keywords: ['lixeira', 'excluir', 'confirmação'],
     defaultValue: true,
     get: () => getSettings().confirmBeforeTrash,

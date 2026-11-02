@@ -131,18 +131,18 @@ export function renderTimelineLayout(state: AppState): HTMLElement {
         </section>
 
         <section class="timeline-filter-section">
-          <h3 class="timeline-filter-section__title">Cadeias</h3>
+          <h3 class="timeline-filter-section__title">Coleções</h3>
           <div class="timeline-chain-selector">
             <div class="timeline-chain-selector__toolbar">
               <div class="timeline-chain-search">
                 <input type="search" id="timeline-chain-search"
-                  aria-label="Buscar cadeias" placeholder="Buscar cadeia" autocomplete="off" />
+                  aria-label="Buscar coleções" placeholder="Buscar coleção" autocomplete="off" />
               </div>
               <button class="chip timeline-chain-all" id="timeline-chain-all"
                 type="button" aria-pressed="true">Todas</button>
             </div>
             <div class="chain-selector__list" id="timeline-chain-selector"
-              aria-label="Cadeias para timeline"></div>
+              aria-label="Coleções para timeline"></div>
           </div>
         </section>
 
@@ -157,14 +157,14 @@ export function renderTimelineLayout(state: AppState): HTMLElement {
     <div class="timeline-summary-row">
       <span class="timeline-result-count" id="timeline-result-count" aria-live="polite"></span>
       <div class="timeline-chain-legend" id="timeline-chain-legend"
-        aria-label="Cadeias nos resultados"></div>
+        aria-label="Coleções nos resultados"></div>
     </div>
 
     <div class="timeline-active-filters" id="timeline-active-filters"
       aria-label="Filtros ativos"></div>
 
     <div class="timeline-slider-row" hidden>
-      <span class="timeline-slider-label" id="timeline-page-label">Todas as cadeias</span>
+      <span class="timeline-slider-label" id="timeline-page-label">Todas as coleções</span>
       <input type="range" id="timeline-slider" class="timeline-slider" min="0" max="0"
         step="1" value="0" aria-label="Navegar pelas páginas da timeline" disabled />
     </div>
@@ -700,7 +700,7 @@ function renderChainSelector(
 
   if (chains.length === 0) {
     const empty = el('p', 'timeline-chain-selector__empty');
-    empty.textContent = 'Nenhuma cadeia encontrada.';
+    empty.textContent = 'Nenhuma coleção encontrada.';
     container.appendChild(empty);
   }
 }
@@ -747,9 +747,9 @@ function updateTimelineSummary(header: HTMLElement, state: AppState): void {
   if (count) {
     const scope = state.timelineSelectedChainIds.length
       ? `${state.timelineSelectedChainIds.length} ${
-          state.timelineSelectedChainIds.length === 1 ? 'cadeia' : 'cadeias'
+          state.timelineSelectedChainIds.length === 1 ? 'coleção' : 'coleções'
         }`
-      : 'todas as cadeias';
+      : 'todas as coleções';
     count.textContent = state.isLoading
       ? 'Buscando notas…'
       : `${state.timelineTotal} ${
@@ -881,7 +881,7 @@ function renderTimelinePreview(host: HTMLElement, state: AppState): void {
   const open = el('button', 'btn btn-tonal');
   open.type = 'button';
   open.innerHTML =
-    '<span class="material-symbols-rounded" aria-hidden="true">open_in_new</span> Abrir cadeia';
+    '<span class="material-symbols-rounded" aria-hidden="true">open_in_new</span> Abrir coleção';
   open.addEventListener('click', () => {
     void AppController.openTimelineResult(
       entry.chainId,
@@ -913,7 +913,7 @@ function updateTimelineSlider(
   if (row) row.hidden = disabled;
 
   if (state.chainSummaries.length === 0) {
-    label.textContent = 'Nenhuma cadeia cadastrada';
+    label.textContent = 'Nenhuma coleção cadastrada';
     return;
   }
   if (!state.timelineTotal) {
@@ -953,8 +953,8 @@ function updateTimelineEntries(container: HTMLElement, state: AppState): void {
     container.appendChild(
       renderEmptyDetail(
         'timeline',
-        'Nenhuma cadeia cadastrada',
-        'Crie uma cadeia para começar a buscar nas notas.'
+        'Nenhuma coleção cadastrada',
+        'Crie uma coleção para começar a buscar nas notas.'
       )
     );
     return;
@@ -1066,7 +1066,7 @@ function renderEntries(
     const body = el('div', 'timeline-entry__body');
     const top = el('div', 'timeline-entry__top');
     const chainLink = el('button', 'timeline-entry__chain');
-    chainLink.setAttribute('aria-label', `Abrir cadeia: ${entry.chainTitle}`);
+    chainLink.setAttribute('aria-label', `Abrir coleção: ${entry.chainTitle}`);
     const chainDot = el(
       'span',
       'timeline-chain-swatch timeline-entry__chain-dot'

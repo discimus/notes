@@ -19,7 +19,7 @@ describe('DeleteNote', () => {
     attachmentRepo = new InMemoryAttachmentRepository();
   });
 
-  it('remove a nota, reindexa a cadeia e limpa tags e anexos', async () => {
+  it('remove a nota, reindexa a coleção e limpa tags e anexos', async () => {
     const create = new CreateChainWithHeader(chainRepo, tagRepo);
     const append = new AppendNoteToChain(chainRepo);
     const assignTag = new AssignTagToNote(chainRepo, tagRepo);
@@ -61,7 +61,7 @@ describe('DeleteNote', () => {
     expect(await attachmentRepo.getBlob(attachment.id)).toBeNull();
   });
 
-  it('falha quando a nota não pertence à cadeia', async () => {
+  it('falha quando a nota não pertence à coleção', async () => {
     const create = new CreateChainWithHeader(chainRepo, tagRepo);
     const deleteNote = new DeleteNote(chainRepo, tagRepo, attachmentRepo);
     const chain = await create.execute({ content: 'Header' });

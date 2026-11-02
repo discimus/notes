@@ -47,7 +47,7 @@ describe('PendingDraftsCache', () => {
     localStorage.clear();
   });
 
-  it('mantém apenas rascunhos pendentes e cadeias com notas pendentes', () => {
+  it('mantém apenas rascunhos pendentes e coleções com notas pendentes', () => {
     const snapshot: EditorSnapshot = {
       activeTabId: 'saved-draft',
       tabs: [
@@ -75,7 +75,7 @@ describe('PendingDraftsCache', () => {
     expect(pending.activeTabId).toBe('draft-1');
 
     const chain = pending.tabs[1];
-    if (!chain || chain.kind !== 'chain') throw new Error('Cadeia não encontrada');
+    if (!chain || chain.kind !== 'chain') throw new Error('Coleção não encontrada');
     expect(chain.noteTabs).toHaveLength(1);
     expect(chain.noteTabs[0]?.id).toBe('note-tab-1');
     expect(chain.activeNoteTabId).toBe('note-tab-1');

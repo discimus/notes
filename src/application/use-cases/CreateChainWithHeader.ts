@@ -9,7 +9,7 @@ import { normalizeText } from '@shared/utilities/index.js';
 import { mapChainToDetail } from '../mappers/index.js';
 
 /**
- * Caso de uso: Cria uma cadeia com seu header.
+ * Caso de uso: Cria uma coleção com seu header.
  * Garante atomicidade: ou cria tudo, ou falha sem estado intermediário.
  */
 export class CreateChainWithHeader {
@@ -26,7 +26,7 @@ export class CreateChainWithHeader {
       ...(command.title ? { title: command.title } : {}),
     });
 
-    // Persiste a cadeia e o header atomicamente
+    // Persiste a coleção e o header atomicamente
     await this.chainRepo.save(chain, [header]);
 
     const tagIds: string[] = [];

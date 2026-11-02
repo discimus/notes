@@ -54,7 +54,7 @@ describe('EditorStore', () => {
     expect(saved.target?.chainId).toBe('chain-1');
   });
 
-  it('abre aba de cadeia com nota pendente e acrescenta nota', () => {
+  it('abre aba de coleção com nota pendente e acrescenta nota', () => {
     const store = new EditorStore();
     const tab = store.openChainTab('chain-1', 'Projeto');
 
@@ -67,7 +67,7 @@ describe('EditorStore', () => {
     store.updateChainNoteTab(tab.id, noteTab.id, 'Nova nota');
 
     const dirty = store.getTab(tab.id);
-    if (!dirty || dirty.kind !== 'chain') throw new Error('Cadeia não encontrada');
+    if (!dirty || dirty.kind !== 'chain') throw new Error('Coleção não encontrada');
     expect(isEditorTabDirty(dirty)).toBe(true);
     expect(isChainNoteTabDirty(dirty.noteTabs[0]!)).toBe(true);
 
@@ -79,7 +79,7 @@ describe('EditorStore', () => {
     const fresh = store.ensureChainNoteTab(tab.id)!;
 
     const saved = store.getTab(tab.id);
-    if (!saved || saved.kind !== 'chain') throw new Error('Cadeia não encontrada');
+    if (!saved || saved.kind !== 'chain') throw new Error('Coleção não encontrada');
     expect(isEditorTabDirty(saved)).toBe(false);
     expect(saved.notes).toHaveLength(1);
     expect(saved.noteTabs).toHaveLength(1);
@@ -100,7 +100,7 @@ describe('EditorStore', () => {
     expect(store.getActiveChainNoteTab(chain.id)?.id).toBe(second.id);
   });
 
-  it('restaura rascunhos e abas de cadeia a partir do sessionStorage', () => {
+  it('restaura rascunhos e abas de coleção a partir do sessionStorage', () => {
     const store = new EditorStore();
     const draft = store.ensureTab();
     if (draft.kind !== 'draft') throw new Error('Aba deveria ser rascunho');
@@ -121,7 +121,7 @@ describe('EditorStore', () => {
 
     const restoredChain = restored.getTab(chain.id);
     if (!restoredChain || restoredChain.kind !== 'chain') {
-      throw new Error('Cadeia restaurada não encontrada');
+      throw new Error('Coleção restaurada não encontrada');
     }
     expect(restoredChain.noteTabs[0]?.content).toBe('Nota pendente persistida');
     expect(restoredChain.activeNoteTabId).toBe(restoredChain.noteTabs[0]?.id);
@@ -153,7 +153,7 @@ describe('EditorStore', () => {
     if (tab?.kind === 'draft') expect(tab.content).toBe('Conteúdo legado');
   });
 
-  it('migra o composer antigo de uma cadeia para uma nota pendente', () => {
+  it('migra o composer antigo de uma coleção para uma nota pendente', () => {
     sessionStorage.setItem(
       EDITOR_STORAGE_KEY,
       JSON.stringify({
@@ -174,13 +174,13 @@ describe('EditorStore', () => {
     const store = new EditorStore();
     const tab = store.getActiveTab();
     expect(tab?.kind).toBe('chain');
-    if (tab?.kind !== 'chain') throw new Error('Cadeia não restaurada');
+    if (tab?.kind !== 'chain') throw new Error('Coleção não restaurada');
     expect(tab.noteTabs).toHaveLength(1);
     expect(tab.noteTabs[0]?.content).toBe('Composer legado');
     expect(tab.noteTabs[0]?.id).toBe(tab.activeNoteTabId);
   });
 
-  it('seleciona a aba vizinha ao fechar e fecha abas de uma cadeia', () => {
+  it('seleciona a aba vizinha ao fechar e fecha abas de uma coleção', () => {
     const store = new EditorStore();
     const first = store.createDraftTab();
     const second = store.openChainTab('chain-1', 'Projeto');

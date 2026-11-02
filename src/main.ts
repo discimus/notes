@@ -26,7 +26,7 @@ async function bootstrap(): Promise<void> {
       return;
     }
 
-    // N — nova cadeia (quando não está editando)
+    // N — nova coleção (quando não está editando)
     if (e.key === 'n' && !isEditing && !e.ctrlKey && !e.metaKey) {
       e.preventDefault();
       appState.set({ view: 'editor' });

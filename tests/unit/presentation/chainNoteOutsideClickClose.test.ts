@@ -114,7 +114,7 @@ describe('Chain note history outside click', () => {
 
     await vi.waitFor(() => {
       const tab = store.getTab(chainId);
-      if (!tab || tab.kind !== 'chain') throw new Error('Cadeia não encontrada');
+      if (!tab || tab.kind !== 'chain') throw new Error('Coleção não encontrada');
       expect(tab.noteTabs).toHaveLength(0);
       expect(tab.composerCollapsed).toBe(true);
     });
@@ -152,7 +152,7 @@ describe('Chain note history outside click', () => {
     });
 
     const tab = store.getTab(chainId);
-    if (!tab || tab.kind !== 'chain') throw new Error('Cadeia não encontrada');
+    if (!tab || tab.kind !== 'chain') throw new Error('Coleção não encontrada');
     expect(tab.composerCollapsed).toBe(false);
     expect(findEditTab(store, chainId, 'note-2')).toBeNull();
   });
@@ -187,7 +187,7 @@ describe('Chain note history outside click', () => {
     host.querySelector<HTMLButtonElement>('#chain-note-new')?.click();
 
     const withDraft = store.getTab(chainId);
-    if (!withDraft || withDraft.kind !== 'chain') throw new Error('Cadeia não encontrada');
+    if (!withDraft || withDraft.kind !== 'chain') throw new Error('Coleção não encontrada');
     const active = withDraft.noteTabs.find(
       (noteTab) => noteTab.id === withDraft.activeNoteTabId
     );
@@ -197,12 +197,12 @@ describe('Chain note history outside click', () => {
 
     await vi.waitFor(() => {
       const after = store.getTab(chainId);
-      if (!after || after.kind !== 'chain') throw new Error('Cadeia não encontrada');
+      if (!after || after.kind !== 'chain') throw new Error('Coleção não encontrada');
       expect(after.noteTabs.some((noteTab) => noteTab.id === active?.id)).toBe(false);
     });
 
     const after = store.getTab(chainId);
-    if (!after || after.kind !== 'chain') throw new Error('Cadeia não encontrada');
+    if (!after || after.kind !== 'chain') throw new Error('Coleção não encontrada');
     expect(findEditTab(store, chainId, 'note-2')).toMatchObject({ preview: true });
     expect(after.composerCollapsed).toBe(false);
   });

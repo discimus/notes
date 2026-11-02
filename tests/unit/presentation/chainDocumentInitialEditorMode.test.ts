@@ -39,7 +39,7 @@ function handlers(mode: 'latest' | 'blank' | 'none') {
   };
 }
 
-describe('Modo inicial do editor da cadeia', () => {
+describe('Modo inicial do editor da coleção', () => {
   beforeEach(() => {
     document.body.innerHTML = '';
     appState.set({

@@ -185,7 +185,7 @@ describe('Document content type', () => {
     });
   });
 
-  it('salva nota da cadeia como código', async () => {
+  it('salva nota da coleção como código', async () => {
     const store = new EditorStore();
     const host = mount(store);
     const chain = store.openChainTab('chain-1', 'Projeto principal');

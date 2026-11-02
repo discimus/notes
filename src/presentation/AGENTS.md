@@ -48,7 +48,7 @@ appState.subscribe(fn)            // retorna unsubscribe — limpar em teardown
 
 A view inicial é `'editor'`. O conteúdo das abas **não** fica no `AppState`; use `EditorStore` para evitar re-render global a cada tecla.
 
-`chainFilterQuery` é o filtro local do painel de cadeias. A busca global usa `searchQuery`/`searchResults` e o use case `SearchNotes`.
+`chainFilterQuery` é o filtro local do painel de coleções. A busca global usa `searchQuery`/`searchResults` e o use case `SearchNotes`.
 
 Nunca mutate o objeto retornado por `get()`. Sempre use `set()` com partial.
 
@@ -87,11 +87,11 @@ editorStore.hasDirtyTabs()
 editorStore.flush()
 ```
 
-- Existem dois níveis de aba: `DraftTab`/`ChainTab` no topo e `ChainNoteTab` no rodapé da cadeia.
+- Existem dois níveis de aba: `DraftTab`/`ChainTab` no topo e `ChainNoteTab` no rodapé da coleção.
 - `DraftTab`: texto independente; primeiro salvamento abre `AppendToChainDialog`; próximos `Ctrl+S` atualizam a nota anexada.
-- `ChainTab`: histórico da cadeia agrupado por data + abas de notas pendentes.
+- `ChainTab`: histórico da coleção agrupado por data + abas de notas pendentes.
 - `ChainTab.preview`: prévia substituível aberta por clique simples na sidebar. Existe no máximo uma; ao abrir outra, a prévia limpa é substituída na mesma posição. Duplo clique, `Ctrl/Cmd+Enter` ou conteúdo dirty promovem a aba a persistente.
-- Aberturas programáticas — criar, importar, salvar e abrir pela view de cadeias — usam `preview: false`; somente a sidebar do editor solicita `preview: true`.
+- Aberturas programáticas — criar, importar, salvar e abrir pela view de coleções — usam `preview: false`; somente a sidebar do editor solicita `preview: true`.
 - A prévia é persistida no `sessionStorage`; `normalizeChainTab` restaura dados antigos como persistentes e nunca mantém prévia com nota pendente.
 - Cobertura: `editorStorePreviewTabs`, `editorSidebarPreview` e `editorTabsPreview`.
 - `ChainNoteTab`: nota ainda não persistida ou edição de nota existente. Abas novas viram uma nova tail ao salvar; abas de edição têm `editingNoteId`, `baseContent` e `baseContentType`, e atualizam a nota original.
@@ -114,34 +114,34 @@ editorStore.flush()
 - A nota em edição recebe o chip `Em edição` no histórico.
 - Cobertura: `editorStoreEditNote`, `editorEditNote`, `editorEditNoteClose`, `chainDocumentContentType` e `chainNoteBody`.
 
-## Cadastro de cadeia
+## Cadastro de coleção
 
 - O modal `showComposerModal` solicita apenas o título, obrigatório, com validação inline.
 - Conteúdo e tags não fazem parte do cadastro inicial; tags continuam disponíveis no documento.
-- O fluxo usa `CreateChain` e cria uma cadeia headerless com `0 notas`.
+- O fluxo usa `CreateChain` e cria uma coleção headerless com `0 notas`.
 - A primeira nota posterior é uma tail na posição 1, nunca header.
-- O botão “Nova cadeia” do compositor legado abre o mesmo modal.
+- O botão “Nova coleção” do compositor legado abre o mesmo modal.
 - Cobertura: `createChainDialog`, `HeaderlessChain`, `CreateEmptyChain` e `emptyChainDocument`.
 
-## Salvar rascunho em uma cadeia
+## Salvar rascunho em uma coleção
 
-- `AppendToChainDialog` busca cadeias com `normalizeText`.
-- Texto digitado sem correspondência exata exibe `Criar cadeia`; o clique cria e salva imediatamente.
+- `AppendToChainDialog` busca coleções com `normalizeText`.
+- Texto digitado sem correspondência exata exibe `Criar coleção`; o clique cria e salva imediatamente.
 - Correspondência exata normalizada oculta a criação para evitar duplicata.
-- `Enter` confirma a seleção/correspondência exata ou cria a nova cadeia quando aplicável.
-- Criação usa `CreateChainWithNote` para persistir cadeia + primeira tail atomicamente.
-- A nova cadeia é headerless; a nota fica na posição 1.
+- `Enter` confirma a seleção/correspondência exata ou cria a nova coleção quando aplicável.
+- Criação usa `CreateChainWithNote` para persistir coleção + primeira tail atomicamente.
+- A nova coleção é headerless; a nota fica na posição 1.
 - Cobertura: `appendToChainDialogCreate`, `CreateChainWithNote` e `editorCreateChainFromDraft`.
 
 ## Timeline paginada
 
-- A timeline é montada somente após o usuário selecionar ao menos uma cadeia; não há botão “Ver cronologia”.
+- A timeline é montada somente após o usuário selecionar ao menos uma coleção; não há botão “Ver cronologia”.
 - `GetTimelinePage` consulta `ITimelineQueryRepository` com página de 50 notas e filtros de texto, período e tags.
-- Tags usam semântica **OR** entre si e **AND** com as cadeias selecionadas; a resolução fica no use case, não na view.
+- Tags usam semântica **OR** entre si e **AND** com as coleções selecionadas; a resolução fica no use case, não na view.
 - O scroll carrega páginas incrementalmente, mas a janela renderizada é limitada a 200 entradas.
 - O slider navega por offsets de página; ao carregar mais, a página inicial da janela avança quando entradas antigas são descartadas.
 - A view não persiste o listener após ser removida; o debounce da busca valida a presença de `#timeline-query` antes de disparar.
-- Ao entrar na timeline com cadeias selecionadas, o controller recarrega a primeira página para refletir notas novas.
+- Ao entrar na timeline com coleções selecionadas, o controller recarrega a primeira página para refletir notas novas.
 - Cobertura: `tests/unit/presentation/timelineView.test.ts` e `tests/integration/use-cases/GetTimelinePage.test.ts`.
 
 ## Cache de rascunhos pendentes
@@ -154,7 +154,7 @@ editorStore.flush()
 - O cache persistente compartilha a instalação; múltiplas janelas seguem last-writer-wins.
 - Cobertura: `pendingDraftsCache`, `editorStorePendingCache`, `editorPendingRestoreView` e `editorSessionPersistence`.
 
-## Ações rápidas da cadeia
+## Ações rápidas da coleção
 
 - O `ChainDocument` usa um footer absoluto, centralizado no fundo e fora da área de scroll. No modo leitura (`chain-document--notes-collapsed`), o documento não reserva faixa inferior: o scroll ocupa a altura toda e o conteúdo passa atrás do footer transparente, com `--chain-actions-overlay-space` no padding inferior do scroll. Com o compositor aberto, o footer de ações fica oculto e não há reserva adicional.
 - A row do header (tags, contador, importar e mais) colapsa com `chain-document--header-hidden` usando o mesmo estado de direção do scroll: `grid-template-rows` de `1fr` para `0fr`, padding e borda zerados, `opacity`/`visibility` com atraso e `pointer-events: none`. A guarda de foco impede o colapso enquanto o foco está dentro do header.
@@ -165,7 +165,7 @@ editorStore.flush()
 - `Documento` abre o compositor quando recolhido, reutilizando uma nota pendente vazia via `ensureChainNoteTab` e focando o textarea. Com o editor aberto, o footer de ações fica oculto; fechar a última aba recolhe o compositor.
 - Não há mais recolhimento por `pointerdown` fora do compositor. Cliques na lista abrem ou alternam a aba de edição da nota; o editor permanece disponível.
 - Não existe mais o header “Notas em edição”; `aria-expanded` e `aria-controls` do FAB controlam o `#chain-composer-body`.
-- Abrir uma cadeia pelo `AppController` usa `openChainTab(chainId, title, { composerCollapsed: true })`; na primeira carga das notas, a edição da nota mais recente é aberta automaticamente sem roubar o foco.
+- Abrir uma coleção pelo `AppController` usa `openChainTab(chainId, title, { composerCollapsed: true })`; na primeira carga das notas, a edição da nota mais recente é aberta automaticamente sem roubar o foco.
 - O dot badge `#chain-unsaved-badge` aparece quando há nota pendente não salva; o `aria-label` da ação informa a contagem.
 - Ao rolar para baixo (`scrollTop > 24` e delta > 4), o footer recebe `chain-document--actions-compact`: os FABs diminuem e as descrições são ocultadas no modo leitura. Com o compositor aberto, o footer fica oculto; ao recolher, volta ao estado normal.
 - Ao rolar para cima pelo menos 8 px, a expansão ocorre depois de 120 ms; no topo (`scrollTop <= 8`) a expansão é imediata.
@@ -191,12 +191,12 @@ editorStore.flush()
   - `threadnotes.settings` para `confirmBeforeTrash`
 - O registry usa adapters sobre os módulos atuais; não há storage v2 nesta etapa.
 - Tema e modo compacto continuam com atalhos no rodapé da navegação, usando os mesmos setters da modal.
-- `threadnotes.settings.confirmBeforeTrash` controla apenas mover cadeias para a lixeira. Exclusão permanente, remoção de tags e arquivamento continuam sempre confirmando.
+- `threadnotes.settings.confirmBeforeTrash` controla apenas mover coleções para a lixeira. Exclusão permanente, remoção de tags e arquivamento continuam sempre confirmando.
 - Cobertura: `settingsRegistry`, `settingsNavigation`, `settingsDialog`, `settingsAppearance`, `settingsNoteContent` e `settingsImageLayout`.
 
 ## Realce da linha ativa
 
-- `ActiveLineHighlight` é usado nos textareas de documento e de nota da cadeia.
+- `ActiveLineHighlight` é usado nos textareas de documento e de nota da coleção.
 - O foco do textarea **não** usa `outline`; o indicador visual é a linha ativa + caret.
 - A posição é calculada com espelho oculto do textarea, considerando quebra automática, scroll, fonte e padding.
 - O componente deve ser destruído no teardown da view para remover listeners, `ResizeObserver` e elementos auxiliares.
@@ -208,7 +208,7 @@ editorStore.flush()
 - O botão “+ Tag” vira um input dentro de um contêiner com aparência de chip; nunca aninhar `<input>` dentro de `<button>`.
 - `Enter` adiciona e mantém o foco; `blur` com valor válido adiciona e fecha; `blur` vazio fecha; `Escape` cancela.
 - Erros de validação e duplicatas ficam inline, sem perder o texto digitado.
-- O componente preserva o input ativo durante updates da cadeia e deve ser destruído no teardown.
+- O componente preserva o input ativo durante updates da coleção e deve ser destruído no teardown.
 - Autocomplete usa `filterTagSuggestions` com prefixo normalizado, exclui tags já associadas e mostra até 6 opções. Setas navegam, Enter seleciona a opção destacada e sem destaque cria a tag digitada.
 - A lista de sugestões é um portal fixo no `body`, com `role="listbox"` e `aria-activedescendant`.
 
@@ -219,12 +219,12 @@ editorStore.flush()
 - O modo altera apenas densidade: larguras, alturas, paddings e gaps.
 - **Não** ocultar navegação, sidebar, abas ou qualquer elemento estrutural.
 - Controle no rodapé da navegação (`#compact-toggle`), com `aria-pressed` e labels dinâmicos.
-- O estado é independente do recolhimento do rodapé de notas da cadeia.
+- O estado é independente do recolhimento do rodapé de notas da coleção.
 
 ## Tipo de conteúdo
 
 - `NoteContentType = 'text' | 'code'` é uma propriedade da nota/documento, não uma preferência global.
-- O seletor fica no canto inferior direito: statusbar do rascunho e rodapé do compositor da cadeia.
+- O seletor fica no canto inferior direito: statusbar do rascunho e rodapé do compositor da coleção.
 - Usa `ContentTypeMenu` (menu MD3 com `menuitemradio`), não `<select>` nativo.
 - Texto mantém `spellcheck`; código usa fonte monoespaçada, `spellcheck=false`, `tab-size: 2` e preserva whitespace.
 - `EditorStore` persiste `contentType` em `DraftTab`/`ChainNoteTab` e restaura dados antigos como `text`.
@@ -242,7 +242,7 @@ editorStore.flush()
 - O padrão é minimalista: cor `primary`, sem ícone externo e sem sublinhado permanente; sublinhado em hover/focus e outline de foco MD3.
 - Clique simples, teclado e toque abrem em nova aba. Não existe mais o modificador Ctrl/Cmd exclusivo.
 - URLs em notas de código são linkificadas genéricamente, inclusive em strings e comentários, pois a linguagem não é armazenada.
-- O histórico da cadeia e a timeline usam o mesmo padrão. O detalhe da cadeia mantém texto puro por causa da edição inline em `contentEditable`.
+- O histórico da coleção e a timeline usam o mesmo padrão. O detalhe da coleção mantém texto puro por causa da edição inline em `contentEditable`.
 - Markdown usa `html: false`; HTML bruto não é renderizado e apenas links/imagens HTTP(S) são permitidos.
 - Não usar `innerHTML` para linkificar conteúdo do usuário fora do renderizador Markdown sanitizado.
 - Cobertura: `linkify`, `noteLinks`, `markdownContent` e `timelineLinks`.
@@ -250,7 +250,7 @@ editorStore.flush()
 ## Importação de documentos externos
 
 - DnD é exclusivo para arquivos externos; abas internas não são arrastáveis.
-- Destinos: item de cadeia na sidebar e área da cadeia aberta no Editor.
+- Destinos: item de coleção na sidebar e área da coleção aberta no Editor.
 - Limite: 256 KiB por arquivo, até 10 arquivos e 1 MiB por lote; UTF-8 válido, sem NUL/binário e sem conteúdo vazio.
 - Todo arquivo é tratado como texto puro; nunca renderizar o conteúdo como HTML.
 - Cada arquivo vira uma tail separada, na ordem do `FileList`.
@@ -259,7 +259,7 @@ editorStore.flush()
 - Arquivos inválidos aparecem com falha e motivo; somente válidos são importados.
 - File.lastModified é a data de cada arquivo. O switch “Usar datas dos arquivos” é global, mas cada nota recebe sua própria data; ausência/invalidez/futuro usa `now()`.
 - A nota é sempre anexada como última tail; com data antiga, aparece na timeline naquela data.
-- Fallback acessível: botão upload_file no header da cadeia abre um seletor múltiplo e usa o mesmo preview.
+- Fallback acessível: botão upload_file no header da coleção abre um seletor múltiplo e usa o mesmo preview.
 - Estado de drag é local à view; não usar AppState.
 - Cobertura: `textFileImport`, `textFileImportBatch`, `importTextDialog`, `importTextFilesDialog`, `editorSidebarFileDrop`, `chainDocumentImport`, `editorImportView`, `ImportTextNote` e `ImportTextNotes`.
 
@@ -294,18 +294,18 @@ Ações destrutivas **sempre** pedem confirmação via `showConfirmDialog` antes
 
 - Dark mode: `@media (prefers-color-scheme: dark)` + atributo `[data-theme="dark"]` no `<html>`.
 - Nomenclatura BEM: `.chain-item__title`, `.tag-chip--selected`, `.btn--destructive`.
-- Lista de cadeias: item compacto de 2 linhas, com título + data/notas + botão de pin. Excerpt e tags ficam no detalhe, não na lista.
-- Cadeias fixadas são preferência de UI (`threadnotes.pinned-chains`) e aparecem primeiro na sidebar; não há mais view nem campo de favoritos.
+- Lista de coleções: item compacto de 2 linhas, com título + data/notas + botão de pin. Excerpt e tags ficam no detalhe, não na lista.
+- Coleções fixadas são preferência de UI (`threadnotes.pinned-chains`) e aparecem primeiro na sidebar; não há mais view nem campo de favoritos.
 - Tokens MD3: use `var(--md-sys-color-primary)` etc. — nunca valores de cor literais.
 - **Nunca** ler `components.css` inteiro — use grep para a classe específica.
 - Navegação: rail fixo de 80px em `≥769px`; drawer modal de 280px em `≤768px`. A lupa é o primeiro item da navegação (`data-view="search"`) e preserva o atalho `Ctrl+K`. Não existe topbar; o título acessível da view fica em `#app-view-title` com `.sr-only`. No mobile, o botão `.nav-toggle` é renderizado dentro dos headers já existentes de cada view, sem criar uma row nova. Configurações, tema e modo compacto ficam no rodapé do rail/drawer.
 - A navegação não deve ter scroll próprio: conteúdo com `overflow: hidden`, itens de 52px, footer com botões de 48px e dimensões ajustadas para caber sem rolagem.
 - Workspace Editor: lateral de 300px no desktop e off-canvas no compacto. O botão `#editor-explorer-toggle` abre/fecha a lateral no mobile; overlay usa o scrim MD3.
-- O documento e o histórico da cadeia permanecem full-bleed, sem centralização, borda ou raio de card. O histórico usa medida de leitura de ~72ch alinhada à esquerda para linhas confortáveis. A sidebar de cadeias permanece fixa como Explorer.
-- Abas usam `role="tablist"`; o documento ativo é `role="tabpanel"`. O compositor da cadeia é o único ponto que cria novas tails na view principal.
+- O documento e o histórico da coleção permanecem full-bleed, sem centralização, borda ou raio de card. O histórico usa medida de leitura de ~72ch alinhada à esquerda para linhas confortáveis. A sidebar de coleções permanece fixa como Explorer.
+- Abas usam `role="tablist"`; o documento ativo é `role="tabpanel"`. O compositor da coleção é o único ponto que cria novas tails na view principal.
 - `renderTabList`: duplo clique no espaço vazio cria nova aba (`onCreate`); clique com botão do scroll fecha a aba (`auxclick`, botão 1). Esses atalhos complementam, não substituem, os botões e o teclado.
 - O mesmo atalho de nova aba vale para o fundo da row `.editor-tabbar`; duplo clique em abas ou botões da row é ignorado.
-- Abas de cadeia são renomeáveis: duplo clique no label ou item “Renomear” do menu. O título vira input inline; Enter salva, Escape/blur cancelam.
+- Abas de coleção são renomeáveis: duplo clique no label ou item “Renomear” do menu. O título vira input inline; Enter salva, Escape/blur cancelam.
 - Abas de prévia usam `.editor-tab--preview` com label em itálico, `aria-description` e tooltip; não adicionam ícones extras. Ao serem promovidas ou ficarem dirty, a classe é removida na atualização.
 - O header do `ChainDocument` não repete o título; exibe tags, contador, Importar e Mais.
 - Cobertura: `editorTabRename`, `chainMenuRename` e `editorChainRename`.
@@ -329,7 +329,7 @@ Use `escapeHtml()` sempre que inserir conteúdo de usuário via `innerHTML`. Par
 
 ## Bootstrap — `src/main.ts`
 
-Sequência de inicialização: importa CSS → `renderApp(root)` (inicializa tema, histórico, shell e FAB) → `AppController.init()` → registra atalhos globais (`Ctrl+K` busca, `N` nova cadeia, `Escape` volta).
+Sequência de inicialização: importa CSS → `renderApp(root)` (inicializa tema, histórico, shell e FAB) → `AppController.init()` → registra atalhos globais (`Ctrl+K` busca, `N` nova coleção, `Escape` volta).
 
 Não modifique `main.ts` para adicionar features — adicione no `AppController` e nas `views/`/`app/shell.ts`.
 

@@ -92,7 +92,7 @@ describe('Editor close note edit tab', () => {
     host.querySelector<HTMLButtonElement>('.chain-note__edit')?.click();
 
     const chainWithEdit = store.getTab(chain.id);
-    if (!chainWithEdit || chainWithEdit.kind !== 'chain') throw new Error('Cadeia não encontrada');
+    if (!chainWithEdit || chainWithEdit.kind !== 'chain') throw new Error('Coleção não encontrada');
     const editTab = chainWithEdit.noteTabs.find((tab) => tab.editingNoteId === note.id);
     if (!editTab) throw new Error('Aba de edição não encontrada');
 
@@ -104,7 +104,7 @@ describe('Editor close note edit tab', () => {
 
     await vi.waitFor(() => {
       const after = store.getTab(chain.id);
-      if (!after || after.kind !== 'chain') throw new Error('Cadeia não encontrada');
+      if (!after || after.kind !== 'chain') throw new Error('Coleção não encontrada');
       expect(after.noteTabs).toHaveLength(0);
       expect(after.composerCollapsed).toBe(true);
     });

@@ -24,7 +24,7 @@ function normalizedContent(content: string, contentType: NoteContentType): strin
 
 /**
  * Entidade: Note.
- * Toda nota pertence a exatamente uma cadeia.
+ * Toda nota pertence a exatamente uma coleção.
  * A posição é imutável após criação para preservar a ordem determinística.
  */
 export class Note {

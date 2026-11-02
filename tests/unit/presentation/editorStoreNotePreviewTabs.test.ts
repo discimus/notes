@@ -43,7 +43,7 @@ describe('EditorStore note preview tabs', () => {
     )!;
 
     const chainTab = store.getTab(chain.id);
-    if (!chainTab || chainTab.kind !== 'chain') throw new Error('Cadeia não encontrada');
+    if (!chainTab || chainTab.kind !== 'chain') throw new Error('Coleção não encontrada');
 
     expect(chainTab.noteTabs.map((tab) => tab.id)).toEqual([persistent.id, next.id]);
     expect(store.getChainNoteTab(chain.id, preview.id)).toBeNull();
@@ -124,7 +124,7 @@ describe('EditorStore note preview tabs', () => {
 
     const restored = createStore();
     const chainTab = restored.getTab(chain.id);
-    if (!chainTab || chainTab.kind !== 'chain') throw new Error('Cadeia não restaurada');
+    if (!chainTab || chainTab.kind !== 'chain') throw new Error('Coleção não restaurada');
 
     expect(
       chainTab.noteTabs.find((tab) => tab.id === preview.id)

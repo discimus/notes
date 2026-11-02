@@ -18,7 +18,7 @@ export interface TimelineFilter {
 
 /**
  * Modelo de leitura: TimelineView.
- * Representa notas de múltiplas cadeias ordenadas cronologicamente.
+ * Representa notas de múltiplas coleções ordenadas cronologicamente.
  * Não altera estruturas originais — operação de leitura apenas.
  */
 export class TimelineView {

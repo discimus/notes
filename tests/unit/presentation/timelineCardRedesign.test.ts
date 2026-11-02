@@ -100,7 +100,7 @@ describe('Timeline card redesign', () => {
     ).toContain('tag-4, tag-5');
   });
 
-  it('mantém o clique na cadeia separado da abertura da prévia', () => {
+  it('mantém o clique na coleção separado da abertura da prévia', () => {
     const layout = renderTimelineLayout(appState.get());
     layout.querySelector<HTMLButtonElement>('.timeline-entry__chain')?.click();
 

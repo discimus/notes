@@ -17,7 +17,7 @@ function makeChain(overrides: Partial<ChainSummaryDTO> = {}): ChainSummaryDTO {
 }
 
 describe('filterChains', () => {
-  it('retorna todas as cadeias quando a consulta estÃ¡ vazia', () => {
+  it('retorna todas as coleções quando a consulta estÃ¡ vazia', () => {
     const chains = [makeChain(), makeChain({ id: 'chain-2', displayTitle: 'Outra' })];
 
     expect(filterChains(chains, '')).toHaveLength(2);
@@ -56,7 +56,7 @@ describe('filterChains', () => {
 });
 
 describe('sortChainsByPinned', () => {
-  it('ordena cadeias fixadas primeiro preservando a ordem relativa', () => {
+  it('ordena coleções fixadas primeiro preservando a ordem relativa', () => {
     const chains = [
       makeChain({ id: 'chain-1' }),
       makeChain({ id: 'chain-2' }),

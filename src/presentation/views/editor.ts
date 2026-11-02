@@ -110,7 +110,7 @@ export function mountEditorView(
     try {
       const chainTitle =
         appState.get().chainSummaries.find((chain) => chain.id === chainId)?.displayTitle ??
-        'Cadeia';
+        'Coleção';
 
       if (files.length === 1) {
         const prepared = await AppController.prepareTextImport(files[0]!);
@@ -201,8 +201,8 @@ export function mountEditorView(
   main.innerHTML = `
     <div class="editor-tabbar">
       <button class="btn-icon editor-tabbar__explorer" id="editor-explorer-toggle" type="button"
-        aria-label="Abrir explorador de cadeias" aria-controls="editor-sidebar" aria-expanded="false"
-        title="Explorador de cadeias">
+        aria-label="Abrir explorador de coleções" aria-controls="editor-sidebar" aria-expanded="false"
+        title="Explorador de coleções">
         <span class="material-symbols-rounded" aria-hidden="true">menu_open</span>
       </button>
       <div class="editor-tabs" id="editor-tabs"></div>
@@ -243,7 +243,7 @@ export function mountEditorView(
     explorerButton.setAttribute('aria-expanded', open ? 'true' : 'false');
     explorerButton.setAttribute(
       'aria-label',
-      open ? 'Fechar explorador de cadeias' : 'Abrir explorador de cadeias'
+      open ? 'Fechar explorador de coleções' : 'Abrir explorador de coleções'
     );
   };
 
@@ -265,7 +265,7 @@ export function mountEditorView(
     empty.innerHTML = `
       <span class="material-symbols-rounded editor-empty-document__icon" aria-hidden="true">edit_note</span>
       <p class="editor-empty-document__title">Nenhum documento aberto</p>
-      <p class="editor-empty-document__body">Crie um rascunho ou abra uma cadeia pela lateral.</p>
+      <p class="editor-empty-document__body">Crie um rascunho ou abra uma coleção pela lateral.</p>
       <div class="editor-empty-document__actions">
         ${renderQuickActions({ documentId: 'editor-empty-action-document' })}
       </div>
@@ -488,15 +488,15 @@ export function mountEditorView(
     if (added > 0) {
       snackbar.success(
         added === 1
-          ? 'Imagem anexada ao final da cadeia.'
-          : `${added} imagens anexadas ao final da cadeia.`
+          ? 'Imagem anexada ao final da coleção.'
+          : `${added} imagens anexadas ao final da coleção.`
       );
     }
   };
 
   const recordAudioForChainEnd = async (chainId: string): Promise<void> => {
     await showAudioRecorderDialog({
-      noteTitle: 'Final da cadeia',
+      noteTitle: 'Final da coleção',
       onSave: async (recorded) => {
         const result = await AppController.addChainEndAttachment({
           chainId,
@@ -506,7 +506,7 @@ export function mountEditorView(
           blob: recorded.blob,
           duration: recorded.duration,
         });
-        if (result.ok) snackbar.success('Áudio anexado ao final da cadeia.');
+        if (result.ok) snackbar.success('Áudio anexado ao final da coleção.');
         return result.ok;
       },
     });
@@ -670,7 +670,7 @@ export function mountEditorView(
         ? await updateChainNoteEditTab(chainTab, noteTab)
         : await appendChainNoteTab(chainTabId, noteTabId);
 
-      if (saved && !editing) snackbar.success('Nota adicionada à cadeia.');
+      if (saved && !editing) snackbar.success('Nota adicionada à coleção.');
       return saved;
     } finally {
       saving = false;
@@ -710,7 +710,7 @@ export function mountEditorView(
 
       if (appended > 0) {
         snackbar.success(
-          appended === 1 ? 'Nota adicionada à cadeia.' : 'Notas adicionadas à cadeia.'
+          appended === 1 ? 'Nota adicionada à coleção.' : 'Notas adicionadas à coleção.'
         );
       }
       return true;
@@ -782,7 +782,7 @@ export function mountEditorView(
 
         store.markDraftSaved(id, result.target, content);
         snackbar.success('Documento salvo.', {
-          label: 'Abrir cadeia',
+          label: 'Abrir coleção',
           onClick: () => openChainAction(result.target.chainId),
         });
         return true;
@@ -811,10 +811,10 @@ export function mountEditorView(
       store.markDraftSaved(id, result.target, content);
       snackbar.success(
         choice.chainId === null
-          ? 'Cadeia criada e nota adicionada.'
-          : 'Nota adicionada à cadeia.',
+          ? 'Coleção criada e nota adicionada.'
+          : 'Nota adicionada à coleção.',
         {
-          label: 'Abrir cadeia',
+          label: 'Abrir coleção',
           onClick: () => openChainAction(result.target.chainId),
         }
       );

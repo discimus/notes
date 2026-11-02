@@ -53,7 +53,7 @@ describe('EditorStore com tags de notas', () => {
     });
 
     const updated = store.getTab(tab.id);
-    if (!updated || updated.kind !== 'chain') throw new Error('Cadeia não encontrada');
+    if (!updated || updated.kind !== 'chain') throw new Error('Coleção não encontrada');
     expect(updated.notes[0]?.tags?.map((item) => item.id)).toEqual(['tag-1']);
   });
 });

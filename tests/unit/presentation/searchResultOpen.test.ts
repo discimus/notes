@@ -7,7 +7,7 @@ import type { SearchResultDTO } from '@application/dto/index.js';
 const result: SearchResultDTO = {
   noteId: 'note-1',
   chainId: 'chain-1',
-  chainTitle: 'Cadeia 1',
+  chainTitle: 'Coleção 1',
   snippet: 'Resultado 1',
   noteCreatedAt: '2026-01-01T00:00:00.000Z',
   noteRole: 'header',

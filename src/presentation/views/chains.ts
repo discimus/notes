@@ -21,7 +21,7 @@ export function renderChainsLayout(state: AppState): HTMLElement {
 
   const panel = el('div', 'chains-panel');
   panel.setAttribute('id', 'chains-panel');
-  panel.setAttribute('aria-label', 'Lista de cadeias');
+  panel.setAttribute('aria-label', 'Lista de coleções');
 
   const panelHeader = el('div', 'chains-panel__header');
 
@@ -29,7 +29,7 @@ export function renderChainsLayout(state: AppState): HTMLElement {
   searchBar.innerHTML = `
     <span class="search-bar__icon material-symbols-rounded" aria-hidden="true">search</span>
     <input type="search" class="search-bar__input" id="chains-search-input"
-      placeholder="Filtrar cadeiasâ€¦" aria-label="Filtrar cadeias" autocomplete="off"
+      placeholder="Filtrar coleçõesâ€¦" aria-label="Filtrar coleções" autocomplete="off"
       value="${escapeHtml(state.chainFilterQuery)}" />
     <button class="btn-icon search-bar__clear" id="chains-filter-clear"
       aria-label="Limpar filtro" ${state.chainFilterQuery ? '' : 'hidden'}>
@@ -45,8 +45,8 @@ export function renderChainsLayout(state: AppState): HTMLElement {
 
   if (state.view === 'chains' || state.view === 'chain-detail') {
     const newBtn = el('button', 'btn-icon btn-icon--primary');
-    newBtn.setAttribute('aria-label', 'Nova cadeia (N)');
-    newBtn.setAttribute('title', 'Nova cadeia (N)');
+    newBtn.setAttribute('aria-label', 'Nova coleção (N)');
+    newBtn.setAttribute('title', 'Nova coleção (N)');
     newBtn.innerHTML = '<span class="material-symbols-rounded" aria-hidden="true">add</span>';
     newBtn.addEventListener('click', () => showComposerModal());
     toolbar.appendChild(newBtn);
@@ -102,12 +102,12 @@ export function updateChainsLayout(content: HTMLElement, state: AppState): void 
 
 function getViewLabel(view: string): string {
   const map: Record<string, string> = {
-    chains: 'Cadeias',
-    'chain-detail': 'Cadeias',
+    chains: 'Coleções',
+    'chain-detail': 'Coleções',
     archived: 'Arquivo',
     trash: 'Lixeira',
   };
-  return map[view] ?? 'Cadeias';
+  return map[view] ?? 'Coleções';
 }
 
 function renderChainsList(container: HTMLElement, state: AppState): void {
@@ -128,7 +128,7 @@ function renderChainsList(container: HTMLElement, state: AppState): void {
     container.appendChild(
       renderEmptyDetail(
         'search_off',
-        'Nenhuma cadeia encontrada',
+        'Nenhuma coleção encontrada',
         `Nada corresponde a "${state.chainFilterQuery}".`
       )
     );
@@ -173,7 +173,7 @@ function renderDetailPanel(container: HTMLElement, state: AppState): void {
 
     const titleEl = el('h2', 'detail-panel__title');
     titleEl.setAttribute('contenteditable', 'true');
-    titleEl.setAttribute('aria-label', 'TÃ­tulo da cadeia');
+    titleEl.setAttribute('aria-label', 'TÃ­tulo da coleção');
     titleEl.setAttribute('spellcheck', 'true');
     titleEl.setAttribute('role', 'textbox');
     titleEl.setAttribute('aria-multiline', 'false');
@@ -205,7 +205,7 @@ function renderDetailPanel(container: HTMLElement, state: AppState): void {
     header.appendChild(titleRow);
 
     const tagsRow = el('div', 'detail-panel__tags');
-    tagsRow.setAttribute('aria-label', 'Tags da cadeia');
+    tagsRow.setAttribute('aria-label', 'Tags da coleção');
     chain.tags.forEach((tag) => {
       const chip = renderTagChip(tag, () => AppController.removeTag(chain.id, tag.id));
       tagsRow.appendChild(chip);
@@ -229,7 +229,7 @@ function renderDetailPanel(container: HTMLElement, state: AppState): void {
 
     const notesContainer = el('div', 'detail-panel__notes');
     notesContainer.setAttribute('id', 'notes-list');
-    notesContainer.setAttribute('aria-label', 'Notas da cadeia');
+    notesContainer.setAttribute('aria-label', 'Notas da coleção');
 
     if (state.isLoading) {
       notesContainer.appendChild(renderLoadingState());
@@ -245,9 +245,9 @@ function renderDetailPanel(container: HTMLElement, state: AppState): void {
   } else if (state.view === 'chains') {
     container.appendChild(renderEmptyDetail());
   } else if (state.view === 'archived') {
-    container.appendChild(renderEmptyDetail('archive', 'Arquivo', 'Selecione uma cadeia arquivada para visualizÃ¡-la.'));
+    container.appendChild(renderEmptyDetail('archive', 'Arquivo', 'Selecione uma coleção arquivada para visualizÃ¡-la.'));
   } else if (state.view === 'trash') {
-    container.appendChild(renderEmptyDetail('delete', 'Lixeira', 'Selecione uma cadeia na lixeira para gerenciÃ¡-la.'));
+    container.appendChild(renderEmptyDetail('delete', 'Lixeira', 'Selecione uma coleção na lixeira para gerenciÃ¡-la.'));
   }
 }
 
@@ -427,12 +427,12 @@ function renderComposer(chainId: string): HTMLElement {
   const tailBtn = el('button', 'chip chip--selected');
   tailBtn.dataset['mode'] = 'tail';
   tailBtn.setAttribute('aria-pressed', 'true');
-  tailBtn.innerHTML = '<span class="material-symbols-rounded icon-md" aria-hidden="true">add</span> Continuar cadeia';
+  tailBtn.innerHTML = '<span class="material-symbols-rounded icon-md" aria-hidden="true">add</span> Continuar coleção';
 
   const headerBtn = el('button', 'chip');
   headerBtn.dataset['mode'] = 'header';
   headerBtn.setAttribute('aria-pressed', 'false');
-  headerBtn.innerHTML = '<span class="material-symbols-rounded icon-md" aria-hidden="true">fiber_new</span> Nova cadeia';
+  headerBtn.innerHTML = '<span class="material-symbols-rounded icon-md" aria-hidden="true">fiber_new</span> Nova coleção';
 
   let composerMode: 'tail' | 'header' = 'tail';
 
@@ -445,8 +445,8 @@ function renderComposer(chainId: string): HTMLElement {
     headerBtn.classList.toggle('chip--selected', mode === 'header');
     headerBtn.setAttribute('aria-pressed', mode === 'header' ? 'true' : 'false');
     placeholder.setAttribute('placeholder', mode === 'tail'
-      ? 'Continuar esta cadeiaâ€¦'
-      : 'Iniciar uma nova cadeiaâ€¦');
+      ? 'Continuar esta coleçãoâ€¦'
+      : 'Iniciar uma nova coleçãoâ€¦');
   };
 
   tailBtn.addEventListener('click', () => updateMode('tail'));
@@ -459,7 +459,7 @@ function renderComposer(chainId: string): HTMLElement {
   placeholder.setAttribute('id', 'composer-input');
   placeholder.setAttribute('aria-label', 'ConteÃºdo da nota');
   placeholder.setAttribute('aria-multiline', 'true');
-  placeholder.setAttribute('placeholder', 'Continuar esta cadeiaâ€¦');
+  placeholder.setAttribute('placeholder', 'Continuar esta coleçãoâ€¦');
   placeholder.setAttribute('rows', '3');
   placeholder.setAttribute('autocomplete', 'off');
   placeholder.setAttribute('spellcheck', 'true');
@@ -538,7 +538,7 @@ function renderComposer(chainId: string): HTMLElement {
   composer.appendChild(footer);
 
   const hint = el('p', 'composer__hint');
-  hint.textContent = 'Ctrl+Enter para salvar Â· N para nova cadeia';
+  hint.textContent = 'Ctrl+Enter para salvar Â· N para nova coleção';
   composer.appendChild(hint);
 
   return composer;
@@ -546,9 +546,9 @@ function renderComposer(chainId: string): HTMLElement {
 
 function renderEmptyChains(view: string): HTMLElement {
   const labels: Record<string, { icon: string; title: string; body: string }> = {
-    chains: { icon: 'account_tree', title: 'Nenhuma cadeia ainda', body: 'Crie sua primeira cadeia clicando no botÃ£o + acima.' },
-    archived: { icon: 'archive', title: 'Arquivo vazio', body: 'Cadeias arquivadas aparecerÃ£o aqui.' },
-    trash: { icon: 'delete', title: 'Lixeira vazia', body: 'Cadeias excluÃ­das aparecerÃ£o aqui.' },
+    chains: { icon: 'account_tree', title: 'Nenhuma coleção ainda', body: 'Crie sua primeira coleção clicando no botÃ£o + acima.' },
+    archived: { icon: 'archive', title: 'Arquivo vazio', body: 'Coleções arquivadas aparecerÃ£o aqui.' },
+    trash: { icon: 'delete', title: 'Lixeira vazia', body: 'Coleções excluÃ­das aparecerÃ£o aqui.' },
   };
   const info = labels[view] ?? labels['chains']!;
   const empty = el('div', 'empty-state');

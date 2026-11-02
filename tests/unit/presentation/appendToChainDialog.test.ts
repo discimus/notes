@@ -18,7 +18,7 @@ describe('AppendToChainDialog', () => {
     document.body.innerHTML = '';
   });
 
-  it('pede a seleÃ§Ã£o de uma cadeia e retorna o destino', async () => {
+  it('pede a seleÃ§Ã£o de uma coleção e retorna o destino', async () => {
     const result = showAppendToChainDialog({ chains: [chain] });
 
     expect(document.querySelector('.append-chain-dialog')).not.toBeNull();
@@ -38,7 +38,7 @@ describe('AppendToChainDialog', () => {
     });
   });
 
-  it('filtra a lista pelo tÃ­tulo da cadeia', () => {
+  it('filtra a lista pelo tÃ­tulo da coleção', () => {
     showAppendToChainDialog({ chains: [chain] });
 
     const search = document.querySelector<HTMLInputElement>(
@@ -50,11 +50,11 @@ describe('AppendToChainDialog', () => {
     search.dispatchEvent(new Event('input', { bubbles: true }));
 
     expect(document.querySelector('.save-chain-list__empty')?.textContent).toBe(
-      'Nenhuma cadeia encontrada.'
+      'Nenhuma coleção encontrada.'
     );
   });
 
-  it('mantÃ©m o salvamento indisponÃ­vel sem cadeias', () => {
+  it('mantÃ©m o salvamento indisponÃ­vel sem coleções', () => {
     showAppendToChainDialog({ chains: [] });
 
     expect(
@@ -62,7 +62,7 @@ describe('AppendToChainDialog', () => {
         ?.disabled
     ).toBe(true);
     expect(document.querySelector('[id^="append-chain-status-"]')?.textContent).toContain(
-      'Crie uma cadeia pela lateral'
+      'Crie uma coleção pela lateral'
     );
   });
 

@@ -3673,7 +3673,7 @@
   }
 }
 
-/* Criar cadeia no diálogo de salvamento */
+/* Criar coleção no diálogo de salvamento */
 .save-chain-create {
   display: flex;
   align-items: center;
@@ -3735,7 +3735,7 @@
   box-shadow: inset 0 0 0 1px var(--md-sys-color-error);
 }
 
-/* Ações rápidas da cadeia */
+/* Ações rápidas da coleção */
 .chain-document__footer {
   position: absolute;
   left: 50%;

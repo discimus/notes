@@ -90,7 +90,7 @@ describe('Chain header visibility', () => {
     now = 200;
 
     const scroll = view.element.querySelector<HTMLElement>('#chain-document-scroll');
-    if (!scroll) throw new Error('Scroll da cadeia não encontrado');
+    if (!scroll) throw new Error('Scroll da coleção não encontrado');
 
     return { view, scroll };
   }
@@ -141,7 +141,7 @@ describe('Chain header visibility', () => {
     const hiddenClass = 'chain-document--header-hidden';
     const more = view.element.querySelector<HTMLButtonElement>('#chain-more');
 
-    if (!more) throw new Error('Menu da cadeia não encontrado');
+    if (!more) throw new Error('Menu da coleção não encontrado');
     more.focus();
     expect(document.activeElement).toBe(more);
 

@@ -8,7 +8,7 @@ Fonte: `src/shared/types/index.ts` e `src/shared/utilities/`.
 // ✅ correto
 throw new ValidationError('O conteúdo não pode ser vazio.');
 throw new NotFoundError('Chain', id);
-throw new InvariantViolationError('Cadeia deve ter exatamente um header.');
+throw new InvariantViolationError('Coleção deve ter exatamente um header.');
 
 // ❌ errado — perde informação de tipo e code
 throw new Error('mensagem');

@@ -18,7 +18,7 @@ const note: NoteDTO = {
   updatedAt: '2026-01-02T10:00:00.000Z',
 };
 
-describe('Editor cria cadeia a partir do rascunho', () => {
+describe('Editor cria coleção a partir do rascunho', () => {
   beforeEach(() => {
     sessionStorage.clear();
     document.body.innerHTML = '<div id="editor-host"></div>';
@@ -38,7 +38,7 @@ describe('Editor cria cadeia a partir do rascunho', () => {
     document.body.innerHTML = '';
   });
 
-  it('cria e salva a nova cadeia pelo título digitado no diálogo', async () => {
+  it('cria e salva a nova coleção pelo título digitado no diálogo', async () => {
     const store = new EditorStore();
     const host = document.getElementById('editor-host') as HTMLElement;
     cleanup = mountEditorView(host, store);
@@ -49,9 +49,9 @@ describe('Editor cria cadeia a partir do rascunho', () => {
         chainId: 'chain-new',
         noteId: note.id,
         role: 'tail',
-        chainTitle: 'Cadeia nova',
+        chainTitle: 'Coleção nova',
       },
-      chainTitle: 'Cadeia nova',
+      chainTitle: 'Coleção nova',
       note,
     });
 
@@ -65,7 +65,7 @@ describe('Editor cria cadeia a partir do rascunho', () => {
     const search = document.querySelector<HTMLInputElement>(
       '[id^="append-chain-search-"]'
     )!;
-    search.value = 'Cadeia nova';
+    search.value = 'Coleção nova';
     search.dispatchEvent(new Event('input', { bubbles: true }));
     search.dispatchEvent(
       new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })
@@ -73,7 +73,7 @@ describe('Editor cria cadeia a partir do rascunho', () => {
 
     await vi.waitFor(() => {
       expect(create).toHaveBeenCalledWith(
-        'Cadeia nova',
+        'Coleção nova',
         'Conteúdo do rascunho',
         'text'
       );

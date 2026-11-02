@@ -37,7 +37,7 @@ function handlers() {
   };
 }
 
-describe('Estabilidade do scroll no fim da cadeia', () => {
+describe('Estabilidade do scroll no fim da coleção', () => {
   beforeEach(() => {
     document.body.innerHTML = '';
     appState.set({

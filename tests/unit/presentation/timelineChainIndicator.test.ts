@@ -24,7 +24,7 @@ const note: NoteDTO = {
   updatedAt: '2026-01-02T10:00:00.000Z',
 };
 
-describe('Indicador de cadeia na timeline', () => {
+describe('Indicador de coleção na timeline', () => {
   beforeEach(() => {
     document.body.innerHTML = '';
     appState.set({

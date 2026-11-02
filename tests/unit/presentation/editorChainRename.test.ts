@@ -70,7 +70,7 @@ describe('Editor chain rename', () => {
     expect(update).toHaveBeenCalledWith('chain-1', 'Novo título');
   });
 
-  it('abre o input pelo item Renomear do menu da cadeia', () => {
+  it('abre o input pelo item Renomear do menu da coleção', () => {
     const { host, store } = mount();
     const tab = store.getActiveTab()!;
 

@@ -10,7 +10,7 @@ function sleep(ms: number) {
 describe('TimelineService', () => {
   const service = new TimelineService();
 
-  it('deve combinar notas de duas cadeias em ordem cronolÃ³gica', async () => {
+  it('deve combinar notas de duas coleções em ordem cronolÃ³gica', async () => {
     const { chain: chainA } = Chain.createWithHeader({ content: 'A1' });
     await sleep(5);
     const { chain: chainB } = Chain.createWithHeader({ content: 'B1' });
@@ -33,9 +33,9 @@ describe('TimelineService', () => {
   });
 
   it('deve identificar a origem de cada nota', async () => {
-    const { chain: chainA } = Chain.createWithHeader({ content: 'Nota de A', title: 'Cadeia A' });
+    const { chain: chainA } = Chain.createWithHeader({ content: 'Nota de A', title: 'Coleção A' });
     await sleep(2);
-    const { chain: chainB } = Chain.createWithHeader({ content: 'Nota de B', title: 'Cadeia B' });
+    const { chain: chainB } = Chain.createWithHeader({ content: 'Nota de B', title: 'Coleção B' });
 
     const timeline = service.createCombinedView([chainA, chainB], {
       chainIds: [chainA.id, chainB.id],
@@ -45,12 +45,12 @@ describe('TimelineService', () => {
     const entriesB = timeline.entries.filter((e) => e.chainId === chainB.id);
     expect(entriesA).toHaveLength(1);
     expect(entriesB).toHaveLength(1);
-    expect(entriesA[0]!.chainTitle).toBe('Cadeia A');
-    expect(entriesB[0]!.chainTitle).toBe('Cadeia B');
+    expect(entriesA[0]!.chainTitle).toBe('Coleção A');
+    expect(entriesB[0]!.chainTitle).toBe('Coleção B');
   });
 
   it('deve ter desempate determinÃ­stico para timestamps iguais', () => {
-    // Duas cadeias reconstituÃ­das com mesmo timestamp
+    // Duas coleções reconstituÃ­das com mesmo timestamp
     const ts = new Date().toISOString();
 
     // Adiciona notas manualmente com mesmo timestamp via reconstitute
@@ -96,7 +96,7 @@ describe('TimelineService', () => {
     expect(filtered.entries.length).toBeLessThanOrEqual(timeline.entries.length);
   });
 
-  it('deve retornar view vazia para lista de cadeias vazia', () => {
+  it('deve retornar view vazia para lista de coleções vazia', () => {
     const timeline = service.createCombinedView([], { chainIds: [] });
     expect(timeline.isEmpty).toBe(true);
     expect(timeline.entries).toHaveLength(0);

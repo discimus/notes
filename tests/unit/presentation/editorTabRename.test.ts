@@ -39,7 +39,7 @@ describe('Editor tab rename', () => {
 
     expect(input.value).toBe('Projeto');
     expect(document.activeElement).toBe(input);
-    expect(input.getAttribute('aria-label')).toBe('Renomear cadeia');
+    expect(input.getAttribute('aria-label')).toBe('Renomear coleção');
     expect(
       container.querySelector<HTMLButtonElement>(
         '[data-tab-id="chain-tab"] .editor-tab__button'

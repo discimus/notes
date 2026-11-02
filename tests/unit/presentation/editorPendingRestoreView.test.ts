@@ -65,7 +65,7 @@ describe('Editor pending restore view', () => {
     expect(textarea.classList.contains('editor-textarea--code')).toBe(true);
   });
 
-  it('mostra nota pendente restaurada no compositor da cadeia', () => {
+  it('mostra nota pendente restaurada no compositor da coleção', () => {
     const source = createStore();
     const chain = source.openChainTab('chain-1', 'Projeto');
     const noteTab = source.getActiveChainNoteTab(chain.id)!;

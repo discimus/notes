@@ -143,7 +143,7 @@ export function mountInlineTagEditor(
       label.textContent = tag.name;
       const count = el('span', 'tag-suggestion__count');
       count.textContent = `${tag.chainCount} ${
-        tag.chainCount === 1 ? 'cadeia' : 'cadeias'
+        tag.chainCount === 1 ? 'coleção' : 'coleções'
       }`;
       option.append(label, count);
 

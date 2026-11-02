@@ -46,7 +46,7 @@ describe('SearchNotesPage', () => {
     ).toBe(35);
   });
 
-  it('nao retorna notas de cadeias arquivadas', async () => {
+  it('nao retorna notas de coleções arquivadas', async () => {
     const create = new CreateChainWithHeader(chainRepo, tagRepo);
     const archive = new ArchiveChain(chainRepo);
     const active = await create.execute({ content: 'termo compartilhado' });
@@ -80,7 +80,7 @@ describe('SearchNotesPage', () => {
     expect(page.results[1]?.chainId).toBe(byContent.id);
   });
 
-  it('encontra o header de uma cadeia pela tag da cadeia', async () => {
+  it('encontra o header de uma coleção pela tag da coleção', async () => {
     const create = new CreateChainWithHeader(chainRepo, tagRepo);
     const append = new AppendNoteToChain(chainRepo);
     const assign = new AssignTagToChain(chainRepo, tagRepo);

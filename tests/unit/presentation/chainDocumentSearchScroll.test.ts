@@ -19,7 +19,7 @@ function makeNote(id: string, content: string, position: number): NoteDTO {
 const notes = [
   makeNote('note-1', 'Primeira nota', 0),
   makeNote('note-2', 'Revisão do código encontrado', 1),
-  makeNote('note-3', 'Última nota da cadeia', 2),
+  makeNote('note-3', 'Última nota da coleção', 2),
 ];
 
 const tab: ChainTab = {
@@ -76,7 +76,7 @@ describe('Scroll até a nota encontrada', () => {
     });
   });
 
-  it('centraliza a nota no container de scroll da cadeia', () => {
+  it('centraliza a nota no container de scroll da coleção', () => {
     const view = mountChainDocument(tab, {
       onNoteInput: vi.fn(),
       onSaveNote: vi.fn(),

@@ -16,7 +16,7 @@ export interface TagData {
 
 /**
  * Entidade: Tag.
- * Tags podem ser associadas a cadeias e a notas individuais.
+ * Tags podem ser associadas a coleções e a notas individuais.
  * Suporta rastreio de origem para futuras integraAA�es com classificadores.
  */
 export class Tag {

@@ -151,7 +151,7 @@ describe('Chain note preview tabs', () => {
     });
 
     const chainTab = store.getTab(chainId);
-    if (!chainTab || chainTab.kind !== 'chain') throw new Error('Cadeia não encontrada');
+    if (!chainTab || chainTab.kind !== 'chain') throw new Error('Coleção não encontrada');
     expect(chainTab.noteTabs.map((noteTab) => noteTab.editingNoteId)).toEqual([
       'note-1',
     ]);
@@ -200,7 +200,7 @@ describe('Chain note preview tabs', () => {
     expect(findEditTab(store, chainId, 'note-2')).toBeNull();
     const chainTab = store.getTab(chainId);
     if (!chainTab || chainTab.kind !== 'chain') {
-      throw new Error('Cadeia não encontrada');
+      throw new Error('Coleção não encontrada');
     }
     expect(chainTab.noteTabs).toHaveLength(1);
   });

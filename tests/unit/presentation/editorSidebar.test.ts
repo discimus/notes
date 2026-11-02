@@ -22,7 +22,7 @@ describe('EditorSidebar', () => {
     document.body.innerHTML = '';
   });
 
-  it('lista cadeias, marca a ativa e abre ao clicar', () => {
+  it('lista coleções, marca a ativa e abre ao clicar', () => {
     const onOpenChain = vi.fn();
     const view = mountEditorSidebar({
       onOpenChain,
@@ -53,7 +53,7 @@ describe('EditorSidebar', () => {
     expect(onOpenChain).toHaveBeenCalledWith('chain-1');
   });
 
-  it('ordena fixadas primeiro e alterna o pin sem abrir a cadeia', () => {
+  it('ordena fixadas primeiro e alterna o pin sem abrir a coleção', () => {
     const onOpenChain = vi.fn();
     const onTogglePin = vi.fn();
     const view = mountEditorSidebar({
@@ -86,7 +86,7 @@ describe('EditorSidebar', () => {
     expect(onTogglePin).toHaveBeenCalledWith('chain-2');
     expect(onOpenChain).not.toHaveBeenCalled();
   });
-  it('encaminha busca e criaÃ§Ã£o de nova cadeia', () => {
+  it('encaminha busca e criaÃ§Ã£o de nova coleção', () => {
     const onFilter = vi.fn();
     const onNewChain = vi.fn();
     const view = mountEditorSidebar({

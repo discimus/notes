@@ -25,7 +25,7 @@ const note: NoteDTO = {
   updatedAt: '2026-01-02T10:00:00.000Z',
 };
 
-describe('Abrir cadeia pela prévia da timeline', () => {
+describe('Abrir coleção pela prévia da timeline', () => {
   beforeEach(() => {
     document.body.innerHTML = '';
     appState.set({

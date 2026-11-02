@@ -73,25 +73,25 @@ export function showComposerModal(): void {
   dialog.setAttribute('aria-describedby', 'modal-description modal-title-error');
 
   dialog.innerHTML = `
-    <h2 id="modal-title" class="dialog__title dialog__title--left">Nova cadeia</h2>
+    <h2 id="modal-title" class="dialog__title dialog__title--left">Nova coleção</h2>
     <p id="modal-description" class="dialog__body dialog__body--left">
       Você poderá adicionar notas depois.
     </p>
     <div class="text-field text-field--outlined form-field--spaced">
       <div class="text-field__container">
         <input type="text" class="text-field__input" id="modal-title-input"
-          placeholder=" " autocomplete="off" aria-label="Título da cadeia"
+          placeholder=" " autocomplete="off" aria-label="Título da coleção"
           aria-required="true" data-autofocus />
         <label class="text-field__label" for="modal-title-input">Título *</label>
       </div>
     </div>
     <p class="text-field__supporting text-field__supporting--error" id="modal-title-error" role="alert" hidden>
-      Informe um título para a cadeia.
+      Informe um título para a coleção.
     </p>
     <div class="dialog__actions">
       <button class="btn btn-text" id="modal-cancel">Cancelar</button>
       <button class="btn btn-filled" id="modal-save">
-        <span class="material-symbols-rounded" aria-hidden="true">add</span> Criar cadeia
+        <span class="material-symbols-rounded" aria-hidden="true">add</span> Criar coleção
       </button>
     </div>
   `;

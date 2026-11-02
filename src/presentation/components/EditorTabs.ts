@@ -140,7 +140,7 @@ export function renderTabList(
       input.type = 'text';
       input.className = 'editor-tab__rename-input';
       input.value = item.label;
-      input.setAttribute('aria-label', 'Renomear cadeia');
+      input.setAttribute('aria-label', 'Renomear coleção');
       input.autocomplete = 'off';
 
       wrapper.classList.add('editor-tab--renaming');

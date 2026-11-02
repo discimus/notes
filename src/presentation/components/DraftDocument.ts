@@ -100,7 +100,7 @@ export function mountDraftDocument(
 
     target.hidden = !currentTab.target;
     targetText.textContent = currentTab.target
-      ? `Em “${currentTab.target.chainTitle ?? 'Cadeia'}”`
+      ? `Em “${currentTab.target.chainTitle ?? 'Coleção'}”`
       : '';
     targetIcon.textContent = currentTab.target ? 'link' : 'description';
     target.classList.toggle('editor-target--linked', Boolean(currentTab.target));
