@@ -17,6 +17,7 @@ import { renderSearchLayout, updateSearchLayout } from '../views/search.js';
 import { renderTimelineLayout, updateTimelineLayout } from '../views/timeline.js';
 import { renderTagsLayout, updateTagsLayout } from '../views/tags.js';
 import { renderTrashLayout, updateTrashLayout } from '../views/trash.js';
+import { renderArchiveLayout, updateArchiveLayout } from '../views/archive.js';
 import { showComposerModal } from '../views/menus.js';
 import { initEditorSession, mountEditorView } from '../views/editor.js';
 import { initGlobalShortcuts } from './shortcuts.js';
@@ -146,8 +147,10 @@ function updateContent(
 
     if (newView === 'editor') {
       cleanup = mountEditorView(content);
-    } else if (newView === 'chains' || newView === 'archived') {
+    } else if (newView === 'chains') {
       content.appendChild(renderChainsLayout(state));
+    } else if (newView === 'archived') {
+      content.appendChild(renderArchiveLayout(state));
     } else if (newView === 'trash') {
       content.appendChild(renderTrashLayout(state));
     } else if (newView === 'chain-detail') {
@@ -160,8 +163,10 @@ function updateContent(
       content.appendChild(renderTagsLayout(state));
     }
   } else {
-    if (newView === 'chains' || newView === 'chain-detail' || newView === 'archived') {
+    if (newView === 'chains' || newView === 'chain-detail') {
       updateChainsLayout(content, state);
+    } else if (newView === 'archived') {
+      updateArchiveLayout(content, state);
     } else if (newView === 'trash') {
       updateTrashLayout(content, state);
     } else if (newView === 'search') {

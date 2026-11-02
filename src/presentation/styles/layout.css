@@ -913,12 +913,12 @@
   }
 }
 
-.trash-layout {
+:is(.trash-layout, .archive-layout) {
   flex: 1;
   overflow-y: auto;
   background-color: var(--md-sys-color-surface);
 }
-.trash-page {
+:is(.trash-page, .archive-page) {
   width: 100%;
   max-width: 960px;
   margin: 0 auto;
@@ -927,40 +927,40 @@
   flex-direction: column;
   gap: var(--spacing-5);
 }
-.trash-header {
+:is(.trash-header, .archive-header) {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
   gap: var(--spacing-3);
 }
-.trash-header__heading {
+:is(.trash-header__heading, .archive-header__heading) {
   flex: 1;
   min-width: 180px;
   display: flex;
   flex-direction: column;
   gap: 2px;
 }
-.trash-header__title {
+:is(.trash-header__title, .archive-header__title) {
   font-size: var(--md-sys-typescale-headline-small-size);
   line-height: var(--md-sys-typescale-headline-small-line-height);
   font-weight: var(--md-sys-typescale-headline-small-weight);
   color: var(--md-sys-color-on-surface);
 }
-.trash-header__subtitle {
+:is(.trash-header__subtitle, .archive-header__subtitle) {
   color: var(--md-sys-color-on-surface-variant);
   font-size: var(--md-sys-typescale-body-medium-size);
   line-height: var(--md-sys-typescale-body-medium-line-height);
 }
-.trash-search {
+:is(.trash-search, .archive-search) {
   flex: 1 1 260px;
   max-width: 360px;
 }
-.trash-list {
+:is(.trash-list, .archive-list) {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-2);
 }
-.trash-item {
+:is(.trash-item, .archive-item) {
   display: flex;
   align-items: center;
   gap: var(--spacing-3);
@@ -969,16 +969,16 @@
   border-radius: var(--md-sys-shape-corner-medium);
   background-color: var(--md-sys-color-surface-container-low);
 }
-.trash-item__icon {
+:is(.trash-item__icon, .archive-item__icon) {
   flex-shrink: 0;
   color: var(--md-sys-color-on-surface-variant);
   font-size: 24px;
 }
-.trash-item__body {
+:is(.trash-item__body, .archive-item__body) {
   flex: 1;
   min-width: 0;
 }
-.trash-item__title {
+:is(.trash-item__title, .archive-item__title) {
   font-size: var(--md-sys-typescale-title-small-size);
   line-height: var(--md-sys-typescale-title-small-line-height);
   font-weight: var(--md-sys-typescale-title-small-weight);
@@ -987,43 +987,43 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.trash-item__meta {
+:is(.trash-item__meta, .archive-item__meta) {
   color: var(--md-sys-color-on-surface-variant);
   font-size: var(--md-sys-typescale-body-small-size);
   line-height: var(--md-sys-typescale-body-small-line-height);
 }
-.trash-item__actions {
+:is(.trash-item__actions, .archive-item__actions) {
   display: flex;
   align-items: center;
   gap: var(--spacing-1);
   flex-shrink: 0;
 }
-.trash-item__actions .material-symbols-rounded {
+:is(.trash-item__actions, .archive-item__actions) .material-symbols-rounded {
   font-size: 18px;
 }
-.trash-item__restore {
+:is(.trash-item__restore, .archive-item__restore) {
   color: var(--md-sys-color-primary);
 }
-.trash-item__delete {
+:is(.trash-item__delete, .archive-item__delete) {
   color: var(--md-sys-color-error);
 }
 @media (max-width: 768px) {
-  .trash-page {
+  :is(.trash-page, .archive-page) {
     padding: var(--spacing-4) var(--spacing-3) var(--spacing-6);
     gap: var(--spacing-4);
   }
-  .trash-search {
+  :is(.trash-search, .archive-search) {
     flex-basis: 100%;
     max-width: none;
   }
-  .trash-item {
+  :is(.trash-item, .archive-item) {
     flex-wrap: wrap;
     padding: var(--spacing-3);
   }
-  .trash-item__body {
+  :is(.trash-item__body, .archive-item__body) {
     min-width: 160px;
   }
-  .trash-item__actions {
+  :is(.trash-item__actions, .archive-item__actions) {
     width: 100%;
     justify-content: flex-end;
   }
@@ -1505,11 +1505,11 @@
   width: 36px;
   height: 36px;
 }
-.app-shell--compact .trash-page {
+.app-shell--compact :is(.trash-page, .archive-page) {
   padding: var(--spacing-3) var(--spacing-3) var(--spacing-5);
   gap: var(--spacing-3);
 }
-.app-shell--compact .trash-item {
+.app-shell--compact :is(.trash-item, .archive-item) {
   padding: var(--spacing-3);
 }
 .timeline-filters {

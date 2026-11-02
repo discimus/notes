@@ -23,6 +23,8 @@ export { ArchiveChain } from './ArchiveChain.js';
 export { RestoreChain } from './RestoreChain.js';
 export { DeleteChain } from './DeleteChain.js';
 export { RestoreFromTrash } from './RestoreFromTrash.js';
+export { MoveArchivedToTrash } from './MoveArchivedToTrash.js';
+export { RestoreArchivedFromTrash } from './RestoreArchivedFromTrash.js';
 export { GetAllTags } from './GetAllTags.js';
 export { RenameTag } from './RenameTag.js';
 export { DeleteTag } from './DeleteTag.js';

@@ -71,6 +71,8 @@ import {
   RestoreChain,
   DeleteChain,
   RestoreFromTrash,
+  MoveArchivedToTrash,
+  RestoreArchivedFromTrash,
   GetAllTags,
   RenameTag,
   DeleteTag,
@@ -113,6 +115,8 @@ const archiveChain = new ArchiveChain(chainRepo);
 const restoreChain = new RestoreChain(chainRepo);
 const deleteChain = new DeleteChain(chainRepo);
 const restoreFromTrash = new RestoreFromTrash(chainRepo);
+const moveArchivedToTrash = new MoveArchivedToTrash(chainRepo);
+const restoreArchivedFromTrash = new RestoreArchivedFromTrash(chainRepo);
 const getAllTags = new GetAllTags(tagRepo);
 const renameTag = new RenameTag(tagRepo);
 const deleteTag = new DeleteTag(tagRepo);
@@ -1751,6 +1755,42 @@ export const AppController = {
     try {
       await restoreChain.execute(chainId);
       snackbar.success('Coleção restaurada.');
+      await loadChains();
+    } catch (e: unknown) {
+      snackbar.error((e as Error).message);
+    }
+  },
+
+  async moveArchivedToTrash(chainId: string): Promise<void> {
+    if (getSettings().confirmBeforeTrash) {
+      const confirmed = await showConfirmDialog({
+        title: 'Mover para a lixeira?',
+        body: 'A coleção será movida do arquivo para a lixeira. Você pode restaurá-la ou excluí-la permanentemente.',
+        icon: 'delete',
+        confirmLabel: 'Mover para lixeira',
+        destructive: true,
+      });
+      if (!confirmed) return;
+    }
+    try {
+      await moveArchivedToTrash.execute(chainId);
+      editorStore.closeChainTabs(chainId);
+      snackbar.success('Coleção movida para a lixeira.', {
+        label: 'Desfazer',
+        onClick: () => {
+          void AppController.restoreArchivedFromTrash(chainId);
+        },
+      });
+      appState.set({ selectedChainId: null, currentChain: null });
+      await loadChains();
+    } catch (e: unknown) {
+      snackbar.error((e as Error).message);
+    }
+  },
+
+  async restoreArchivedFromTrash(chainId: string): Promise<void> {
+    try {
+      await restoreArchivedFromTrash.execute(chainId);
       await loadChains();
     } catch (e: unknown) {
       snackbar.error((e as Error).message);
