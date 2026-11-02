@@ -146,20 +146,23 @@ export function showConfirmDialog(options: DialogOptions): Promise<boolean> {
     backdrop.setAttribute('role', 'presentation');
 
     const dialog = document.createElement('div');
-    dialog.className = 'dialog';
+    dialog.className = 'dialog dialog--confirm';
     dialog.setAttribute('role', 'alertdialog');
     dialog.setAttribute('aria-modal', 'true');
     dialog.setAttribute('aria-labelledby', titleId);
     if (options.body) dialog.setAttribute('aria-describedby', bodyId);
 
     const parts: string[] = [];
+    const icon = options.icon
+      ? `<div class="dialog__icon" aria-hidden="true"><span class="material-symbols-rounded">${escapeHtml(options.icon)}</span></div>`
+      : '';
 
-    if (options.icon) {
-      parts.push(
-        `<div class="dialog__icon" aria-hidden="true"><span class="material-symbols-rounded">${escapeHtml(options.icon)}</span></div>`
-      );
-    }
-    parts.push(`<h2 id="${titleId}" class="dialog__title">${escapeHtml(options.title)}</h2>`);
+    parts.push(`
+      <div class="dialog__confirm-header">
+        ${icon}
+        <h2 id="${titleId}" class="dialog__title">${escapeHtml(options.title)}</h2>
+      </div>
+    `);
     if (options.body) {
       parts.push(`<p id="${bodyId}" class="dialog__body">${escapeHtml(options.body)}</p>`);
     }
