@@ -5,6 +5,7 @@ import { el, qs, qsa } from '../dom.js';
 import { cycleTheme, themeIcon, themeLabel } from '../app/theme.js';
 import { toggleCompactMode } from '../app/compactMode.js';
 import { showSettingsDialog } from '../components/SettingsDialog.js';
+import { showShortcutsDialog } from '../components/ShortcutsDialog.js';
 import { syncNavToggles } from '../components/NavToggle.js';
 import { showSearchPanel } from './search.js';
 
@@ -109,6 +110,10 @@ export function renderNavDrawer(): HTMLElement {
       <span class="nav-drawer__theme-icon material-symbols-rounded" aria-hidden="true">dark_mode</span>
       <span class="nav-drawer__theme-label">Tema</span>
     </button>
+    <button class="nav-drawer__settings shortcuts-help-button" id="shortcuts-help-toggle" type="button" aria-label="Atalhos de teclado" title="Atalhos de teclado" aria-haspopup="dialog">
+      <span class="nav-drawer__settings-icon material-symbols-rounded" aria-hidden="true">help_outline</span>
+      <span class="nav-drawer__settings-label">Atalhos</span>
+    </button>
   `;
   drawer.appendChild(footer);
 
@@ -187,5 +192,11 @@ export function updateNavDrawer(state: AppState): void {
       (themeBtn as HTMLElement).dataset['bound'] = '1';
       themeBtn.addEventListener('click', () => cycleTheme());
     }
+  }
+
+  const shortcutsBtn = qs('#shortcuts-help-toggle', drawer);
+  if (shortcutsBtn && !(shortcutsBtn as HTMLElement).dataset['bound']) {
+    (shortcutsBtn as HTMLElement).dataset['bound'] = '1';
+    shortcutsBtn.addEventListener('click', () => showShortcutsDialog());
   }
 }

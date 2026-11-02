@@ -16,6 +16,7 @@ import { renderTimelineLayout, updateTimelineLayout } from '../views/timeline.js
 import { renderTagsLayout, updateTagsLayout } from '../views/tags.js';
 import { showComposerModal } from '../views/menus.js';
 import { initEditorSession, mountEditorView } from '../views/editor.js';
+import { initGlobalShortcuts } from './shortcuts.js';
 
 export function renderApp(root: HTMLElement): void {
   initTheme();
@@ -57,6 +58,7 @@ export function renderApp(root: HTMLElement): void {
 
   shell.appendChild(main);
   root.appendChild(shell);
+  initGlobalShortcuts();
 
   let contentCleanup: (() => void) | null = null;
 

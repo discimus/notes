@@ -462,6 +462,139 @@
     min-height: 40px;
   }
 }
+.dialog--shortcuts {
+  width: min(480px, calc(100vw - var(--spacing-8)));
+  max-height: calc(100dvh - var(--spacing-8));
+  padding: 0;
+  gap: 0;
+  overflow: hidden;
+}
+.shortcuts-dialog__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--spacing-3);
+  padding: var(--spacing-5) var(--spacing-5) var(--spacing-4);
+  border-bottom: 1px solid var(--md-sys-color-outline-variant);
+}
+.shortcuts-dialog__heading {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-3);
+  min-width: 0;
+}
+.shortcuts-dialog__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 40px;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--md-sys-shape-corner-full);
+  background-color: var(--md-sys-color-primary-container);
+  color: var(--md-sys-color-on-primary-container);
+  font-size: 22px;
+}
+.shortcuts-dialog__title {
+  margin: 0;
+  color: var(--md-sys-color-on-surface);
+  font-size: var(--md-sys-typescale-title-large-size);
+  font-weight: 500;
+  line-height: 1.3;
+}
+.shortcuts-dialog__description {
+  margin: 2px 0 0;
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: var(--md-sys-typescale-body-small-size);
+  line-height: 1.4;
+}
+.shortcuts-dialog__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+  min-height: 0;
+  padding: var(--spacing-3) var(--spacing-5);
+  overflow-y: auto;
+}
+.shortcuts-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.shortcuts-list__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-4);
+  min-height: 44px;
+  padding: var(--spacing-1) 0;
+}
+.shortcuts-list__keys {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.shortcut-key {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  min-height: 28px;
+  padding: 3px 7px;
+  border: 1px solid var(--md-sys-color-outline-variant);
+  border-bottom-width: 2px;
+  border-radius: var(--md-sys-shape-corner-extra-small);
+  background-color: var(--md-sys-color-surface-container-lowest);
+  color: var(--md-sys-color-on-surface);
+  font-family: var(--md-sys-font-mono);
+  font-size: var(--md-sys-typescale-label-medium-size);
+  line-height: 1;
+  text-align: center;
+}
+.shortcuts-list__label {
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: var(--md-sys-typescale-body-medium-size);
+  line-height: 1.4;
+  text-align: right;
+}
+.shortcuts-dialog__hint {
+  margin: 0;
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: var(--md-sys-typescale-body-small-size);
+  line-height: 1.4;
+}
+.shortcuts-dialog__footer {
+  display: flex;
+  justify-content: flex-end;
+  padding: var(--spacing-2) var(--spacing-5) var(--spacing-3);
+  border-top: 1px solid var(--md-sys-color-outline-variant);
+}
+@media (max-width: 480px) {
+  .dialog--shortcuts {
+    max-height: calc(100dvh - var(--spacing-8));
+  }
+  .shortcuts-dialog__header {
+    padding: var(--spacing-4);
+  }
+  .shortcuts-dialog__body {
+    padding: var(--spacing-2) var(--spacing-4);
+  }
+  .shortcuts-dialog__footer {
+    padding: var(--spacing-2) var(--spacing-4) var(--spacing-3);
+  }
+  .shortcuts-list__item {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: var(--spacing-1);
+  }
+  .shortcuts-list__label {
+    text-align: left;
+  }
+}
 .dialog--settings {
   width: min(880px, calc(100vw - var(--spacing-8)));
   max-width: 880px;

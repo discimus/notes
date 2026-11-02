@@ -4,7 +4,6 @@ import '@presentation/styles/layout.css';
 
 import { renderApp } from '@presentation/pages/render.js';
 import { AppController } from '@presentation/pages/AppController.js';
-import { appState } from '@presentation/state/AppState.js';
 
 async function bootstrap(): Promise<void> {
   const root = document.getElementById('app')!;
@@ -12,39 +11,6 @@ async function bootstrap(): Promise<void> {
   // Detecta preferência de tema
   const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
   document.documentElement.setAttribute('data-theme', prefersDark ? 'dark' : 'light');
-
-  // Keyboard shortcuts globais
-  document.addEventListener('keydown', (e) => {
-    const target = e.target as HTMLElement;
-    const isEditing = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable;
-
-    // Ctrl+K — pesquisa
-    if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
-      e.preventDefault();
-      appState.set({ searchQuery: '', searchResults: [] });
-      void AppController.navigateTo('search');
-      return;
-    }
-
-    // N — nova coleção (quando não está editando)
-    if (e.key === 'n' && !isEditing && !e.ctrlKey && !e.metaKey) {
-      e.preventDefault();
-      appState.set({ view: 'editor' });
-      setTimeout(() => {
-        document.querySelector<HTMLElement>('#editor-new-chain')?.click();
-      }, 50);
-      return;
-    }
-
-    // Escape — fecha modais/volta para o editor
-    if (e.key === 'Escape' && !isEditing) {
-      const backdrop = document.querySelector('.dialog-backdrop');
-      if (backdrop) return;
-      if (appState.get().view === 'search') {
-        void AppController.navigateTo('editor');
-      }
-    }
-  });
 
   // Inicializa e renderiza
   try {

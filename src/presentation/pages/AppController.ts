@@ -385,6 +385,20 @@ async function openNoteInEditor(
   }
 }
 
+function focusDraftTab(tabId: string): void {
+  const focus = (): void => {
+    if (appState.get().view !== 'editor') return;
+    if (editorStore.getActiveTab()?.id !== tabId) return;
+    document.querySelector<HTMLTextAreaElement>('#draft-textarea')?.focus();
+  };
+
+  if (typeof requestAnimationFrame === 'function') {
+    requestAnimationFrame(() => requestAnimationFrame(focus));
+  } else {
+    setTimeout(focus, 0);
+  }
+}
+
 export const AppController = {
   async init(): Promise<void> {
     await loadChains();
@@ -1182,6 +1196,15 @@ export const AppController = {
     } catch (e: unknown) {
       snackbar.error((e as Error).message);
     }
+  },
+
+  openBlankDocument(): void {
+    if (appState.get().view !== 'editor') {
+      void AppController.navigateTo('editor');
+    }
+
+    const tab = editorStore.createDraftTab();
+    focusDraftTab(tab.id);
   },
 
   async navigateTo(view: AppView, chainId?: string): Promise<void> {
