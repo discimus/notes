@@ -57,8 +57,8 @@ import {
   GetChainDetails,
   SearchNotesPage,
   GetTimelinePage,
-  ImportTextNote,
   ImportTextNotes,
+  ImportTextFile,
   ArchiveChain,
   RestoreChain,
   DeleteChain,
@@ -96,7 +96,7 @@ const getChainDetails = new GetChainDetails(chainRepo, tagRepo, attachmentRepo);
 const searchNotesPage = new SearchNotesPage(chainRepo, tagRepo);
 const getTimelinePage = new GetTimelinePage(chainRepo, tagRepo);
 let searchRequestId = 0;
-const importTextNoteUseCase = new ImportTextNote(chainRepo);
+const importTextFileUseCase = new ImportTextFile(chainRepo);
 const importTextNotesUseCase = new ImportTextNotes(chainRepo);
 const archiveChain = new ArchiveChain(chainRepo);
 const restoreChain = new RestoreChain(chainRepo);
@@ -150,7 +150,18 @@ export interface EditorAppendSuccess {
   chainTitle: string;
 }
 
+export interface EditorAppendDuplicate {
+  ok: true;
+  duplicate: true;
+  fileName: string;
+}
+
 export type EditorAppendResult = EditorAppendSuccess | EditorSaveFailure;
+
+export type TextImportNoteResult =
+  | EditorAppendSuccess
+  | EditorAppendDuplicate
+  | EditorSaveFailure;
 
 export type TextImportPreparationResult =
   | { ok: true; data: PreparedTextImport }
@@ -780,17 +791,30 @@ export const AppController = {
   async importTextNote(
     chainId: string,
     content: string,
-    sourceCreatedAt?: ISODateString
-  ): Promise<EditorAppendResult> {
+    sourceCreatedAt?: ISODateString,
+    metadata?: { contentHash?: string; sourceFileName?: string }
+  ): Promise<TextImportNoteResult> {
     try {
       if (content.length >= STORAGE_PERSIST_THRESHOLD_BYTES) {
         await requestPersistentStorage();
       }
-      const note = await importTextNoteUseCase.execute({
+      const result = await importTextFileUseCase.execute({
         chainId,
         content,
         ...(sourceCreatedAt ? { sourceCreatedAt } : {}),
+        ...(metadata?.contentHash ? { contentHash: metadata.contentHash } : {}),
+        ...(metadata?.sourceFileName
+          ? { sourceFileName: metadata.sourceFileName }
+          : {}),
       });
+
+      if (result.duplicate || !result.note) {
+        const fileName = metadata?.sourceFileName ?? 'Documento';
+        snackbar.success(`${fileName} ignorado: conteúdo idêntico já importado.`);
+        return { ok: true, duplicate: true, fileName };
+      }
+
+      const note = result.note;
       await Promise.allSettled([loadChains()]);
 
       const chainTab = editorStore.findChainTab(chainId);
@@ -835,14 +859,18 @@ export const AppController = {
 
     const result = await processTextImportQueue(items, {
       importFile: async (file) => {
-        const note = await importTextNoteUseCase.execute({
+        const imported = await importTextFileUseCase.execute({
           chainId,
           content: file.content,
           ...(useSourceDates && file.sourceModifiedAt
             ? { sourceCreatedAt: file.sourceModifiedAt }
             : {}),
+          ...(file.contentHash ? { contentHash: file.contentHash } : {}),
+          ...(file.fileName ? { sourceFileName: file.fileName } : {}),
         });
-        importedNotes.push(note);
+        if (imported.duplicate || !imported.note) return 'duplicate';
+        importedNotes.push(imported.note);
+        return 'imported';
       },
       ...(onProgress ? { onProgress } : {}),
     });
@@ -891,6 +919,8 @@ export const AppController = {
           ...(useSourceDates && file.sourceModifiedAt
             ? { sourceCreatedAt: file.sourceModifiedAt }
             : {}),
+          ...(file.contentHash ? { contentHash: file.contentHash } : {}),
+          ...(file.fileName ? { sourceFileName: file.fileName } : {}),
         })),
       });
       await Promise.allSettled([loadChains()]);

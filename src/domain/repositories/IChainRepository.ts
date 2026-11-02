@@ -19,6 +19,7 @@ export interface IChainRepository {
   deleteNoteFromChain(chain: Chain, noteId: UUID): Promise<void>;
   delete(id: UUID): Promise<void>;
   countByTagId(tagId: UUID): Promise<number>;
+  hasContentHash(contentHash: string): Promise<boolean>;
 }
 
 export interface IChainReadModel {

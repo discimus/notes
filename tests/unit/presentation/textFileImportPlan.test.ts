@@ -45,20 +45,19 @@ describe('planTextImportBatch', () => {
     expect(plan.totalBytes).toBe(plan.items!.reduce((sum, item) => sum + item.byteSize, 0));
   });
 
-  it('identifica arquivos duplicados por nome, tamanho e data', async () => {
+  it('permite nomes iguais e decide duplicidade apenas pelo conteúdo', async () => {
     const plan = await planTextImportBatch([
-      file('mesmo conteúdo', 'nota.txt', 1000),
-      file('outro conteúdo', 'nota.txt', 1000),
-      file('mesmo conteúdo', 'outra.txt', 1000),
+      file('conteúdo A', 'nota.txt', 1000),
+      file('conteúdo B', 'nota.txt', 1000),
+      file('conteúdo A', 'outra.txt', 1000),
     ]);
 
     expect(plan.items?.map((item) => item.status)).toEqual([
       'pending',
-      'duplicate',
+      'pending',
       'pending',
     ]);
-    expect(plan.items?.[1]?.error).toContain('duplicado');
-    expect(plan.rejected).toHaveLength(1);
+    expect(plan.rejected).toHaveLength(0);
   });
 
   it('exige pelo menos um arquivo', async () => {

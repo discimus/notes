@@ -221,6 +221,15 @@ export class InMemoryChainRepository
     return 0;
   }
 
+  async hasContentHash(contentHash: string): Promise<boolean> {
+    for (const entry of this.chains.values()) {
+      if (entry.notes.some((note) => note.contentHash === contentHash)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   clear(): void {
     this.chains.clear();
   }

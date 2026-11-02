@@ -29,6 +29,8 @@ export interface NoteDTO {
   role: NoteRole;
   contentType?: NoteContentType | undefined;
   title?: string | undefined;
+  sourceFileName?: string | undefined;
+  contentHash?: string | undefined;
   attachments?: AttachmentDTO[] | undefined;
   tags?: TagDTO[] | undefined;
   createdAt: ISODateString;
@@ -168,11 +170,22 @@ export interface ImportTextNoteCommand {
   chainId: UUID;
   content: string;
   sourceCreatedAt?: ISODateString | undefined;
+  contentHash?: string | undefined;
+  sourceFileName?: string | undefined;
 }
 
 export interface ImportTextDocumentInput {
   content: string;
   sourceCreatedAt?: ISODateString | undefined;
+  contentHash?: string | undefined;
+  sourceFileName?: string | undefined;
+}
+
+export type ImportTextFileCommand = ImportTextNoteCommand;
+
+export interface ImportTextFileResult {
+  duplicate: boolean;
+  note?: NoteDTO | undefined;
 }
 
 export interface ImportTextNotesCommand {

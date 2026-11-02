@@ -342,4 +342,10 @@ export class IdbChainRepository
     const chainTags = await db.getAllFromIndex('chainTags', 'by-tagId', tagId);
     return chainTags.length;
   }
+
+  async hasContentHash(contentHash: string): Promise<boolean> {
+    const db = await this.db();
+    const key = await db.getKeyFromIndex('notes', 'by-contentHash', contentHash);
+    return key !== undefined;
+  }
 }

@@ -8,7 +8,7 @@ import type { NoteTagData } from '@domain/entities/index.js';
 import type { AttachmentData } from '@domain/entities/index.js';
 
 export const DB_NAME = 'thread-notes-db';
-export const DB_VERSION = 6;
+export const DB_VERSION = 7;
 
 export interface NotesDB {
   chains: {
@@ -28,6 +28,7 @@ export interface NotesDB {
       'by-chainId': string;
       'by-chainId-position': [string, number];
       'by-createdAt': string;
+      'by-contentHash': string;
     };
   };
   tags: {
@@ -103,6 +104,30 @@ function hasAttachmentSchema(db: IDBPDatabase<NotesDB>): boolean {
     return complete;
   } catch {
     return false;
+  }
+}
+
+function hasContentHashSchema(db: IDBPDatabase<NotesDB>): boolean {
+  if (!db.objectStoreNames.contains('notes')) return false;
+
+  try {
+    const tx = db.transaction('notes', 'readonly');
+    const complete = tx.store.indexNames.contains('by-contentHash');
+    void tx.done.catch(() => undefined);
+    return complete;
+  } catch {
+    return false;
+  }
+}
+
+function ensureContentHashIndex(
+  db: IDBPDatabase<NotesDB>,
+  transaction: UpgradeTransaction
+): void {
+  if (!db.objectStoreNames.contains('notes')) return;
+  const notesStore = transaction.objectStore('notes');
+  if (!notesStore.indexNames.contains('by-contentHash')) {
+    notesStore.createIndex('by-contentHash', 'contentHash', { unique: true });
   }
 }
 
@@ -189,6 +214,7 @@ function upgradeSchema(
     notesStore.createIndex('by-chainId', 'chainId');
     notesStore.createIndex('by-chainId-position', ['chainId', 'position']);
     notesStore.createIndex('by-createdAt', 'createdAt');
+    notesStore.createIndex('by-contentHash', 'contentHash', { unique: true });
 
     const tagsStore = db.createObjectStore('tags', { keyPath: 'id' });
     tagsStore.createIndex('by-normalizedName', 'normalizedName', { unique: true });
@@ -209,6 +235,7 @@ function upgradeSchema(
 
   ensureNoteTagStore(db, transaction);
   ensureAttachmentStores(db, transaction);
+  ensureContentHashIndex(db, transaction);
 }
 
 const openCallbacks = {
@@ -240,7 +267,11 @@ export async function getDatabase(): Promise<IDBPDatabase<NotesDB>> {
     db = await openDatabase();
   }
 
-  if (!hasAttachmentSchema(db) || !hasNoteTagSchema(db)) {
+  if (
+    !hasAttachmentSchema(db) ||
+    !hasNoteTagSchema(db) ||
+    !hasContentHashSchema(db)
+  ) {
     const nextVersion = db.version + 1;
     db.close();
     db = await openDatabase(nextVersion);
@@ -252,6 +283,9 @@ export async function getDatabase(): Promise<IDBPDatabase<NotesDB>> {
   }
   if (!hasNoteTagSchema(db)) {
     throw new Error('Banco de dados sem o store de tags de notas.');
+  }
+  if (!hasContentHashSchema(db)) {
+    throw new Error('Banco de dados sem o índice de hash de conteúdo.');
   }
   return db;
 }

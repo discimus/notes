@@ -131,11 +131,24 @@ export function mountEditorView(
           characterCount: prepared.data.characterCount,
           truncated: prepared.data.truncated,
           onConfirm: async (useSourceDate) => {
-            const result = await AppController.importTextNote(
-              chainId,
-              prepared.data.content,
-              useSourceDate ? prepared.data.sourceModifiedAt : undefined
-            );
+            const sourceCreatedAt = useSourceDate
+              ? prepared.data.sourceModifiedAt
+              : undefined;
+            const result = prepared.data.contentHash
+              ? await AppController.importTextNote(
+                  chainId,
+                  prepared.data.content,
+                  sourceCreatedAt,
+                  {
+                    contentHash: prepared.data.contentHash,
+                    sourceFileName: prepared.data.fileName,
+                  }
+                )
+              : await AppController.importTextNote(
+                  chainId,
+                  prepared.data.content,
+                  sourceCreatedAt
+                );
             return result.ok ? { ok: true } : { ok: false, error: result.error };
           },
         });

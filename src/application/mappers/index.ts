@@ -39,6 +39,8 @@ export function mapNoteToDTO(
     role: note.role,
     contentType: note.contentType,
     ...(note.title ? { title: note.title } : {}),
+    ...(note.sourceFileName ? { sourceFileName: note.sourceFileName } : {}),
+    ...(note.contentHash ? { contentHash: note.contentHash } : {}),
     ...(attachments.length > 0
       ? { attachments: attachments.map(mapAttachmentToDTO) }
       : {}),

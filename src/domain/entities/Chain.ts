@@ -147,14 +147,19 @@ export class Chain {
     return this.appendNoteInternal(content, contentType);
   }
 
-  appendImportedText(content: string, createdAt?: ISODateString): Note {
-    return this.appendNoteInternal(content, 'text', createdAt);
+  appendImportedText(
+    content: string,
+    createdAt?: ISODateString,
+    metadata?: { contentHash?: string; sourceFileName?: string }
+  ): Note {
+    return this.appendNoteInternal(content, 'text', createdAt, metadata);
   }
 
   private appendNoteInternal(
     content: string,
     contentType?: NoteContentType,
-    createdAt?: ISODateString
+    createdAt?: ISODateString,
+    metadata?: { contentHash?: string; sourceFileName?: string }
   ): Note {
     if (this.isArchived()) {
       throw new InvariantViolationError('NÃ£o Ã© possÃ­vel adicionar notas a uma coleção arquivada.');
@@ -172,6 +177,10 @@ export class Chain {
       position: nextPosition,
       ...(contentType ? { contentType } : {}),
       ...(createdAt ? { createdAt } : {}),
+      ...(metadata?.contentHash ? { contentHash: metadata.contentHash } : {}),
+      ...(metadata?.sourceFileName
+        ? { sourceFileName: metadata.sourceFileName }
+        : {}),
     });
 
     this._notes.push(tail);

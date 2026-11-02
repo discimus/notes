@@ -1,5 +1,6 @@
 import type { ISODateString } from '@shared/types/index.js';
 import { ValidationError } from '@shared/types/index.js';
+import { sha256Hex } from '@shared/utilities/index.js';
 
 export const MAX_TEXT_IMPORT_BYTES = 50 * 1024 * 1024;
 export const TEXT_IMPORT_PREVIEW_CHARS = 12_000;
@@ -16,6 +17,7 @@ export interface PreparedTextImport {
   hasMoreLines?: boolean | undefined;
   characterCount: number;
   truncated: boolean;
+  contentHash?: string | undefined;
 }
 
 export interface RejectedTextImport {
@@ -83,6 +85,7 @@ export async function prepareTextImport(file: File): Promise<PreparedTextImport>
   }
 
   const buffer = await file.arrayBuffer();
+  const contentHash = await sha256Hex(buffer);
   const bytes = new Uint8Array(buffer);
   if (bytes.includes(0)) {
     throw new ValidationError('O arquivo parece ser binário. Envie um documento de texto.');
@@ -116,11 +119,8 @@ export async function prepareTextImport(file: File): Promise<PreparedTextImport>
     hasMoreLines: lines.length > TEXT_IMPORT_HEAD_LINES,
     characterCount: characters.length,
     truncated,
+    contentHash,
   };
-}
-
-function fileSignature(file: File): string {
-  return `${file.name.toLowerCase()}|${file.size}|${file.lastModified}`;
 }
 
 export async function planTextImportBatch(
@@ -130,7 +130,6 @@ export async function planTextImportBatch(
     throw new ValidationError('Selecione pelo menos um documento.');
   }
 
-  const seen = new Map<string, string>();
   const items: TextImportItem[] = [];
   const rejected: RejectedTextImport[] = [];
   let totalBytes = 0;
@@ -148,15 +147,6 @@ export async function planTextImportBatch(
     } else if (file.size > MAX_TEXT_IMPORT_BYTES) {
       status = 'failed';
       error = `O arquivo excede o limite de ${formatFileSize(MAX_TEXT_IMPORT_BYTES)}.`;
-    } else {
-      const signature = fileSignature(file);
-      const original = seen.get(signature);
-      if (original) {
-        status = 'duplicate';
-        error = `Arquivo duplicado de "${original}".`;
-      } else {
-        seen.set(signature, fileName);
-      }
     }
 
     const item: TextImportItem = {

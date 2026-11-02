@@ -38,7 +38,10 @@ export interface TextImportQueueResult {
 export interface TextImportQueueOptions {
   concurrency?: number;
   prepareFile?: (file: File) => Promise<PreparedTextImport>;
-  importFile: (file: PreparedTextImport, item: TextImportItem) => Promise<void>;
+  importFile: (
+    file: PreparedTextImport,
+    item: TextImportItem
+  ) => Promise<'imported' | 'duplicate' | void>;
   onProgress?: (snapshot: TextImportQueueSnapshot) => void;
 }
 
@@ -167,9 +170,14 @@ export async function processTextImportQueue(
       }
 
       try {
-        await options.importFile(result.data, result.item);
-        result.item.status = 'imported';
-        delete result.item.error;
+        const outcome = await options.importFile(result.data, result.item);
+        if (outcome === 'duplicate') {
+          result.item.status = 'duplicate';
+          result.item.error = 'Conteúdo idêntico já importado.';
+        } else {
+          result.item.status = 'imported';
+          delete result.item.error;
+        }
       } catch (error: unknown) {
         result.item.status = 'failed';
         result.item.error = storageErrorMessage(error);

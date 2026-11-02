@@ -102,6 +102,22 @@ describe('processTextImportQueue', () => {
     expect(result.duplicates).toBe(1);
   });
 
+  it('contabiliza conteúdo duplicado como ignorado, não como falha', async () => {
+    const items = [item(0), item(1), item(2)];
+
+    const result = await processTextImportQueue(items, {
+      prepareFile: async (file) => prepared(file),
+      importFile: async (file) =>
+        file.fileName === 'arquivo-1.txt' ? 'duplicate' : 'imported',
+    });
+
+    expect(result.succeeded).toBe(2);
+    expect(result.failed).toBe(0);
+    expect(result.duplicates).toBe(1);
+    expect(items[1]?.status).toBe('duplicate');
+    expect(items[1]?.error).toContain('Conteúdo idêntico');
+  });
+
   it('traduz QuotaExceededError em falha individual sem interromper o lote', async () => {
     const items = [item(0), item(1), item(2)];
 

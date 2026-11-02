@@ -13,7 +13,11 @@ export class ImportTextNote {
 
     const note = chain.appendImportedText(
       command.content,
-      normalizeImportedDate(command.sourceCreatedAt)
+      normalizeImportedDate(command.sourceCreatedAt),
+      {
+        ...(command.contentHash ? { contentHash: command.contentHash } : {}),
+        ...(command.sourceFileName ? { sourceFileName: command.sourceFileName } : {}),
+      }
     );
     await this.chainRepo.saveNote(note);
     await this.chainRepo.saveChainOnly(chain);

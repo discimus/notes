@@ -14,6 +14,8 @@ export interface NoteData {
   role: NoteRole;
   contentType?: NoteContentType | undefined;
   title?: string | undefined;
+  contentHash?: string | undefined;
+  sourceFileName?: string | undefined;
   createdAt: ISODateString;
   updatedAt: ISODateString;
 }
@@ -35,6 +37,8 @@ export class Note {
   private readonly _role: NoteRole;
   private _contentType: NoteContentType;
   private _title: string | undefined;
+  private _contentHash: string | undefined;
+  private readonly _sourceFileName: string | undefined;
   private readonly _createdAt: ISODateString;
   private _updatedAt: ISODateString;
 
@@ -46,6 +50,8 @@ export class Note {
     this._role = data.role;
     this._contentType = data.contentType ?? 'text';
     this._title = data.title;
+    this._contentHash = data.contentHash;
+    this._sourceFileName = data.sourceFileName;
     this._createdAt = data.createdAt;
     this._updatedAt = data.updatedAt;
   }
@@ -82,6 +88,8 @@ export class Note {
     position: number;
     contentType?: NoteContentType;
     createdAt?: ISODateString;
+    contentHash?: string;
+    sourceFileName?: string;
   }): Note {
     if (!params.content.trim()) {
       throw new ValidationError('O conteúdo da nota não pode ser vazio.');
@@ -98,6 +106,8 @@ export class Note {
       position: params.position,
       role: 'tail',
       contentType,
+      ...(params.contentHash ? { contentHash: params.contentHash } : {}),
+      ...(params.sourceFileName ? { sourceFileName: params.sourceFileName } : {}),
       createdAt: ts,
       updatedAt: ts,
     });
@@ -118,6 +128,8 @@ export class Note {
   get role(): NoteRole { return this._role; }
   get contentType(): NoteContentType { return this._contentType; }
   get title(): string | undefined { return this._title; }
+  get contentHash(): string | undefined { return this._contentHash; }
+  get sourceFileName(): string | undefined { return this._sourceFileName; }
   get createdAt(): ISODateString { return this._createdAt; }
   get updatedAt(): ISODateString { return this._updatedAt; }
 
@@ -131,6 +143,7 @@ export class Note {
     }
     this._content = normalizedContent(content, contentType);
     this._contentType = contentType;
+    this._contentHash = undefined;
     this._updatedAt = now();
   }
 
@@ -154,6 +167,8 @@ export class Note {
       role: this._role,
       contentType: this._contentType,
       ...(this._title ? { title: this._title } : {}),
+      ...(this._contentHash ? { contentHash: this._contentHash } : {}),
+      ...(this._sourceFileName ? { sourceFileName: this._sourceFileName } : {}),
       createdAt: this._createdAt,
       updatedAt: this._updatedAt,
     };
