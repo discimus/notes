@@ -403,6 +403,8 @@ export function mountEditorView(
         onDeleteNote: (noteId) => {
           void AppController.deleteNote(tab.chainId, noteId);
         },
+        onDeleteSelected: (noteIds) =>
+          AppController.deleteNotes(tab.chainId, noteIds),
         onAddChainImages: (files) => {
           if (files.length > 0) {
             void addChainEndImages(tab.chainId, files);

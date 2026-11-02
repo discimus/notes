@@ -1393,6 +1393,13 @@
 .chain-menu__item--danger {
   color: var(--md-sys-color-error);
 }
+.chain-menu__item:disabled {
+  color: color-mix(in srgb, var(--md-sys-color-on-surface) 38%, transparent);
+  cursor: not-allowed;
+}
+.chain-menu__item:disabled:hover {
+  background-color: transparent;
+}
 
 /* Editor */
 .editor-view {
@@ -2096,11 +2103,58 @@
   font-size: var(--md-sys-typescale-body-small-size);
   color: var(--md-sys-color-on-surface-variant);
 }
+.chain-selection-summary {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+.chain-selection-summary[hidden] {
+  display: none;
+}
+.chain-selection-all {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--md-sys-color-on-surface);
+  font-size: var(--md-sys-typescale-label-large-size);
+  font-weight: var(--md-sys-typescale-label-large-weight);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.chain-selection-all__input {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--md-sys-color-primary);
+  cursor: pointer;
+}
+.chain-selection-all__input:focus-visible {
+  outline: 2px solid var(--md-sys-color-primary);
+  outline-offset: 2px;
+}
+.chain-selection-count {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: var(--md-sys-typescale-body-small-size);
+  font-variant-numeric: tabular-nums;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.chain-document--selection .chain-document__tags,
+.chain-document--selection .chain-document__count {
+  display: none;
+}
 .chain-document__actions {
   display: flex;
   align-items: center;
   gap: var(--spacing-1);
   flex-shrink: 0;
+}
+.chain-document__actions [hidden] {
+  display: none;
 }
 .chain-document__body {
   position: relative;
@@ -2369,6 +2423,35 @@
 .chain-note__edited {
   font-style: normal;
   opacity: 0.72;
+}
+.chain-note__select {
+  display: none;
+  align-items: center;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+.chain-document--selection .chain-note__select {
+  display: inline-flex;
+}
+.chain-note__select-input {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--md-sys-color-primary);
+  cursor: pointer;
+}
+.chain-note__select-input:focus-visible {
+  outline: 2px solid var(--md-sys-color-primary);
+  outline-offset: 2px;
+}
+.chain-note--marked .chain-note__body {
+  background-color: color-mix(
+    in srgb,
+    var(--md-sys-color-primary) 10%,
+    transparent
+  );
+  box-shadow: inset 0 0 0 1px
+    color-mix(in srgb, var(--md-sys-color-primary) 36%, transparent);
 }
 .chain-note__actions {
   display: flex;

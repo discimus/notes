@@ -571,6 +571,61 @@ export const AppController = {
     }
   },
 
+  async deleteNotes(chainId: string, noteIds: string[]): Promise<boolean> {
+    const uniqueIds = [...new Set(noteIds.filter(Boolean))];
+    if (uniqueIds.length === 0) return false;
+
+    const confirmed = await showConfirmDialog({
+      title:
+        uniqueIds.length === 1 ? 'Excluir nota?' : 'Excluir notas selecionadas?',
+      body:
+        uniqueIds.length === 1
+          ? 'A nota será removida permanentemente da coleção, incluindo suas tags e anexos.'
+          : `${uniqueIds.length} notas serão removidas permanentemente da coleção, incluindo suas tags e anexos.`,
+      icon: 'delete',
+      confirmLabel: 'Excluir',
+      destructive: true,
+    });
+    if (!confirmed) return false;
+
+    let deleted = 0;
+    for (const noteId of uniqueIds) {
+      try {
+        await deleteNoteUseCase.execute({ chainId, noteId });
+        editorStore.removeNoteFromChainTabs(chainId, noteId);
+        deleted += 1;
+      } catch {
+        // Continue removendo as demais notas selecionadas.
+      }
+    }
+
+    if (deleted === 0) {
+      snackbar.error('Não foi possível excluir as notas selecionadas.');
+      return false;
+    }
+
+    const deletedIds = new Set(uniqueIds);
+    if (
+      appState.get().timelinePreviewNoteId !== null &&
+      deletedIds.has(appState.get().timelinePreviewNoteId!)
+    ) {
+      appState.set({ timelinePreviewNoteId: null });
+    }
+
+    if (deleted === 1) snackbar.success('Nota excluída.');
+    else snackbar.success(`${deleted} notas excluídas.`);
+
+    await Promise.allSettled([loadChains(), loadTags()]);
+    if (appState.get().view === 'editor') {
+      await refreshEditorChainTab(chainId);
+    } else if (appState.get().view === 'timeline') {
+      await AppController.reloadTimeline();
+    } else if (appState.get().view === 'chain-detail') {
+      await openChain(chainId, false);
+    }
+    return true;
+  },
+
   async deleteNote(chainId: string, noteId: string): Promise<boolean> {
     const confirmed = await showConfirmDialog({
       title: 'Excluir nota?',

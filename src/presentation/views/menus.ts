@@ -5,6 +5,17 @@ import { escapeHtml } from '@shared/utilities/index.js';
 
 export interface ChainMenuOptions {
   onRename?: () => void;
+  selectedNoteCount?: number;
+  onDeleteSelected?: () => void;
+}
+
+interface ChainMenuItem {
+  icon: string;
+  label: string;
+  action?: (() => void) | undefined;
+  danger?: boolean;
+  disabled?: boolean;
+  hint?: string;
 }
 
 export function showChainMenu(
@@ -17,6 +28,7 @@ export function showChainMenu(
 
   const menu = el('div', 'chain-menu');
   menu.id = 'chain-menu';
+  menu.setAttribute('role', 'menu');
 
   const btn = e.currentTarget as HTMLElement;
   const rect = btn.getBoundingClientRect();
@@ -24,41 +36,101 @@ export function showChainMenu(
   menu.style.top = `${rect.bottom + 4}px`;
   menu.style.right = `${window.innerWidth - rect.right}px`;
 
-  const items: Array<{ icon: string; label: string; action: () => void; danger?: boolean }> = [];
-
-  if (options.onRename) {
-    items.push({
-      icon: 'edit',
-      label: 'Renomear',
-      action: options.onRename,
-    });
-  }
-
-  items.push(
-    {
-      icon: 'archive',
-      label: 'Arquivar',
-      action: () => AppController.archiveChain(chainId),
-    },
-    {
-      icon: 'delete',
-      label: 'Mover para lixeira',
-      action: () => AppController.deleteChain(chainId),
-      danger: true,
-    }
+  const items: ChainMenuItem[] = [];
+  const selectedNoteCount = options.selectedNoteCount ?? 0;
+  menu.setAttribute(
+    'aria-label',
+    selectedNoteCount > 0
+      ? 'Ações das notas selecionadas'
+      : 'Ações da coleção'
   );
 
-  items.forEach(({ icon, label, action, danger }) => {
-    const item = el('button', `chain-menu__item${danger ? ' chain-menu__item--danger' : ''}`);
+  if (selectedNoteCount > 0) {
+    items.push({
+      icon: 'delete',
+      label: 'Excluir selecionadas',
+      action: options.onDeleteSelected,
+      danger: true,
+    });
+  } else {
+    if (options.onRename) {
+      items.push({
+        icon: 'edit',
+        label: 'Renomear',
+        action: options.onRename,
+      });
+    }
+
+    items.push(
+      {
+        icon: 'archive',
+        label: 'Arquivar',
+        action: () => AppController.archiveChain(chainId),
+      },
+      {
+        icon: 'delete',
+        label: 'Mover para lixeira',
+        action: () => AppController.deleteChain(chainId),
+        danger: true,
+      }
+    );
+  }
+
+  const close = (): void => {
+    menu.remove();
+  };
+
+  const menuItems: HTMLButtonElement[] = [];
+  items.forEach(({ icon, label, action, danger, disabled, hint }) => {
+    const item = el(
+      'button',
+      `chain-menu__item${danger ? ' chain-menu__item--danger' : ''}`
+    );
+    item.type = 'button';
+    item.setAttribute('role', 'menuitem');
+    item.disabled = disabled === true;
+    if (disabled) item.setAttribute('aria-disabled', 'true');
+    if (hint) item.title = hint;
     item.innerHTML = `<span class="material-symbols-rounded icon-lg" aria-hidden="true">${escapeHtml(icon)}</span>${escapeHtml(label)}`;
-    item.addEventListener('click', () => { menu.remove(); action(); });
+    item.addEventListener('click', () => {
+      if (item.disabled) return;
+      close();
+      action?.();
+    });
     menu.appendChild(item);
+    if (!disabled) menuItems.push(item);
+  });
+
+  menu.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      close();
+      btn.focus();
+      return;
+    }
+    if (menuItems.length === 0) return;
+    const index = menuItems.indexOf(document.activeElement as HTMLButtonElement);
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+      event.preventDefault();
+      const direction = event.key === 'ArrowDown' ? 1 : -1;
+      const next =
+        index < 0
+          ? 0
+          : (index + direction + menuItems.length) % menuItems.length;
+      menuItems[next]?.focus();
+      return;
+    }
+    if (event.key === 'Home' || event.key === 'End') {
+      event.preventDefault();
+      menuItems[event.key === 'Home' ? 0 : menuItems.length - 1]?.focus();
+    }
   });
 
   document.body.appendChild(menu);
+  menuItems[0]?.focus();
 
   setTimeout(() => {
-    document.addEventListener('click', () => menu.remove(), { once: true });
+    document.addEventListener('click', close, { once: true });
   }, 0);
 }
 

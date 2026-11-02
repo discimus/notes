@@ -86,6 +86,7 @@ export interface ChainDocumentHandlers {
   onPasteText?: () => void;
   onDeleteNoteAttachment?: (noteId: string, attachment: AttachmentDTO) => void;
   onDeleteNote?: (noteId: string) => void;
+  onDeleteSelected?: (noteIds: string[]) => Promise<boolean>;
   onAddNoteTag?: (noteId: string, tagName: string) => Promise<boolean>;
   onRemoveNoteTag?: (noteId: string, tag: TagDTO) => void;
   onCreateNote: () => void;
@@ -151,6 +152,19 @@ function renderNote(
   article.setAttribute('aria-current', selected ? 'true' : 'false');
 
   const meta = el('div', 'chain-note__meta');
+
+  const selectLabel = el('label', 'chain-note__select');
+  const selectInput = document.createElement('input');
+  selectInput.type = 'checkbox';
+  selectInput.className = 'chain-note__select-input';
+  selectInput.dataset['noteSelect'] = note.id;
+  selectInput.setAttribute(
+    'aria-label',
+    `Selecionar nota de ${formatDateFull(note.createdAt)}`
+  );
+  selectLabel.appendChild(selectInput);
+  meta.appendChild(selectLabel);
+
   if (note.role === 'header') {
     const role = el('span', 'chain-note__role chain-note__role--header');
     role.textContent = 'Início';
@@ -343,7 +357,18 @@ export function mountChainDocument(
       <div class="chain-document__meta">
         <div class="chain-document__tags" id="chain-tags" aria-label="Tags da coleção"></div>
         <span class="chain-document__count" id="chain-note-count"></span>
+        <div class="chain-selection-summary" id="chain-selection-summary" hidden>
+          <label class="chain-selection-all">
+            <input type="checkbox" id="chain-select-all" class="chain-selection-all__input" />
+            <span>Todas</span>
+          </label>
+          <span class="chain-selection-count" id="chain-selection-count" aria-live="polite"></span>
+        </div>
         <div class="chain-document__actions">
+          <button class="btn-icon" id="chain-note-select-toggle" type="button"
+            aria-label="Selecionar notas" title="Selecionar notas" aria-pressed="false">
+            <span class="material-symbols-rounded" aria-hidden="true">checklist</span>
+          </button>
           <button class="btn-icon" id="chain-import-file" type="button"
             aria-label="Importar documento para esta coleção" title="Importar documento">
             <span class="material-symbols-rounded" aria-hidden="true">upload_file</span>
@@ -436,6 +461,16 @@ export function mountChainDocument(
   const unsavedBadge = root.querySelector<HTMLElement>('#chain-unsaved-badge')!;
   const tags = root.querySelector<HTMLElement>('#chain-tags')!;
   const count = root.querySelector<HTMLElement>('#chain-note-count')!;
+  const selectToggle = root.querySelector<HTMLButtonElement>(
+    '#chain-note-select-toggle'
+  )!;
+  const selectionSummary = root.querySelector<HTMLElement>(
+    '#chain-selection-summary'
+  )!;
+  const selectAll = root.querySelector<HTMLInputElement>('#chain-select-all')!;
+  const selectionCount = root.querySelector<HTMLElement>(
+    '#chain-selection-count'
+  )!;
   const scroll = root.querySelector<HTMLElement>('#chain-document-scroll')!;
   const history = root.querySelector<HTMLElement>('#chain-history')!;
   const periodStatus = root.querySelector<HTMLElement>('#chain-period-status')!;
@@ -457,6 +492,8 @@ export function mountChainDocument(
 
   let currentTab = tab;
   let previewNoteId: string | null = null;
+  let selectionMode = false;
+  const selectedNoteIds = new Set<string>();
   const audioRecorder = createInlineAudioRecorder({
     ...(handlers.startAudioRecordingFn
       ? { startRecordingFn: handlers.startAudioRecordingFn }
@@ -736,6 +773,86 @@ export function mountChainDocument(
     syncPreview();
   }
 
+  const syncNoteSelection = (): void => {
+    const noteIds = new Set(currentTab.notes.map((note) => note.id));
+    selectedNoteIds.forEach((noteId) => {
+      if (!noteIds.has(noteId)) selectedNoteIds.delete(noteId);
+    });
+
+    history.querySelectorAll<HTMLElement>('.chain-note').forEach((article) => {
+      const noteId = article.dataset['noteId'];
+      const input = article.querySelector<HTMLInputElement>(
+        '[data-note-select]'
+      );
+      const checked =
+        selectionMode && noteId !== undefined && selectedNoteIds.has(noteId);
+      if (input) input.checked = checked;
+      article.classList.toggle('chain-note--marked', checked);
+    });
+
+    const total = currentTab.notes.length;
+    const selected = selectionMode ? selectedNoteIds.size : 0;
+    importButton.hidden = selected > 0;
+    importButton.style.display = selected > 0 ? 'none' : '';
+    selectAll.disabled = !selectionMode || total === 0;
+    selectAll.checked = selectionMode && total > 0 && selected === total;
+    selectAll.indeterminate =
+      selectionMode && selected > 0 && selected < total;
+    selectionCount.textContent = `${selected} de ${total} ${
+      selected === 1 ? 'selecionada' : 'selecionadas'
+    }`;
+  };
+
+  const setSelectionMode = (active: boolean): void => {
+    if (selectionMode === active) return;
+    selectionMode = active;
+
+    if (active) {
+      closePreview();
+    } else {
+      selectedNoteIds.clear();
+    }
+
+    root.classList.toggle('chain-document--selection', active);
+    selectionSummary.hidden = !active;
+    selectToggle.setAttribute('aria-pressed', active ? 'true' : 'false');
+    selectToggle.setAttribute('aria-label', active ? 'Cancelar seleção' : 'Selecionar notas');
+    selectToggle.title = active ? 'Cancelar seleção' : 'Selecionar notas';
+    const icon = selectToggle.querySelector<HTMLElement>(
+      '.material-symbols-rounded'
+    );
+    if (icon) icon.textContent = active ? 'close' : 'checklist';
+
+    syncNoteSelection();
+    if (active) selectAll.focus({ preventScroll: true });
+    else selectToggle.focus({ preventScroll: true });
+  };
+
+  selectToggle.addEventListener('click', () => {
+    setSelectionMode(!selectionMode);
+  });
+
+  selectAll.addEventListener('click', () => {
+    if (!selectionMode) return;
+    if (selectAll.checked) {
+      currentTab.notes.forEach((note) => selectedNoteIds.add(note.id));
+    } else {
+      selectedNoteIds.clear();
+    }
+    syncNoteSelection();
+  });
+
+  const onNoteSelectionClick = (event: Event): void => {
+    const target = event.target;
+    if (!(target instanceof HTMLInputElement)) return;
+    const noteId = target.dataset['noteSelect'];
+    if (!noteId || !selectionMode) return;
+    if (target.checked) selectedNoteIds.add(noteId);
+    else selectedNoteIds.delete(noteId);
+    syncNoteSelection();
+  };
+  history.addEventListener('click', onNoteSelectionClick);
+
   previewHost.addEventListener('dblclick', (event) => {
     const target = event.target as Element | null;
     if (target?.closest('a, button, input, textarea, select')) return;
@@ -778,11 +895,28 @@ export function mountChainDocument(
   };
 
   more.addEventListener('click', (event) => {
-    showChainMenu(
-      event,
-      currentTab.chainId,
-      handlers.onRename ? { onRename: handlers.onRename } : {}
-    );
+    const selectedIds = selectionMode ? [...selectedNoteIds] : [];
+    const deleteSelected = handlers.onDeleteSelected;
+    const selectionOptions =
+      selectedIds.length > 0
+        ? {
+            selectedNoteCount: selectedIds.length,
+            ...(deleteSelected
+              ? {
+                  onDeleteSelected: () => {
+                    void deleteSelected(selectedIds).then((deleted) => {
+                      if (deleted) setSelectionMode(false);
+                    });
+                  },
+                }
+              : {}),
+          }
+        : {};
+
+    showChainMenu(event, currentTab.chainId, {
+      ...(handlers.onRename ? { onRename: handlers.onRename } : {}),
+      ...selectionOptions,
+    });
   });
   const syncComposerState = (tabValue: ChainTab): void => {
     const dirtyCount = tabValue.noteTabs.filter(isChainNoteTabDirty).length;
@@ -1217,6 +1351,12 @@ export function mountChainDocument(
       return;
     }
     if (isEscapeHandledByChild(event)) return;
+    if (selectionMode) {
+      event.preventDefault();
+      event.stopPropagation();
+      setSelectionMode(false);
+      return;
+    }
     if (previewNoteId !== null) {
       event.preventDefault();
       event.stopPropagation();
@@ -1540,6 +1680,7 @@ export function mountChainDocument(
       clearPeriodHighlightClasses();
       activePeriodKey = null;
       periodStatus.textContent = '';
+      if (selectionMode) setSelectionMode(false);
     }
     currentTab = tabValue;
     root.setAttribute('aria-label', `Coleção ${tabValue.title}`);
@@ -1552,6 +1693,7 @@ export function mountChainDocument(
     renderNoteTabs();
     syncNoteEditor();
     syncPreview();
+    syncNoteSelection();
 
     if (justLoaded) {
       requestAnimationFrame(() => {
@@ -1632,6 +1774,7 @@ export function mountChainDocument(
     cancelAutoEdit();
     scroll.removeEventListener('scroll', onScroll);
     scroll.removeEventListener('click', onHistoryClick);
+    history.removeEventListener('click', onNoteSelectionClick);
     history.removeEventListener('keydown', onHistoryKeyDown);
     root.removeEventListener('keydown', onEditorKeyDown);
     window.removeEventListener('resize', onActionSpaceResize);
