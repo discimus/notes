@@ -109,6 +109,13 @@ export function mountActiveLineHighlight(
         ? parsedLineHeight
         : (Number.parseFloat(computed.fontSize) || 16) * 1.5;
 
+    marker.style.display = 'inline-block';
+    marker.style.width = '0';
+    marker.style.height = `${lineHeight}px`;
+    marker.style.lineHeight = `${lineHeight}px`;
+    marker.style.verticalAlign = 'top';
+    marker.style.overflow = 'hidden';
+
     if (textarea.clientWidth === 0 || textarea.clientHeight === 0) {
       highlight.style.top = '0px';
       highlight.style.height = `${lineHeight}px`;
