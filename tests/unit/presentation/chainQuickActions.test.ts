@@ -123,6 +123,11 @@ describe('Chain quick actions', () => {
     list.scrollTop = 200;
     list.dispatchEvent(new Event('scroll'));
     vi.advanceTimersByTime(0);
+    expect(view.element.classList.contains('chain-document--actions-compact')).toBe(false);
+
+    vi.advanceTimersByTime(119);
+    expect(view.element.classList.contains('chain-document--actions-compact')).toBe(false);
+    vi.advanceTimersByTime(1);
     expect(view.element.classList.contains('chain-document--actions-compact')).toBe(true);
 
     list.scrollTop = 100;

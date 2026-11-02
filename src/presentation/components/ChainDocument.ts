@@ -48,6 +48,7 @@ import {
 const COMPACT_SCROLL_MIN = 24;
 const COMPACT_DELTA_MIN = 4;
 const EXPAND_DELTA_MIN = 8;
+const COMPACT_DELAY_MS = 120;
 const EXPAND_DELAY_MS = 120;
 const SCROLL_IGNORE_MS = 100;
 const PREVIEW_DOUBLE_CLICK_MS = 500;
@@ -652,11 +653,12 @@ export function mountChainDocument(
   let renderedNoteTabId: string | null = null;
   let savingState = false;
   let actionsCompact = false;
+  let footerCompact = false;
 
   const syncActionFooter = (): void => {
     root.classList.toggle(
       'chain-document--actions-compact',
-      actionsCompact || !currentTab.composerCollapsed
+      footerCompact || !currentTab.composerCollapsed
     );
   };
 
@@ -1164,6 +1166,7 @@ export function mountChainDocument(
   let lastScrollTop = scroll.scrollTop;
   let upwardDistance = 0;
   let expandTimer: ReturnType<typeof setTimeout> | null = null;
+  let compactTimer: ReturnType<typeof setTimeout> | null = null;
   let compactFrame: number | null = null;
   let ignoreCompactUntil = 0;
   let searchTargetNoteId: string | null = null;
@@ -1173,12 +1176,44 @@ export function mountChainDocument(
     expandTimer = null;
   };
 
+  const cancelCompact = (): void => {
+    if (compactTimer !== null) clearTimeout(compactTimer);
+    compactTimer = null;
+  };
+
+  const syncHeaderVisibility = (): void => {
+    const headerFocused = header.contains(document.activeElement);
+    root.classList.toggle(
+      'chain-document--header-hidden',
+      actionsCompact && !headerFocused
+    );
+  };
+
   const setActionsCompact = (value: boolean): void => {
     actionsCompact = value;
+    footerCompact = value;
     syncActionFooter();
     syncActionOverlaySpace();
-    const headerFocused = header.contains(document.activeElement);
-    root.classList.toggle('chain-document--header-hidden', value && !headerFocused);
+    syncHeaderVisibility();
+  };
+
+  const setActionsCompactPending = (): void => {
+    actionsCompact = true;
+    syncActionFooter();
+    syncActionOverlaySpace();
+    syncHeaderVisibility();
+  };
+
+  const scheduleCompact = (): void => {
+    if (footerCompact || compactTimer !== null) return;
+    compactTimer = setTimeout(() => {
+      compactTimer = null;
+      if (actionsCompact && scroll.scrollTop > COMPACT_SCROLL_MIN) {
+        footerCompact = true;
+        syncActionFooter();
+        syncActionOverlaySpace();
+      }
+    }, COMPACT_DELAY_MS);
   };
 
   const scrollToBottom = (): void => {
@@ -1220,6 +1255,7 @@ export function mountChainDocument(
       lastScrollTop = current;
 
       if (current <= 8) {
+        cancelCompact();
         cancelExpand();
         upwardDistance = 0;
         setActionsCompact(false);
@@ -1229,8 +1265,13 @@ export function mountChainDocument(
       if (delta > COMPACT_DELTA_MIN && current > COMPACT_SCROLL_MIN) {
         cancelExpand();
         upwardDistance = 0;
-        setActionsCompact(true);
+        setActionsCompactPending();
+        scheduleCompact();
         return;
+      }
+
+      if (delta < 0) {
+        cancelCompact();
       }
 
       if (delta < 0 && actionsCompact) {
@@ -1357,6 +1398,7 @@ export function mountChainDocument(
     stopAllAudioCascades();
     stopAttachmentAudio();
     releaseAllAttachmentUrls();
+    cancelCompact();
     cancelExpand();
     if (compactFrame !== null) cancelAnimationFrame(compactFrame);
     compactFrame = null;

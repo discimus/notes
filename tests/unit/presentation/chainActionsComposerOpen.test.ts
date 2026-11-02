@@ -120,6 +120,11 @@ describe('Chain quick actions with composer open', () => {
     scroll.scrollTop = 200;
     scroll.dispatchEvent(new Event('scroll'));
     vi.advanceTimersByTime(0);
+    expect(root.classList.contains(compactClass)).toBe(false);
+
+    vi.advanceTimersByTime(119);
+    expect(root.classList.contains(compactClass)).toBe(false);
+    vi.advanceTimersByTime(1);
     expect(root.classList.contains(compactClass)).toBe(true);
 
     scroll.scrollTop = 100;
