@@ -4112,6 +4112,32 @@
   border-radius: var(--md-sys-shape-corner-small);
   background-color: var(--md-sys-color-surface-container-low);
 }
+.import-dialog__destination {
+  padding: var(--spacing-3);
+  margin: 0 0 var(--spacing-4);
+  border: 0;
+  border-radius: var(--md-sys-shape-corner-small);
+  background-color: var(--md-sys-color-surface-container-low);
+}
+.import-dialog__destination-title {
+  padding: 0;
+  margin-bottom: var(--spacing-2);
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: var(--md-sys-typescale-label-medium-size);
+  font-weight: 600;
+}
+.import-dialog__destination-option {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  padding: var(--spacing-1) 0;
+  cursor: pointer;
+  color: var(--md-sys-color-on-surface);
+  font-size: var(--md-sys-typescale-body-medium-size);
+}
+.import-dialog__destination-option input {
+  accent-color: var(--md-sys-color-primary);
+}
 .import-dialog__support {
   margin: var(--spacing-2) 0 0;
   color: var(--md-sys-color-on-surface-variant);

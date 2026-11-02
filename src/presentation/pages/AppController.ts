@@ -1364,8 +1364,10 @@ export const AppController = {
   async importTextNotes(
     chainId: string,
     files: PreparedTextImport[],
-    useSourceDates: boolean
-  ): Promise<EditorBatchAppendResult> {    const finishPendingOperation = beginPendingOperation();
+    useSourceDates: boolean,
+    options: { silent?: boolean } = {}
+  ): Promise<EditorBatchAppendResult> {
+    const finishPendingOperation = beginPendingOperation();
     try {
       const notes = await importTextNotesUseCase.execute({
         chainId,
@@ -1384,15 +1386,17 @@ export const AppController = {
       if (chainTab) editorStore.appendNotesToChainTab(chainTab.id, notes);
 
       const chainTitle = chainTitleById(chainId);
-      snackbar.success(
-        `${notes.length} ${notes.length === 1 ? 'documento importado' : 'documentos importados'}.`,
-        {
-          label: 'Abrir coleção',
-          onClick: () => {
-            void AppController.openChainInEditor(chainId);
-          },
-        }
-      );
+      if (!options.silent) {
+        snackbar.success(
+          `${notes.length} ${notes.length === 1 ? 'documento importado' : 'documentos importados'}.`,
+          {
+            label: 'Abrir coleção',
+            onClick: () => {
+              void AppController.openChainInEditor(chainId);
+            },
+          }
+        );
+      }
       return { ok: true, notes, chainTitle };
     } catch (error: unknown) {
       return { ok: false, error: editorErrorMessage(error) };

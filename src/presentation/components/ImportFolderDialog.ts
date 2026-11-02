@@ -14,13 +14,17 @@ export interface ImportFolderDialogGroup {
   rejectedCount: number;
 }
 
+export type FolderImportMode = 'collections' | 'append';
+
 export interface ImportFolderDialogOptions {
   groups: ImportFolderDialogGroup[];
   totalFiles: number;
   totalBytes: number;
   showDateOption: boolean;
   discoveryErrors?: string[];
+  appendTarget?: { id: string; title: string } | undefined;
   onConfirm: (
+    mode: FolderImportMode,
     useSourceDates: boolean,
     onProgress: (progress: FolderImportProgress) => void,
     isCancelled: () => boolean
@@ -87,6 +91,26 @@ export function showImportFolderDialog(
           <span class="material-symbols-rounded" aria-hidden="true">close</span>
         </button>
       </div>
+
+      ${
+        options.appendTarget
+          ? `
+        <fieldset class="import-dialog__destination">
+          <legend class="import-dialog__destination-title">Destino da importação</legend>
+          <label class="import-dialog__destination-option">
+            <input type="radio" name="import-folder-mode-${uid}" value="collections" checked />
+            <span>Criar uma coleção por pasta</span>
+          </label>
+          <label class="import-dialog__destination-option">
+            <input type="radio" name="import-folder-mode-${uid}" value="append" />
+            <span>Adicionar à coleção <strong>${escapeHtml(
+              options.appendTarget.title
+            )}</strong></span>
+          </label>
+        </fieldset>
+      `
+          : ''
+      }
 
       <div class="import-queue-progress">
         <div class="import-queue-progress__header">
@@ -193,6 +217,9 @@ export function showImportFolderDialog(
     const okCount = dialog.querySelector<HTMLElement>(
       `#import-folder-ok-${uid}`
     )!;
+    const totalCount = dialog.querySelector<HTMLElement>(
+      `#import-folder-total-${uid}`
+    )!;
     const failedCount = dialog.querySelector<HTMLElement>(
       `#import-folder-failed-${uid}`
     )!;
@@ -256,6 +283,47 @@ export function showImportFolderDialog(
     let settled = false;
     let destroy = (): void => {};
 
+    const description = dialog.querySelector<HTMLElement>(`#${descriptionId}`)!;
+    const modeInputs = [
+      ...dialog.querySelectorAll<HTMLInputElement>(
+        `input[name="import-folder-mode-${uid}"]`
+      ),
+    ];
+    const appendTarget = options.appendTarget ?? null;
+    const selectedMode = (): FolderImportMode =>
+      appendTarget &&
+      modeInputs.find((input) => input.checked)?.value === 'append'
+        ? 'append'
+        : 'collections';
+    const modeImportLabel = (): string =>
+      selectedMode() === 'append'
+        ? `Importar ${documentLabel(importableFiles)}`
+        : `Importar ${collectionLabel(initialPending)}`;
+    const updateModePresentation = (): void => {
+      if (selectedMode() === 'append' && appendTarget) {
+        description.textContent = `Adicionar ${documentLabel(
+          importableFiles
+        )} à coleção "${appendTarget.title}".`;
+      } else {
+        description.textContent = `Criar ${collectionLabel(
+          initialPending
+        )} a partir de ${documentLabel(
+          importableFiles
+        )}. Pastas sem arquivos válidos serão ignoradas.`;
+      }
+      if (!importing && !completed) {
+        confirmLabel.textContent = modeImportLabel();
+      }
+      totalCount.textContent =
+        selectedMode() === 'append'
+          ? documentLabel(importableFiles)
+          : collectionLabel(initialPending);
+    };
+    modeInputs.forEach((input) =>
+      input.addEventListener('change', updateModePresentation)
+    );
+    updateModePresentation();
+
     const finish = (result: boolean): void => {
       if (settled) return;
       settled = true;
@@ -269,6 +337,9 @@ export function showImportFolderDialog(
       close.disabled = busy;
       confirm.disabled = busy;
       if (dateSwitch) dateSwitch.disabled = busy;
+      modeInputs.forEach((input) => {
+        input.disabled = busy;
+      });
       cancel.disabled = busy && completed;
       if (busy && !completed) {
         cancel.textContent = 'Cancelar importação';
@@ -277,7 +348,7 @@ export function showImportFolderDialog(
         ? 'Importando...'
         : completed
           ? 'Fechar'
-          : `Importar ${collectionLabel(initialPending)}`;
+          : modeImportLabel();
     };
 
     const applyProgress = (snapshot: FolderImportProgress): void => {
@@ -335,6 +406,7 @@ export function showImportFolderDialog(
 
       try {
         const result = await options.onConfirm(
+          selectedMode(),
           Boolean(dateSwitch?.checked),
           applyProgress,
           () => cancelRequested

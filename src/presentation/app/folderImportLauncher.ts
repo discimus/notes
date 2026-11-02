@@ -1,4 +1,6 @@
 import { AppController } from '../pages/AppController.js';
+import { appState } from '../state/AppState.js';
+import { editorStore } from '../state/EditorStore.js';
 import { snackbar } from '../components/Snackbar.js';
 import { showImportFolderDialog } from '../components/ImportFolderDialog.js';
 import { MAX_TEXT_IMPORT_BYTES } from './textFileImport.js';
@@ -14,6 +16,11 @@ import {
 
 let folderImportRunning = false;
 
+interface FolderImportTarget {
+  id: string;
+  title: string;
+}
+
 function hasSourceDates(files: FolderTextFile[]): boolean {
   const now = Date.now();
   return files.some((entry) => {
@@ -26,10 +33,51 @@ function isRejectedBySize(file: File): boolean {
   return file.size <= 0 || file.size > MAX_TEXT_IMPORT_BYTES;
 }
 
-function showSummary(result: FolderImportResult): void {
+function activeImportTarget(): FolderImportTarget | null {
+  const state = appState.get();
+  const selectedChain =
+    state.view === 'editor'
+      ? null
+      : state.chainSummaries.find(
+          (summary) => summary.id === state.selectedChainId
+        ) ?? null;
+  if (selectedChain && !selectedChain.deletedAt) {
+    return { id: selectedChain.id, title: selectedChain.displayTitle };
+  }
+
+  const activeTab = editorStore.getActiveTab();
+  if (activeTab?.kind === 'chain') {
+    return { id: activeTab.chainId, title: activeTab.title };
+  }
+
+  return null;
+}
+
+function showFailures(result: FolderImportResult): void {
+  if (result.failedFolders > 0) {
+    snackbar.error(
+      `${result.failedFolders} ${
+        result.failedFolders === 1
+          ? 'pasta não foi importada'
+          : 'pastas não foram importadas'
+      }.`
+    );
+  }
+
+  if (result.failedFiles > 0) {
+    snackbar.error(
+      `${result.failedFiles} ${
+        result.failedFiles === 1
+          ? 'arquivo foi rejeitado'
+          : 'arquivos foram rejeitados'
+      }.`
+    );
+  }
+}
+
+function showCollectionSummary(result: FolderImportResult): void {
   const created = result.createdChains.length;
   const skipped = result.skippedFolders;
-  const failed = result.failedFolders;
 
   if (created > 0) {
     const ignored =
@@ -58,22 +106,44 @@ function showSummary(result: FolderImportResult): void {
     snackbar.error('Importação cancelada antes de criar coleções.');
   }
 
-  if (failed > 0) {
-    snackbar.error(
-      `${failed} ${failed === 1 ? 'pasta não foi importada' : 'pastas não foram importadas'}.`
+  showFailures(result);
+}
+
+function showAppendSummary(
+  result: FolderImportResult,
+  target: FolderImportTarget
+): void {
+  const openAction = {
+    label: 'Abrir coleção',
+    onClick: () => {
+      void AppController.openChainInEditor(target.id);
+    },
+  };
+
+  if (result.notesImported > 0) {
+    const ignored =
+      result.duplicates > 0
+        ? ` ${result.duplicates} ${
+            result.duplicates === 1 ? 'duplicado ignorado' : 'duplicados ignorados'
+          }.`
+        : '';
+    snackbar.success(
+      `${result.notesImported} ${
+        result.notesImported === 1 ? 'nota adicionada' : 'notas adicionadas'
+      } a "${target.title}".${ignored}`,
+      openAction
     );
+  } else if (result.skippedFolders > 0 || result.duplicates > 0) {
+    snackbar.error(
+      `Nenhuma nota nova foi adicionada a "${target.title}": conteúdo já importado.`
+    );
+  } else if (result.cancelled) {
+    snackbar.error('Importação cancelada antes de adicionar notas.');
   }
 
-  if (result.failedFiles > 0) {
-    snackbar.error(
-      `${result.failedFiles} ${
-        result.failedFiles === 1
-          ? 'arquivo foi rejeitado'
-          : 'arquivos foram rejeitados'
-      }.`
-    );
-  }
+  showFailures(result);
 }
+
 
 export async function startFolderImport(
   files: FolderTextFile[],
@@ -110,6 +180,7 @@ export async function startFolderImport(
   });
 
   folderImportRunning = true;
+  const target = activeImportTarget();
   try {
     await showImportFolderDialog({
       groups: dialogGroups,
@@ -117,7 +188,47 @@ export async function startFolderImport(
       totalBytes,
       showDateOption: hasSourceDates(files),
       ...(discoveryErrors.length > 0 ? { discoveryErrors } : {}),
-      onConfirm: async (useSourceDates, onProgress, isCancelled) => {
+      ...(target ? { appendTarget: target } : {}),
+      onConfirm: async (mode, useSourceDates, onProgress, isCancelled) => {
+        if (mode === 'append' && target) {
+          const result = await processFolderImport({
+            groups,
+            useSourceDates,
+            onProgress,
+            isCancelled,
+            importFolder: async (_folderTitle, prepared, dates) => {
+              const appended = await AppController.importTextNotes(
+                target.id,
+                prepared,
+                dates,
+                { silent: true }
+              );
+              if (!appended.ok) {
+                return { ok: false, error: appended.error };
+              }
+              if (appended.notes.length === 0) {
+                return {
+                  ok: true,
+                  status: 'skipped',
+                  duplicates: prepared.length,
+                };
+              }
+              return {
+                ok: true,
+                status: 'created',
+                chain: { id: target.id },
+                notes: appended.notes,
+                duplicates: Math.max(
+                  0,
+                  prepared.length - appended.notes.length
+                ),
+              };
+            },
+          });
+          showAppendSummary(result, target);
+          return result;
+        }
+
         const result = await processFolderImport({
           groups,
           useSourceDates,
@@ -126,7 +237,7 @@ export async function startFolderImport(
           onProgress,
           isCancelled,
         });
-        showSummary(result);
+        showCollectionSummary(result);
         return result;
       },
     });

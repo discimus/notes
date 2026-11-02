@@ -41,6 +41,7 @@ describe('ImportFolderDialog', () => {
   it('lista as pastas, executa e mantém o resultado aberto', async () => {
     const onConfirm = vi.fn(
       async (
+        _mode: string,
         _useDates: boolean,
         onProgress: (progress: FolderImportProgress) => void
       ) => {
@@ -80,6 +81,7 @@ describe('ImportFolderDialog', () => {
     await new Promise((resolve) => setTimeout(resolve, 0));
 
     expect(onConfirm).toHaveBeenCalledWith(
+      'collections',
       true,
       expect.any(Function),
       expect.any(Function)
@@ -144,6 +146,7 @@ describe('ImportFolderDialog', () => {
     await new Promise((resolve) => setTimeout(resolve, 0));
 
     expect(onConfirm).toHaveBeenCalledWith(
+      'collections',
       false,
       expect.any(Function),
       expect.any(Function)
@@ -156,6 +159,51 @@ describe('ImportFolderDialog', () => {
     await expect(pending).resolves.toBe(false);
   });
 
+  it('permite adicionar as pastas à coleção em destaque', async () => {
+    const onConfirm = vi.fn(async () => result());
+
+    const pending = showImportFolderDialog({
+      groups: [
+        { title: 'Pasta A', fileCount: 1, totalBytes: 5, rejectedCount: 0 },
+      ],
+      totalFiles: 1,
+      totalBytes: 5,
+      showDateOption: false,
+      appendTarget: { id: 'chain-1', title: 'Projeto principal' },
+      onConfirm,
+    });
+
+    expect(document.body.textContent).toContain('Adicionar à coleção');
+    const appendRadio = document.querySelector<HTMLInputElement>(
+      'input[value="append"]'
+    )!;
+    appendRadio.checked = true;
+    appendRadio.dispatchEvent(new Event('change', { bubbles: true }));
+
+    expect(document.body.textContent).toContain(
+      'Adicionar 1 documento à coleção "Projeto principal".'
+    );
+
+    document
+      .querySelector<HTMLButtonElement>('[id^="import-folder-confirm-"]')
+      ?.click();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(onConfirm).toHaveBeenCalledWith(
+      'append',
+      false,
+      expect.any(Function),
+      expect.any(Function)
+    );
+
+    document
+      .querySelector<HTMLButtonElement>('[id^="import-folder-confirm-"]')
+      ?.click();
+
+    await expect(pending).resolves.toBe(true);
+  });
+
   it('solicita cancelamento durante a importação', async () => {
     const control = {
       isCancelled: (): boolean => false,
@@ -163,6 +211,7 @@ describe('ImportFolderDialog', () => {
     };
     const onConfirm = vi.fn(
       (
+        _mode: string,
         _useDates: boolean,
         _onProgress: unknown,
         cancelled: () => boolean
