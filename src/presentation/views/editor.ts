@@ -342,6 +342,9 @@ export function mountEditorView(
         onAddChainAudio: () => {
           void recordAudioForChainEnd(tab.chainId);
         },
+        onPasteText: () => {
+          void pasteTextFromClipboard(tab.id, tab.chainId);
+        },
         onDeleteNoteAttachment: (_noteId, attachment) => {
           void deleteAttachmentFromNote(tab.chainId, attachment);
         },
@@ -587,6 +590,37 @@ export function mountEditorView(
     store.removeChainNoteTab(chainTabId, noteTabId);
     store.ensureChainNoteTab(chainTabId);
     return true;
+  };
+
+  const pasteTextFromClipboard = async (
+    chainTabId: string,
+    chainId: string
+  ): Promise<void> => {
+    let clipboardText: string;
+    try {
+      if (!navigator.clipboard?.readText) {
+        snackbar.show({
+          message: 'Área de transferência indisponível neste navegador.',
+        });
+        return;
+      }
+      clipboardText = await navigator.clipboard.readText();
+    } catch {
+      snackbar.error('Não foi possível ler a área de transferência.');
+      return;
+    }
+
+    const content = clipboardText.trim();
+    if (!content) {
+      snackbar.show({ message: 'A área de transferência não contém texto.' });
+      return;
+    }
+
+    const result = await AppController.appendToEditorChainTab(chainId, content);
+    if (!result.ok) return;
+
+    store.appendNoteToChainTab(chainTabId, result.note);
+    snackbar.success('Texto colado como nova nota.');
   };
 
   const updateChainNoteEditTab = async (

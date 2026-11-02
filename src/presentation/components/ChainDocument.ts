@@ -67,6 +67,7 @@ export interface ChainDocumentHandlers {
   onAddNoteAudio?: (noteId: string) => void;
   onAddChainImages?: (files: File[]) => void;
   onAddChainAudio?: () => void;
+  onPasteText?: () => void;
   onDeleteNoteAttachment?: (noteId: string, attachment: AttachmentDTO) => void;
   onDeleteNote?: (noteId: string) => void;
   onAddNoteTag?: (noteId: string, tagName: string) => Promise<boolean>;
@@ -367,6 +368,7 @@ export function mountChainDocument(
           imageId: 'chain-action-image',
           audioId: 'chain-action-audio',
           linkId: 'chain-action-link',
+          pasteEnabled: Boolean(handlers.onPasteText),
         })}
     </footer>
 
@@ -384,6 +386,7 @@ export function mountChainDocument(
   const documentAction = root.querySelector<HTMLButtonElement>('#chain-action-document')!;
   const quickImage = root.querySelector<HTMLButtonElement>('#chain-action-image')!;
   const quickAudio = root.querySelector<HTMLButtonElement>('#chain-action-audio')!;
+  const quickLink = root.querySelector<HTMLButtonElement>('#chain-action-link')!;
   const unsavedBadge = root.querySelector<HTMLElement>('#chain-unsaved-badge')!;
   const tags = root.querySelector<HTMLElement>('#chain-tags')!;
   const count = root.querySelector<HTMLElement>('#chain-note-count')!;
@@ -929,6 +932,10 @@ export function mountChainDocument(
 
   quickAudio.addEventListener('click', () => {
     handlers.onAddChainAudio?.();
+  });
+
+  quickLink.addEventListener('click', () => {
+    handlers.onPasteText?.();
   });
 
   const onHistoryClick = (event: MouseEvent): void => {

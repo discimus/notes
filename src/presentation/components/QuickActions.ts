@@ -8,6 +8,7 @@ export interface QuickActionsOptions {
   imageId?: string;
   audioId?: string;
   linkId?: string;
+  pasteEnabled?: boolean;
 }
 
 export function renderQuickActions(options: QuickActionsOptions): string {
@@ -21,6 +22,7 @@ export function renderQuickActions(options: QuickActionsOptions): string {
     imageId,
     audioId,
     linkId,
+    pasteEnabled = false,
   } = options;
 
   const groupIdAttribute = groupId ? ` id="${groupId}"` : '';
@@ -33,6 +35,28 @@ export function renderQuickActions(options: QuickActionsOptions): string {
   const controlsAttribute = controls ? ` aria-controls="${controls}"` : '';
   const expandedAttribute =
     typeof expanded === 'boolean' ? ` aria-expanded="${expanded}"` : '';
+  const pasteAction = pasteEnabled
+    ? `
+      <button class="chain-quick-action"${linkIdAttribute} type="button"
+        title="Colar texto da área de transferência"
+        aria-label="Colar texto como nova nota">
+        <span class="chain-quick-action__icon-wrap">
+          <span class="material-symbols-rounded chain-quick-action__icon" aria-hidden="true">content_paste</span>
+        </span>
+        <span class="chain-quick-action__label">Colar</span>
+      </button>
+    `
+    : '';
+  const fallbackLinkAction = pasteEnabled
+    ? ''
+    : `
+      <button class="chain-quick-action"${linkIdAttribute} type="button" disabled title="Em breve" aria-label="Link, em breve">
+        <span class="chain-quick-action__icon-wrap">
+          <span class="material-symbols-rounded chain-quick-action__icon" aria-hidden="true">link</span>
+        </span>
+        <span class="chain-quick-action__label">Link</span>
+      </button>
+    `;
 
   return `
     <div class="chain-quick-actions"${groupIdAttribute} role="group" aria-label="${groupLabel}">
@@ -44,6 +68,7 @@ export function renderQuickActions(options: QuickActionsOptions): string {
         </span>
         <span class="chain-quick-action__label">Documento</span>
       </button>
+      ${pasteAction}
       <button class="chain-quick-action"${imageIdAttribute} type="button" disabled title="Em breve" aria-label="Imagem, em breve">
         <span class="chain-quick-action__icon-wrap">
           <span class="material-symbols-rounded chain-quick-action__icon" aria-hidden="true">image</span>
@@ -56,12 +81,7 @@ export function renderQuickActions(options: QuickActionsOptions): string {
         </span>
         <span class="chain-quick-action__label">Áudio</span>
       </button>
-      <button class="chain-quick-action"${linkIdAttribute} type="button" disabled title="Em breve" aria-label="Link, em breve">
-        <span class="chain-quick-action__icon-wrap">
-          <span class="material-symbols-rounded chain-quick-action__icon" aria-hidden="true">link</span>
-        </span>
-        <span class="chain-quick-action__label">Link</span>
-      </button>
+      ${fallbackLinkAction}
     </div>
   `;
 }
