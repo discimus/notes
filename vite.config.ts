@@ -6,6 +6,7 @@ const rootDir = fileURLToPath(new URL('.', import.meta.url));
 
 export default defineConfig({
   root: '.',
+  base: './',
   resolve: {
     alias: {
       '@domain': resolve(rootDir, 'src/domain'),
