@@ -4373,6 +4373,28 @@
   max-height: 0;
   opacity: 0;
 }
+.chain-document--actions-compact
+  .chain-quick-action--recording:not(:disabled) {
+  flex-direction: row;
+  width: auto;
+  min-width: 48px;
+  padding-inline: var(--spacing-2);
+  gap: var(--spacing-1);
+}
+.chain-document--actions-compact
+  .chain-quick-action--recording:not(:disabled)
+  .chain-quick-action__icon-wrap {
+  order: 2;
+}
+.chain-document--actions-compact
+  .chain-quick-action--recording:not(:disabled)
+  .chain-quick-action__label {
+  order: 1;
+  max-height: 20px;
+  padding-inline: var(--spacing-1) 0;
+  opacity: 1;
+  white-space: nowrap;
+}
 .chain-quick-action--recording:not(:disabled) .chain-quick-action__icon-wrap,
 .chain-quick-action--recording:not(:disabled):hover
   .chain-quick-action__icon-wrap,
