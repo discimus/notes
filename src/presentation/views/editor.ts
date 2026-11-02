@@ -263,6 +263,8 @@ export function mountEditorView(
     onExitBulkSelection: () => AppController.exitChainsBulkMode(),
     onToggleBulkSelection: (chainId) =>
       AppController.toggleChainSelection(chainId),
+    onToggleAllChains: (visibleChainIds) =>
+      AppController.toggleAllChainsBulkSelection(visibleChainIds),
     onArchiveSelectedChains: () => {
       void AppController.archiveSelectedChains();
     },

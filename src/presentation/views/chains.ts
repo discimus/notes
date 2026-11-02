@@ -40,6 +40,31 @@ function renderChainsToolbar(state: AppState): HTMLElement {
         : `${count} ${count === 1 ? 'selecionada' : 'selecionadas'}`;
     toolbar.appendChild(title);
 
+    const visibleIds = filterChains(
+      state.chainSummaries,
+      state.chainFilterQuery
+    ).map((chain) => chain.id);
+    const visibleSelected = visibleIds.filter((id) =>
+      state.chainsBulkSelection.includes(id)
+    ).length;
+    const allLabel = el('label', 'chains-panel__bulk-all');
+    const allInput = document.createElement('input');
+    allInput.type = 'checkbox';
+    allInput.id = 'chains-bulk-all';
+    allInput.disabled = visibleIds.length === 0;
+    allInput.checked =
+      visibleIds.length > 0 && visibleSelected === visibleIds.length;
+    allInput.indeterminate =
+      visibleSelected > 0 && visibleSelected < visibleIds.length;
+    allInput.setAttribute('aria-label', 'Selecionar todas as coleções');
+    const allText = el('span');
+    allText.textContent = 'Todas';
+    allLabel.append(allInput, allText);
+    allInput.addEventListener('change', () => {
+      AppController.toggleAllChainsBulkSelection(visibleIds);
+    });
+    toolbar.appendChild(allLabel);
+
     const cancel = el('button', 'btn-icon btn-icon--active');
     cancel.type = 'button';
     cancel.setAttribute('aria-label', 'Cancelar seleção de coleções');

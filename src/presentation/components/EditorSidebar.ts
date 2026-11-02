@@ -17,6 +17,7 @@ export interface EditorSidebarHandlers {
   onEnterBulkSelection?: () => void;
   onExitBulkSelection?: () => void;
   onToggleBulkSelection?: (chainId: string) => void;
+  onToggleAllChains?: (visibleChainIds: string[]) => void;
   onArchiveSelectedChains?: () => void;
   onDeleteSelectedChains?: () => void;
 }
@@ -49,6 +50,10 @@ export function mountEditorSidebar(handlers: EditorSidebarHandlers): EditorSideb
     </div>
     <input id="editor-import-folder-input" type="file" multiple hidden webkitdirectory />
     <div class="editor-sidebar__bulk" id="editor-sidebar-bulk" hidden>
+      <label class="editor-sidebar__bulk-all">
+        <input type="checkbox" id="editor-sidebar-bulk-all" aria-label="Selecionar todas as coleções" />
+        <span>Todas</span>
+      </label>
       <span class="editor-sidebar__bulk-count" id="editor-sidebar-bulk-count"></span>
       <button class="btn-icon" id="editor-sidebar-bulk-archive" type="button" aria-label="Arquivar coleções selecionadas" title="Arquivar selecionadas">
         <span class="material-symbols-rounded" aria-hidden="true">archive</span>
@@ -92,6 +97,9 @@ export function mountEditorSidebar(handlers: EditorSidebarHandlers): EditorSideb
     '#editor-import-folder-input'
   )!;
   const bulkRow = header.querySelector<HTMLElement>('#editor-sidebar-bulk')!;
+  const bulkAll = header.querySelector<HTMLInputElement>(
+    '#editor-sidebar-bulk-all'
+  )!;
   const bulkCount = header.querySelector<HTMLElement>(
     '#editor-sidebar-bulk-count'
   )!;
@@ -102,6 +110,7 @@ export function mountEditorSidebar(handlers: EditorSidebarHandlers): EditorSideb
     '#editor-sidebar-bulk-delete'
   )!;
   let bulkSelectionActive = false;
+  let bulkVisibleChainIds: string[] = [];
 
   search.addEventListener('input', () => handlers.onFilter(search.value));
   clear.addEventListener('click', () => {
@@ -129,6 +138,9 @@ export function mountEditorSidebar(handlers: EditorSidebarHandlers): EditorSideb
   bulkDelete.addEventListener('click', () =>
     handlers.onDeleteSelectedChains?.()
   );
+  bulkAll.addEventListener('change', () => {
+    handlers.onToggleAllChains?.(bulkVisibleChainIds);
+  });
 
   let dropTarget: HTMLElement | null = null;
 
@@ -222,6 +234,10 @@ export function mountEditorSidebar(handlers: EditorSidebarHandlers): EditorSideb
     newButton.hidden = bulkMode;
     importFolderButton.hidden = bulkMode || !handlers.onImportFolderFiles;
     bulkRow.hidden = !bulkMode;
+    bulkVisibleChainIds = [];
+    bulkAll.disabled = true;
+    bulkAll.checked = false;
+    bulkAll.indeterminate = false;
     if (bulkMode) {
       const count = state.chainsBulkSelection.length;
       bulkCount.textContent =
@@ -266,6 +282,18 @@ export function mountEditorSidebar(handlers: EditorSidebarHandlers): EditorSideb
       );
       return;
     }
+
+    bulkVisibleChainIds = chains.map((chain) => chain.id);
+    const visibleSelected = bulkVisibleChainIds.filter((id) =>
+      state.chainsBulkSelection.includes(id)
+    ).length;
+    bulkAll.disabled = !bulkMode || bulkVisibleChainIds.length === 0;
+    bulkAll.checked =
+      bulkMode &&
+      bulkVisibleChainIds.length > 0 &&
+      visibleSelected === bulkVisibleChainIds.length;
+    bulkAll.indeterminate =
+      bulkMode && visibleSelected > 0 && visibleSelected < bulkVisibleChainIds.length;
 
     const selectionMode = bulkMode && Boolean(handlers.onToggleBulkSelection);
 

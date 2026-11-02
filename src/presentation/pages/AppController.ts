@@ -1640,6 +1640,22 @@ export const AppController = {
     });
   },
 
+  toggleAllChainsBulkSelection(visibleChainIds: string[]): void {
+    const state = appState.get();
+    if (!state.chainsBulkMode) return;
+    const visible = [...new Set(visibleChainIds)];
+    if (visible.length === 0) return;
+
+    const selected = new Set(state.chainsBulkSelection);
+    const allSelected = visible.every((id) => selected.has(id));
+    if (allSelected) {
+      visible.forEach((id) => selected.delete(id));
+    } else {
+      visible.forEach((id) => selected.add(id));
+    }
+    appState.set({ chainsBulkSelection: [...selected] });
+  },
+
   async archiveSelectedChains(): Promise<void> {
     const state = appState.get();
     const ids = [...new Set(state.chainsBulkSelection)];

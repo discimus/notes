@@ -1949,6 +1949,22 @@
 .editor-sidebar__bulk[hidden] {
   display: none;
 }
+.editor-sidebar__bulk-all {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  cursor: pointer;
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: var(--md-sys-typescale-label-small-size);
+}
+.editor-sidebar__bulk-all input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--md-sys-color-primary);
+  cursor: pointer;
+}
 .editor-sidebar__bulk-count {
   flex: 1;
   min-width: 0;

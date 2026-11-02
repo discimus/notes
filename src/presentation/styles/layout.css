@@ -78,6 +78,22 @@
 .chains-panel__select {
   flex-shrink: 0;
 }
+.chains-panel__bulk-all {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  cursor: pointer;
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: var(--md-sys-typescale-label-small-size);
+}
+.chains-panel__bulk-all input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--md-sys-color-primary);
+  cursor: pointer;
+}
 .chains-panel__title {
   font-size: var(--md-sys-typescale-title-small-size);
   font-weight: var(--md-sys-typescale-title-small-weight);
