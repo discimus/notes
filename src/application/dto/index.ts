@@ -87,6 +87,7 @@ export interface TagDTO {
   createdAt: ISODateString;
   origin: TagOrigin;
   chainCount: number;
+  noteCount?: number | undefined;
 }
 
 // ── Timeline DTOs ──────────────────────────────────────────────────────────

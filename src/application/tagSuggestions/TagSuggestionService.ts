@@ -1,7 +1,8 @@
 import type { NoteDTO, NoteTagSuggestionDTO, TagDTO } from '../dto/index.js';
-import type {
-  ITagSuggestionCache,
-  TagSuggestionCacheEntry,
+import {
+  TAG_SUGGESTION_CACHE_TTL_MS,
+  type ITagSuggestionCache,
+  type TagSuggestionCacheEntry,
 } from '../ports/ITagSuggestionCache.js';
 import {
   canonicalTagKey,
@@ -22,6 +23,7 @@ export interface TagSuggestionInput {
   notes: readonly NoteDTO[];
   availableTags: readonly TagDTO[];
   chainTags: readonly TagDTO[];
+  noteIds?: readonly UUID[] | undefined;
 }
 
 export interface TagSuggestionResult {
@@ -64,21 +66,19 @@ export class TagSuggestionService {
   suggest(input: TagSuggestionInput): TagSuggestionResult {
     const index = this.indexes.get(input.chainId) ?? new TfIdfIndex();
     this.indexes.set(input.chainId, index);
-    const validNoteIds = new Set(input.notes.map((note) => note.id));
-
-    for (const note of input.notes) {
-      const signature = documentSignature(note.content, note.contentType);
-      if (!index.hasSignature(note.id, signature)) {
-        index.upsert(note.id, signature, preprocessContent(note.content));
-      }
-    }
-
+    const targetIds = input.noteIds ? new Set(input.noteIds) : null;
     const suggestionsByNoteId: Record<UUID, NoteTagSuggestionDTO[]> = {};
     const generatedNoteIds: UUID[] = [];
     const entries: TagSuggestionCacheEntry[] = [];
 
     for (const note of input.notes) {
+      if (targetIds && !targetIds.has(note.id)) continue;
+
       const signature = documentSignature(note.content, note.contentType);
+      if (!index.hasSignature(note.id, signature)) {
+        index.upsert(note.id, signature, preprocessContent(note.content));
+      }
+
       let entry = this.cache.load(note.id);
       if (!entry || entry.signature !== signature) {
         generatedNoteIds.push(note.id);
@@ -94,13 +94,17 @@ export class TagSuggestionService {
               },
             })
           : [];
+        const updatedAt = now();
         entry = {
           noteId: note.id,
           signature,
           suggestions: cacheSuggestions(suggestions),
           acceptedKeys: [],
           dismissedKeys: [],
-          updatedAt: now(),
+          updatedAt,
+          expiresAt: new Date(
+            new Date(updatedAt).getTime() + TAG_SUGGESTION_CACHE_TTL_MS
+          ).toISOString(),
         };
         entries.push(entry);
       }
@@ -112,9 +116,6 @@ export class TagSuggestionService {
       );
     }
 
-    if (index.hasStaleDocuments(validNoteIds)) {
-      index.retain(validNoteIds);
-    }
     if (entries.length > 0) this.cache.saveMany(entries);
 
     return { suggestionsByNoteId, generatedNoteIds };

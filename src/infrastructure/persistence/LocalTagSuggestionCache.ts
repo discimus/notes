@@ -1,7 +1,8 @@
-import type {
-  CachedTagSuggestion,
-  ITagSuggestionCache,
-  TagSuggestionCacheEntry,
+import {
+  TAG_SUGGESTION_CACHE_TTL_MS,
+  type CachedTagSuggestion,
+  type ITagSuggestionCache,
+  type TagSuggestionCacheEntry,
 } from '@application/ports/ITagSuggestionCache.js';
 
 export const TAG_SUGGESTION_CACHE_KEY = 'threadnotes.tag-suggestions.v1';
@@ -33,7 +34,15 @@ function isSuggestion(value: unknown): value is CachedTagSuggestion {
   );
 }
 
-function isEntry(value: unknown): value is TagSuggestionCacheEntry {
+function isStoredEntry(value: unknown): value is Record<string, unknown> & {
+  noteId: string;
+  signature: string;
+  suggestions: CachedTagSuggestion[];
+  acceptedKeys: string[];
+  dismissedKeys: string[];
+  updatedAt: string;
+  expiresAt?: string;
+} {
   return (
     isRecord(value) &&
     typeof value['noteId'] === 'string' &&
@@ -42,8 +51,17 @@ function isEntry(value: unknown): value is TagSuggestionCacheEntry {
     value['suggestions'].every(isSuggestion) &&
     isStringArray(value['acceptedKeys']) &&
     isStringArray(value['dismissedKeys']) &&
-    typeof value['updatedAt'] === 'string'
+    typeof value['updatedAt'] === 'string' &&
+    (value['expiresAt'] === undefined || typeof value['expiresAt'] === 'string')
   );
+}
+
+function expiryFor(value: { updatedAt: string; expiresAt?: string }): string {
+  if (value.expiresAt) return value.expiresAt;
+  const updated = new Date(value.updatedAt).getTime();
+  return new Date(
+    (Number.isFinite(updated) ? updated : Date.now()) + TAG_SUGGESTION_CACHE_TTL_MS
+  ).toISOString();
 }
 
 function cloneEntry(entry: TagSuggestionCacheEntry): TagSuggestionCacheEntry {
@@ -67,7 +85,12 @@ export class LocalTagSuggestionCache implements ITagSuggestionCache {
 
   load(noteId: string): TagSuggestionCacheEntry | null {
     const entry = this.entries.get(noteId);
-    return entry ? cloneEntry(entry) : null;
+    if (!entry) return null;
+    if (this.isExpired(entry)) {
+      this.entries.delete(noteId);
+      return null;
+    }
+    return cloneEntry(entry);
   }
 
   save(entry: TagSuggestionCacheEntry): void {
@@ -98,7 +121,12 @@ export class LocalTagSuggestionCache implements ITagSuggestionCache {
       if (!isRecord(parsed)) return restored;
 
       Object.values(parsed).forEach((value) => {
-        if (isEntry(value)) restored.set(value.noteId, cloneEntry(value));
+        if (!isStoredEntry(value)) return;
+        const entry: TagSuggestionCacheEntry = {
+          ...value,
+          expiresAt: expiryFor(value),
+        };
+        if (!this.isExpired(entry)) restored.set(entry.noteId, cloneEntry(entry));
       });
     } catch {
       return restored;
@@ -107,7 +135,15 @@ export class LocalTagSuggestionCache implements ITagSuggestionCache {
     return restored;
   }
 
+  private isExpired(entry: TagSuggestionCacheEntry): boolean {
+    const expiresAt = new Date(entry.expiresAt).getTime();
+    return !Number.isFinite(expiresAt) || expiresAt <= Date.now();
+  }
+
   private prune(): void {
+    for (const [noteId, entry] of this.entries) {
+      if (this.isExpired(entry)) this.entries.delete(noteId);
+    }
     if (this.entries.size <= MAX_ENTRIES) return;
     const ordered = [...this.entries.values()].sort((a, b) =>
       b.updatedAt.localeCompare(a.updatedAt)

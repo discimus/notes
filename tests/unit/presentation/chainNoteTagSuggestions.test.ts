@@ -63,6 +63,7 @@ describe('sugestões de tags em notas no ChainDocument', () => {
   it('exibe a sugestão e aceita apenas por ação do usuário', async () => {
     const onAcceptNoteTagSuggestion = vi.fn().mockResolvedValue(true);
     const onAddNoteTag = vi.fn().mockResolvedValue(true);
+    const onRequestNoteTagSuggestions = vi.fn();
     view = mountChainDocument(makeTab(), {
       onNoteInput: vi.fn(),
       onSaveNote: vi.fn(),
@@ -74,8 +75,10 @@ describe('sugestões de tags em notas no ChainDocument', () => {
       onRemoveNoteTag: vi.fn(),
       onAcceptNoteTagSuggestion,
       onDismissNoteTagSuggestion: vi.fn(),
+      onRequestNoteTagSuggestions,
     });
 
+    expect(onRequestNoteTagSuggestions).toHaveBeenCalledWith('chain-1', 'note-1');
     expect(view.element.querySelector('.chip--suggestion')?.textContent).toContain(
       'typescript'
     );
@@ -92,5 +95,33 @@ describe('sugestões de tags em notas no ChainDocument', () => {
         expect.objectContaining({ name: 'typescript' })
       );
     });
+  });
+
+  it('reserva o espaço das sugestões apenas quando habilitado', () => {
+    appState.set({ tagSuggestionsEnabled: false });
+    view = mountChainDocument(makeTab(), {
+      onNoteInput: vi.fn(),
+      onSaveNote: vi.fn(),
+      onEditNote: vi.fn(),
+      onCreateNote: vi.fn(),
+      onSelectNote: vi.fn(),
+      onCloseNote: vi.fn(),
+      onAddNoteTag: vi.fn().mockResolvedValue(true),
+      onRemoveNoteTag: vi.fn(),
+      onAcceptNoteTagSuggestion: vi.fn().mockResolvedValue(true),
+    });
+
+    const editor = view.element.querySelector(
+      '[data-note-tags-host] .tag-editor'
+    );
+    expect(editor?.classList.contains('tag-editor--suggestions-reserved')).toBe(
+      false
+    );
+
+    appState.set({ tagSuggestionsEnabled: true });
+    view.update(makeTab());
+    expect(editor?.classList.contains('tag-editor--suggestions-reserved')).toBe(
+      true
+    );
   });
 });

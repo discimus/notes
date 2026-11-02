@@ -1,5 +1,7 @@
 import type { UUID, ISODateString } from '@shared/types/index.js';
 
+export const TAG_SUGGESTION_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+
 export interface CachedTagSuggestion {
   name: string;
   normalizedName: string;
@@ -14,6 +16,7 @@ export interface TagSuggestionCacheEntry {
   acceptedKeys: string[];
   dismissedKeys: string[];
   updatedAt: ISODateString;
+  expiresAt: ISODateString;
 }
 
 export interface ITagSuggestionCache {

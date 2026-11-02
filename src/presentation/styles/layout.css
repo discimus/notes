@@ -1292,6 +1292,13 @@
 .app-shell--compact .tag-editor__suggestions {
   gap: 3px;
 }
+.app-shell--compact .tag-editor__suggestions-track {
+  gap: 3px;
+}
+.app-shell--compact .tag-editor--suggestions-reserved .tag-editor__suggestions {
+  min-height: 24px;
+  max-height: 24px;
+}
 .app-shell--compact .chain-note__body--code,
 .app-shell--compact .chain-note__body--verbatim {
   padding: var(--spacing-2) var(--spacing-3);

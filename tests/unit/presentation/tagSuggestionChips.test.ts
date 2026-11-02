@@ -42,8 +42,15 @@ describe('chips de sugestão de tags', () => {
     expect(host.querySelector('.tag-editor__suggestions-label')?.textContent).toBe(
       'Sugestões'
     );
+    const label = host.querySelector('.tag-editor__suggestions-label');
+    const track = host.querySelector('.tag-editor__suggestions-track');
     expect(host.querySelectorAll('.chip--suggestion')).toHaveLength(2);
     expect(host.querySelector('.chip--suggestion-new')).not.toBeNull();
+    expect(track?.contains(label)).toBe(false);
+    expect(track?.querySelectorAll('.chip--suggestion')).toHaveLength(2);
+    expect(
+      host.querySelector<HTMLElement>('.chip--suggestion')?.style.animationDelay
+    ).toBe('');
     expect(onAdd).not.toHaveBeenCalled();
     editor.destroy();
   });
@@ -95,6 +102,33 @@ describe('chips de sugestão de tags', () => {
     expect(onDismissSuggestion).toHaveBeenCalledWith(
       expect.objectContaining({ name: 'testes' })
     );
+    editor.destroy();
+  });
+
+  it('reserva espaço somente quando configurado', () => {
+    const host = document.createElement('div');
+    document.body.appendChild(host);
+    const editor = mountInlineTagEditor(host, {
+      onAdd: vi.fn(() => Promise.resolve(true)),
+      onRemove: vi.fn(),
+      onAcceptSuggestion: vi.fn(() => Promise.resolve(true)),
+      onDismissSuggestion: vi.fn(),
+    });
+    const suggestionsHost = host.querySelector<HTMLElement>(
+      '.tag-editor__suggestions'
+    );
+
+    editor.update([], [], []);
+    expect(suggestionsHost?.hidden).toBe(true);
+
+    editor.setSuggestionsReserved(true);
+    expect(host.querySelector('.tag-editor')?.classList.contains(
+      'tag-editor--suggestions-reserved'
+    )).toBe(true);
+    expect(suggestionsHost?.hidden).toBe(false);
+
+    editor.setSuggestionsReserved(false);
+    expect(suggestionsHost?.hidden).toBe(true);
     editor.destroy();
   });
 

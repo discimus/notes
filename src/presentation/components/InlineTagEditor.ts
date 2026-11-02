@@ -27,6 +27,7 @@ export interface InlineTagEditorView {
     availableTags?: TagDTO[],
     suggestions?: NoteTagSuggestionDTO[]
   ) => void;
+  setSuggestionsReserved: (reserved: boolean) => void;
   startEditing: () => void;
   destroy: () => void;
 }
@@ -70,6 +71,7 @@ export function mountInlineTagEditor(
   let availableTags: TagDTO[] = [];
   let suggestions: TagDTO[] = [];
   let autoSuggestions: NoteTagSuggestionDTO[] = [];
+  let suggestionsReserved = false;
   let activeIndex = -1;
   let editing = false;
   let pending = false;
@@ -243,12 +245,13 @@ export function mountInlineTagEditor(
     if (signature === renderedSuggestionsSignature) return;
     renderedSuggestionsSignature = signature;
     suggestionsHost.replaceChildren();
-    suggestionsHost.hidden = visible.length === 0;
+    suggestionsHost.hidden = visible.length === 0 && !suggestionsReserved;
     if (visible.length === 0) return;
 
     const label = el('span', 'tag-editor__suggestions-label');
     label.textContent = 'Sugestões';
-    suggestionsHost.appendChild(label);
+    const track = el('div', 'tag-editor__suggestions-track');
+    suggestionsHost.append(label, track);
 
     visible.forEach((suggestion) => {
       const chip = el(
@@ -295,7 +298,7 @@ export function mountInlineTagEditor(
         chip.appendChild(dismiss);
       }
 
-      suggestionsHost.appendChild(chip);
+      track.appendChild(chip);
     });
   };
 
@@ -504,6 +507,13 @@ export function mountInlineTagEditor(
 
       if (editing && input?.value.trim()) renderSuggestions();
       else closeSuggestions();
+    },
+    setSuggestionsReserved: (reserved) => {
+      if (suggestionsReserved === reserved) return;
+      suggestionsReserved = reserved;
+      root.classList.toggle('tag-editor--suggestions-reserved', reserved);
+      renderedSuggestionsSignature = '__initial__';
+      renderAutoSuggestions();
     },
     startEditing,
     destroy: () => {

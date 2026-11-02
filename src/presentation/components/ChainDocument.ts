@@ -105,6 +105,7 @@ export interface ChainDocumentHandlers {
     noteId: string,
     suggestion: NoteTagSuggestionDTO
   ) => void;
+  onRequestNoteTagSuggestions?: (chainId: string, noteId: string) => void;
   onCreateNote: () => void;
   onSelectNote: (noteTabId: string) => void;
   onCloseNote: (noteTabId: string) => void;
@@ -121,6 +122,7 @@ export interface ChainDocumentView {
   focusNoteEditor: () => void;
   focusSearchMatch: (query: string) => void;
   previewNote: (noteId: string, query?: string) => void;
+  requestVisibleTagSuggestions: () => void;
   destroy: () => void;
 }
 
@@ -533,6 +535,7 @@ export function mountChainDocument(
   });
   const noteTagEditors = new Map<string, InlineTagEditorView>();
   let noteTagEditorObserver: IntersectionObserver | null = null;
+  let tagSuggestionObserver: IntersectionObserver | null = null;
   let autoEditAttempted = false;
   let autoEditFrame: number | null = null;
   let activePeriodKey: string | null = null;
@@ -1005,8 +1008,14 @@ export function mountChainDocument(
     noteTagEditorObserver = null;
   };
 
+  const disconnectTagSuggestionObserver = (): void => {
+    tagSuggestionObserver?.disconnect();
+    tagSuggestionObserver = null;
+  };
+
   const destroyNoteTagEditors = (): void => {
     disconnectNoteTagEditorObserver();
+    disconnectTagSuggestionObserver();
     noteTagEditors.forEach((editor) => editor.destroy());
     noteTagEditors.clear();
   };
@@ -1019,6 +1028,7 @@ export function mountChainDocument(
         noteTagEditors.delete(noteId);
         return;
       }
+      editor.setSuggestionsReserved(appState.get().tagSuggestionsEnabled);
       editor.update(
         note.tags ?? [],
         appState.get().allTags,
@@ -1057,12 +1067,48 @@ export function mountChainDocument(
         removeAriaLabel: (tag) => `Remover tag ${tag.name} desta nota`,
       }
     );
+    editor.setSuggestionsReserved(appState.get().tagSuggestionsEnabled);
     editor.update(
       note.tags ?? [],
       appState.get().allTags,
       appState.get().tagSuggestionsByNoteId[noteId] ?? []
     );
     noteTagEditors.set(noteId, editor);
+  };
+
+  const requestTagSuggestionsForHost = (host: HTMLElement): void => {
+    const noteId = host.dataset['noteId'];
+    if (!noteId) return;
+    handlers.onRequestNoteTagSuggestions?.(currentTab.chainId, noteId);
+  };
+
+  const observeTagSuggestions = (hosts: readonly HTMLElement[]): void => {
+    disconnectTagSuggestionObserver();
+    if (hosts.length === 0) return;
+
+    if (typeof IntersectionObserver === 'undefined') {
+      hosts.forEach(requestTagSuggestionsForHost);
+      return;
+    }
+
+    tagSuggestionObserver = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting) return;
+          const host = entry.target as HTMLElement;
+          requestTagSuggestionsForHost(host);
+          tagSuggestionObserver?.unobserve(host);
+        });
+      },
+      { root: scroll, rootMargin: '600px 0px' }
+    );
+    hosts.forEach((host) => tagSuggestionObserver?.observe(host));
+  };
+
+  const requestVisibleTagSuggestions = (): void => {
+    noteTagEditors.forEach((_editor, noteId) => {
+      handlers.onRequestNoteTagSuggestions?.(currentTab.chainId, noteId);
+    });
   };
 
   const mountNoteTagEditors = (): void => {
@@ -1075,6 +1121,7 @@ export function mountChainDocument(
 
     if (typeof IntersectionObserver === 'undefined') {
       hosts.forEach(mountNoteTagEditorForHost);
+      observeTagSuggestions(hosts);
       return;
     }
 
@@ -1098,6 +1145,7 @@ export function mountChainDocument(
       { root: scroll, rootMargin: '500px 0px' }
     );
     hosts.forEach((host) => noteTagEditorObserver?.observe(host));
+    observeTagSuggestions(hosts);
   };
 
   const syncNoteEditingState = (
@@ -2150,6 +2198,7 @@ export function mountChainDocument(
     element: root,
     update,
     setSaving,
+    requestVisibleTagSuggestions,
     focusNoteEditor: () => {
       if (currentTab.composerCollapsed) {
         documentAction.focus({ preventScroll: true });

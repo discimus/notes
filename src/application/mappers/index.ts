@@ -50,7 +50,11 @@ export function mapNoteToDTO(
   };
 }
 
-export function mapTagToDTO(tag: Tag, chainCount: number): TagDTO {
+export function mapTagToDTO(
+  tag: Tag,
+  chainCount: number,
+  noteCount?: number
+): TagDTO {
   return {
     id: tag.id,
     name: tag.name.value,
@@ -58,6 +62,7 @@ export function mapTagToDTO(tag: Tag, chainCount: number): TagDTO {
     createdAt: tag.createdAt,
     origin: tag.origin,
     chainCount,
+    ...(noteCount !== undefined ? { noteCount } : {}),
   };
 }
 

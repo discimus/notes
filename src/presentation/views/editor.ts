@@ -451,6 +451,8 @@ export function mountEditorView(
           AppController.acceptNoteTagSuggestion(chainId, noteId, suggestion),
         onDismissNoteTagSuggestion: (noteId, suggestion) =>
           AppController.dismissNoteTagSuggestion(noteId, suggestion),
+        onRequestNoteTagSuggestions: (chainId, noteId) =>
+          AppController.requestTagSuggestionsForNote(chainId, noteId),
         onCreateNote: () => {
         createChainNoteTab(tab.id);
       },
@@ -1200,9 +1202,9 @@ export function mountEditorView(
     }
     if (
       (suggestionsEnabledNow || autoAssignEnabledNow) &&
-      active?.kind === 'chain'
+      activeDocument?.kind === 'chain'
     ) {
-      AppController.requestTagSuggestionsForChain(active.chainId);
+      activeDocument.view.requestVisibleTagSuggestions();
     }
     applyEditorFocusRequest();
     applyEditorPreviewRequest();

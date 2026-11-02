@@ -979,6 +979,17 @@ function renderTimelineFilters(header: HTMLElement, state: AppState): void {
   updateChainScopeButton(header, state);
 }
 
+function compareTagsByFrequency(a: TagDTO, b: TagDTO): number {
+  const noteCountA = a.noteCount ?? 0;
+  const noteCountB = b.noteCount ?? 0;
+  const totalA = noteCountA + a.chainCount;
+  const totalB = noteCountB + b.chainCount;
+
+  if (totalA !== totalB) return totalB - totalA;
+  if (a.chainCount !== b.chainCount) return b.chainCount - a.chainCount;
+  return 0;
+}
+
 function renderTagChips(
   header: HTMLElement,
   state: AppState,
@@ -988,9 +999,9 @@ function renderTagChips(
   if (!tagsHost) return;
 
   const normalized = normalizeText(search);
-  const tags = state.allTags.filter(
-    (tag) => !normalized || normalizeText(tag.name).includes(normalized)
-  );
+  const tags = state.allTags
+    .filter((tag) => !normalized || normalizeText(tag.name).includes(normalized))
+    .sort(compareTagsByFrequency);
   tagsHost.replaceChildren(
     ...tags.map((tag) => renderTagFilter(tag, state.timelineFilters))
   );

@@ -3057,7 +3057,7 @@
 .tag-editor__suggestions {
   flex-basis: 100%;
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
   gap: 4px;
   width: 100%;
@@ -3066,7 +3066,32 @@
 .tag-editor__suggestions[hidden] {
   display: none;
 }
+.tag-editor__suggestions-track {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+.tag-editor--suggestions-reserved .tag-editor__suggestions {
+  min-height: 28px;
+  max-height: 28px;
+  overflow: hidden;
+}
+.tag-editor--suggestions-reserved .tag-editor__suggestions-track {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+}
+.tag-editor--suggestions-reserved
+  .tag-editor__suggestions-track::-webkit-scrollbar {
+  display: none;
+}
 .tag-editor__suggestions-label {
+  flex-shrink: 0;
+  white-space: nowrap;
   color: var(--md-sys-color-on-surface-variant);
   font-size: var(--md-sys-typescale-label-medium-size);
   line-height: var(--md-sys-typescale-label-medium-line-height);
@@ -3074,17 +3099,9 @@
 .chip.chip--suggestion {
   gap: 2px;
   padding: 0 4px 0 0;
-  border-color: color-mix(
-    in srgb,
-    var(--md-sys-color-primary) 42%,
-    var(--md-sys-color-outline-variant)
-  );
-  background-color: color-mix(
-    in srgb,
-    var(--md-sys-color-primary) 7%,
-    transparent
-  );
-  color: var(--md-sys-color-on-surface);
+  border-color: var(--md-sys-color-outline-variant);
+  background-color: var(--md-sys-color-surface-container-low);
+  color: var(--md-sys-color-on-surface-variant);
   font-size: var(--md-sys-typescale-label-medium-size);
   line-height: var(--md-sys-typescale-label-medium-line-height);
 }
@@ -3113,7 +3130,7 @@
 .chip__suggestion-action:focus-visible {
   background-color: color-mix(
     in srgb,
-    var(--md-sys-color-primary) 10%,
+    var(--md-sys-color-on-surface-variant) 8%,
     transparent
   );
 }

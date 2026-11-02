@@ -2,7 +2,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { NoteDTO, TagDTO } from '@application/dto/index.js';
 import type { TagSuggestionPipeline } from '@domain/services/tagSuggestions/index.js';
 import { TagSuggestionService } from '@application/tagSuggestions/TagSuggestionService.js';
-import { LocalTagSuggestionCache } from '@infrastructure/persistence/LocalTagSuggestionCache.js';
+import {
+  LocalTagSuggestionCache,
+  TAG_SUGGESTION_CACHE_KEY,
+} from '@infrastructure/persistence/LocalTagSuggestionCache.js';
 
 function makeNote(overrides: Partial<NoteDTO> = {}): NoteDTO {
   return {
@@ -114,5 +117,53 @@ describe('TagSuggestionService', () => {
 
     expect(result.suggestionsByNoteId['note-1']).toHaveLength(1);
     expect(nextPipeline.suggest).not.toHaveBeenCalled();
+  });
+
+  it('processa somente as notas visíveis solicitadas', () => {
+    const pipeline = fakePipeline();
+    const service = new TagSuggestionService(new LocalTagSuggestionCache(), pipeline);
+    const input = {
+      chainId: 'chain-1',
+      notes: [
+        makeNote(),
+        makeNote({ id: 'note-2', content: 'Outra nota sobre cozinha.' }),
+      ],
+      availableTags: [makeTag()],
+      chainTags: [],
+      noteIds: ['note-2'],
+    };
+
+    const result = service.suggest(input);
+
+    expect(Object.keys(result.suggestionsByNoteId)).toEqual(['note-2']);
+    expect(result.generatedNoteIds).toEqual(['note-2']);
+    expect(pipeline.suggest).toHaveBeenCalledTimes(1);
+  });
+
+  it('reprocessa quando o cache expirou', () => {
+    const input = {
+      chainId: 'chain-1',
+      notes: [makeNote()],
+      availableTags: [makeTag()],
+      chainTags: [],
+    };
+    new TagSuggestionService(new LocalTagSuggestionCache(), fakePipeline()).suggest(input);
+
+    const stored = JSON.parse(localStorage.getItem(TAG_SUGGESTION_CACHE_KEY) ?? '{}') as Record<
+      string,
+      { expiresAt: string }
+    >;
+    const entry = stored['note-1'];
+    if (!entry) throw new Error('Cache não encontrado');
+    entry.expiresAt = '2000-01-01T00:00:00.000Z';
+    localStorage.setItem(TAG_SUGGESTION_CACHE_KEY, JSON.stringify(stored));
+
+    const nextPipeline = fakePipeline();
+    new TagSuggestionService(
+      new LocalTagSuggestionCache(),
+      nextPipeline
+    ).suggest(input);
+
+    expect(nextPipeline.suggest).toHaveBeenCalledTimes(1);
   });
 });
