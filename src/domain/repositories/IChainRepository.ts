@@ -21,6 +21,7 @@ export interface IChainRepository {
   delete(id: UUID): Promise<void>;
   countByTagId(tagId: UUID): Promise<number>;
   hasContentHash(contentHash: string): Promise<boolean>;
+  hasContentHashInChain(chainId: UUID, contentHash: string): Promise<boolean>;
 }
 
 export interface IChainReadModel {

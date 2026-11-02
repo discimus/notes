@@ -49,6 +49,7 @@ import {
 import { snackbar } from './Snackbar.js';
 import type { AudioRecorderController, RecordedAudio } from './audioRecorder.js';
 import { pickImagesWithClipboardFallback } from './imageAttachmentInput.js';
+import { dropHasDirectory } from '../app/textFolderImport.js';
 import { el } from '../dom.js';
 import {
   findMatchRange,
@@ -112,6 +113,7 @@ export interface ChainDocumentHandlers {
   onRenameNote?: (noteTabId: string, fileName: string) => void;
   onNewDocument?: () => void;
   onImportFiles?: (files: File[]) => void;
+  onImportFolderDrop?: (dataTransfer: DataTransfer) => void;
   onRename?: () => void;
 }
 
@@ -476,7 +478,7 @@ export function mountChainDocument(
 
     <div class="chain-document__drop-overlay" id="chain-drop-overlay" hidden aria-hidden="true">
       <span class="material-symbols-rounded chain-document__drop-icon" aria-hidden="true">upload_file</span>
-      <span class="chain-document__drop-text">Solte para importar nesta coleção</span>
+      <span class="chain-document__drop-text">Solte para importar</span>
     </div>
   `;
 
@@ -2138,7 +2140,15 @@ export function mountChainDocument(
     if (fileDragDepth === 0) setDropActive(false);
   });
   root.addEventListener('drop', (event) => {
-    if (!handlers.onImportFiles || !hasFilePayload(event)) return;
+    if (!hasFilePayload(event)) return;
+    if (handlers.onImportFolderDrop && dropHasDirectory(event.dataTransfer)) {
+      event.preventDefault();
+      event.stopPropagation();
+      resetFileDrag();
+      if (event.dataTransfer) handlers.onImportFolderDrop(event.dataTransfer);
+      return;
+    }
+    if (!handlers.onImportFiles) return;
     event.preventDefault();
     event.stopPropagation();
     resetFileDrag();

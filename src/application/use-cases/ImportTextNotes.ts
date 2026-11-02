@@ -25,7 +25,10 @@ export class ImportTextNotes {
       if (document.contentHash) {
         if (
           seenHashes.has(document.contentHash) ||
-          (await this.chainRepo.hasContentHash(document.contentHash))
+          (await this.chainRepo.hasContentHashInChain(
+            command.chainId,
+            document.contentHash
+          ))
         ) {
           continue;
         }

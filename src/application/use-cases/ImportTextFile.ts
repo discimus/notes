@@ -22,7 +22,10 @@ export class ImportTextFile {
   async execute(command: ImportTextFileCommand): Promise<ImportTextFileResult> {
     if (
       command.contentHash &&
-      (await this.chainRepo.hasContentHash(command.contentHash))
+      (await this.chainRepo.hasContentHashInChain(
+        command.chainId,
+        command.contentHash
+      ))
     ) {
       return { duplicate: true };
     }

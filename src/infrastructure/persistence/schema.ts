@@ -8,7 +8,7 @@ import type { NoteTagData } from '@domain/entities/index.js';
 import type { AttachmentData } from '@domain/entities/index.js';
 
 export const DB_NAME = 'thread-notes-db';
-export const DB_VERSION = 7;
+export const DB_VERSION = 8;
 
 export interface NotesDB {
   chains: {
@@ -29,6 +29,7 @@ export interface NotesDB {
       'by-chainId-position': [string, number];
       'by-createdAt': string;
       'by-contentHash': string;
+      'by-chainId-contentHash': [string, string];
     };
   };
   tags: {
@@ -112,7 +113,9 @@ function hasContentHashSchema(db: IDBPDatabase<NotesDB>): boolean {
 
   try {
     const tx = db.transaction('notes', 'readonly');
-    const complete = tx.store.indexNames.contains('by-contentHash');
+    const complete =
+      tx.store.indexNames.contains('by-contentHash') &&
+      tx.store.indexNames.contains('by-chainId-contentHash');
     void tx.done.catch(() => undefined);
     return complete;
   } catch {
@@ -120,14 +123,23 @@ function hasContentHashSchema(db: IDBPDatabase<NotesDB>): boolean {
   }
 }
 
-function ensureContentHashIndex(
+export function ensureContentHashIndexes(
   db: IDBPDatabase<NotesDB>,
   transaction: UpgradeTransaction
 ): void {
   if (!db.objectStoreNames.contains('notes')) return;
   const notesStore = transaction.objectStore('notes');
+  if (notesStore.indexNames.contains('by-contentHash')) {
+    const contentHashIndex = notesStore.index('by-contentHash');
+    if (contentHashIndex.unique) {
+      notesStore.deleteIndex('by-contentHash');
+    }
+  }
   if (!notesStore.indexNames.contains('by-contentHash')) {
-    notesStore.createIndex('by-contentHash', 'contentHash', { unique: true });
+    notesStore.createIndex('by-contentHash', 'contentHash');
+  }
+  if (!notesStore.indexNames.contains('by-chainId-contentHash')) {
+    notesStore.createIndex('by-chainId-contentHash', ['chainId', 'contentHash']);
   }
 }
 
@@ -214,7 +226,8 @@ function upgradeSchema(
     notesStore.createIndex('by-chainId', 'chainId');
     notesStore.createIndex('by-chainId-position', ['chainId', 'position']);
     notesStore.createIndex('by-createdAt', 'createdAt');
-    notesStore.createIndex('by-contentHash', 'contentHash', { unique: true });
+    notesStore.createIndex('by-contentHash', 'contentHash');
+    notesStore.createIndex('by-chainId-contentHash', ['chainId', 'contentHash']);
 
     const tagsStore = db.createObjectStore('tags', { keyPath: 'id' });
     tagsStore.createIndex('by-normalizedName', 'normalizedName', { unique: true });
@@ -235,7 +248,7 @@ function upgradeSchema(
 
   ensureNoteTagStore(db, transaction);
   ensureAttachmentStores(db, transaction);
-  ensureContentHashIndex(db, transaction);
+  ensureContentHashIndexes(db, transaction);
 }
 
 const openCallbacks = {

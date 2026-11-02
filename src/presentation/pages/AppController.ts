@@ -67,6 +67,7 @@ import {
   GetTimelinePage,
   ImportTextNotes,
   ImportTextFile,
+  ImportTextFolder,
   ArchiveChain,
   RestoreChain,
   DeleteChain,
@@ -111,6 +112,7 @@ const getTimelinePage = new GetTimelinePage(chainRepo, tagRepo);
 let searchRequestId = 0;
 const importTextFileUseCase = new ImportTextFile(chainRepo);
 const importTextNotesUseCase = new ImportTextNotes(chainRepo);
+const importTextFolderUseCase = new ImportTextFolder(chainRepo);
 const archiveChain = new ArchiveChain(chainRepo);
 const restoreChain = new RestoreChain(chainRepo);
 const deleteChain = new DeleteChain(chainRepo);
@@ -193,6 +195,17 @@ export interface EditorBatchAppendSuccess {
 }
 
 export type EditorBatchAppendResult = EditorBatchAppendSuccess | EditorSaveFailure;
+
+export type TextImportFolderResult =
+  | {
+      ok: true;
+      status: 'created';
+      chain: ChainDetailDTO;
+      notes: NoteDTO[];
+      duplicates: number;
+    }
+  | { ok: true; status: 'skipped'; duplicates: number }
+  | EditorSaveFailure;
 
 export interface AttachmentMutationSuccess {
   ok: true;
@@ -1352,8 +1365,7 @@ export const AppController = {
     chainId: string,
     files: PreparedTextImport[],
     useSourceDates: boolean
-  ): Promise<EditorBatchAppendResult> {
-    const finishPendingOperation = beginPendingOperation();
+  ): Promise<EditorBatchAppendResult> {    const finishPendingOperation = beginPendingOperation();
     try {
       const notes = await importTextNotesUseCase.execute({
         chainId,
@@ -1382,6 +1394,56 @@ export const AppController = {
         }
       );
       return { ok: true, notes, chainTitle };
+    } catch (error: unknown) {
+      return { ok: false, error: editorErrorMessage(error) };
+    } finally {
+      finishPendingOperation();
+    }
+  },
+
+  async importTextFolder(
+    title: string,
+    files: PreparedTextImport[],
+    useSourceDates: boolean
+  ): Promise<TextImportFolderResult> {
+    const finishPendingOperation = beginPendingOperation();
+    try {
+      if (
+        files.some(
+          (file) => file.content.length >= STORAGE_PERSIST_THRESHOLD_BYTES
+        )
+      ) {
+        await requestPersistentStorage();
+      }
+
+      const result = await importTextFolderUseCase.execute({
+        title,
+        documents: files.map((file) => ({
+          content: file.content,
+          ...(useSourceDates && file.sourceModifiedAt
+            ? { sourceCreatedAt: file.sourceModifiedAt }
+            : {}),
+          ...(file.contentHash ? { contentHash: file.contentHash } : {}),
+          ...(file.fileName ? { sourceFileName: file.fileName } : {}),
+        })),
+      });
+
+      if (result.status === 'skipped') {
+        return {
+          ok: true,
+          status: 'skipped',
+          duplicates: result.duplicates,
+        };
+      }
+
+      await Promise.allSettled([loadChains()]);
+      return {
+        ok: true,
+        status: 'created',
+        chain: result.chain,
+        notes: result.notes,
+        duplicates: result.duplicates,
+      };
     } catch (error: unknown) {
       return { ok: false, error: editorErrorMessage(error) };
     } finally {

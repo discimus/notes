@@ -217,6 +217,23 @@ export interface ImportTextNotesCommand {
   documents: ImportTextDocumentInput[];
 }
 
+export interface ImportTextFolderCommand {
+  title: string;
+  documents: ImportTextDocumentInput[];
+}
+
+export type ImportTextFolderResult =
+  | {
+      status: 'created';
+      chain: ChainDetailDTO;
+      notes: NoteDTO[];
+      duplicates: number;
+    }
+  | {
+      status: 'skipped';
+      duplicates: number;
+    };
+
 export interface UpdateChainTitleCommand {
   chainId: UUID;
   title?: string | undefined;

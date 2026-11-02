@@ -270,6 +270,15 @@ export class InMemoryChainRepository
     return false;
   }
 
+  async hasContentHashInChain(
+    chainId: UUID,
+    contentHash: string
+  ): Promise<boolean> {
+    const entry = this.chains.get(chainId);
+    if (!entry) return false;
+    return entry.notes.some((note) => note.contentHash === contentHash);
+  }
+
   clear(): void {
     this.chains.clear();
   }

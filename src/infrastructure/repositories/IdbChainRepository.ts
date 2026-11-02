@@ -417,4 +417,16 @@ export class IdbChainRepository
     const key = await db.getKeyFromIndex('notes', 'by-contentHash', contentHash);
     return key !== undefined;
   }
+
+  async hasContentHashInChain(
+    chainId: UUID,
+    contentHash: string
+  ): Promise<boolean> {
+    const db = await this.db();
+    const key = await db.getKeyFromIndex('notes', 'by-chainId-contentHash', [
+      chainId,
+      contentHash,
+    ]);
+    return key !== undefined;
+  }
 }

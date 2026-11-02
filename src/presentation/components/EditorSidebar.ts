@@ -3,6 +3,7 @@ import { filterChains, sortChainsByPinned } from '../filters.js';
 import { el } from '../dom.js';
 import { renderChainListItem } from './ChainListItem.js';
 import { renderEmptyDetail, renderLoadingState } from './states.js';
+import { dropHasDirectory } from '../app/textFolderImport.js';
 
 export interface EditorSidebarHandlers {
   onOpenChain: (chainId: string) => void;
@@ -11,6 +12,8 @@ export interface EditorSidebarHandlers {
   onFilter: (query: string) => void;
   onTogglePin: (chainId: string) => void;
   onImportFiles?: (chainId: string, files: File[]) => void;
+  onImportFolderFiles?: (files: File[]) => void;
+  onImportFolderDrop?: (dataTransfer: DataTransfer) => void;
   onEnterBulkSelection?: () => void;
   onExitBulkSelection?: () => void;
   onToggleBulkSelection?: (chainId: string) => void;
@@ -33,6 +36,9 @@ export function mountEditorSidebar(handlers: EditorSidebarHandlers): EditorSideb
     <div class="editor-sidebar__title-row">
       <h2 class="editor-sidebar__title">Coleções</h2>
       <div class="editor-sidebar__title-actions">
+        <button class="btn-icon" id="editor-import-folder" type="button" aria-label="Importar pasta" title="Importar pasta">
+          <span class="material-symbols-rounded" aria-hidden="true">create_new_folder</span>
+        </button>
         <button class="btn-icon editor-sidebar__select" id="editor-sidebar-select" type="button" aria-label="Selecionar coleções" title="Selecionar coleções" aria-pressed="false">
           <span class="material-symbols-rounded" aria-hidden="true">checklist</span>
         </button>
@@ -41,6 +47,7 @@ export function mountEditorSidebar(handlers: EditorSidebarHandlers): EditorSideb
         </button>
       </div>
     </div>
+    <input id="editor-import-folder-input" type="file" multiple hidden webkitdirectory />
     <div class="editor-sidebar__bulk" id="editor-sidebar-bulk" hidden>
       <span class="editor-sidebar__bulk-count" id="editor-sidebar-bulk-count"></span>
       <button class="btn-icon" id="editor-sidebar-bulk-archive" type="button" aria-label="Arquivar coleções selecionadas" title="Arquivar selecionadas">
@@ -78,6 +85,12 @@ export function mountEditorSidebar(handlers: EditorSidebarHandlers): EditorSideb
   const newButton = header.querySelector<HTMLButtonElement>(
     '#editor-new-chain'
   )!;
+  const importFolderButton = header.querySelector<HTMLButtonElement>(
+    '#editor-import-folder'
+  )!;
+  const importFolderInput = header.querySelector<HTMLInputElement>(
+    '#editor-import-folder-input'
+  )!;
   const bulkRow = header.querySelector<HTMLElement>('#editor-sidebar-bulk')!;
   const bulkCount = header.querySelector<HTMLElement>(
     '#editor-sidebar-bulk-count'
@@ -97,6 +110,15 @@ export function mountEditorSidebar(handlers: EditorSidebarHandlers): EditorSideb
     search.focus();
   });
   newButton.addEventListener('click', handlers.onNewChain);
+  importFolderButton.addEventListener('click', () => {
+    if (!handlers.onImportFolderFiles) return;
+    importFolderInput.click();
+  });
+  importFolderInput.addEventListener('change', () => {
+    const files = importFolderInput.files ? [...importFolderInput.files] : [];
+    importFolderInput.value = '';
+    if (files.length > 0) handlers.onImportFolderFiles?.(files);
+  });
   selectButton.addEventListener('click', () => {
     if (bulkSelectionActive) handlers.onExitBulkSelection?.();
     else handlers.onEnterBulkSelection?.();
@@ -126,12 +148,17 @@ export function mountEditorSidebar(handlers: EditorSidebarHandlers): EditorSideb
   };
 
   list.addEventListener('dragover', (event) => {
-    if (!handlers.onImportFiles || !hasFilePayload(event)) return;
+    if (!hasFilePayload(event)) return;
     const item = (event.target as HTMLElement | null)?.closest<HTMLElement>('.chain-item');
     if (!item) {
       clearDropTarget();
+      if (handlers.onImportFolderDrop) {
+        event.preventDefault();
+        if (event.dataTransfer) event.dataTransfer.dropEffect = 'copy';
+      }
       return;
     }
+    if (!handlers.onImportFiles) return;
     event.preventDefault();
     if (event.dataTransfer) event.dataTransfer.dropEffect = 'copy';
     setDropTarget(item);
@@ -145,7 +172,18 @@ export function mountEditorSidebar(handlers: EditorSidebarHandlers): EditorSideb
   });
 
   list.addEventListener('drop', (event) => {
-    if (!handlers.onImportFiles || !hasFilePayload(event)) return;
+    if (!hasFilePayload(event)) return;
+    if (
+      handlers.onImportFolderDrop &&
+      dropHasDirectory(event.dataTransfer)
+    ) {
+      event.preventDefault();
+      event.stopPropagation();
+      clearDropTarget();
+      if (event.dataTransfer) handlers.onImportFolderDrop(event.dataTransfer);
+      return;
+    }
+    if (!handlers.onImportFiles) return;
     event.preventDefault();
     const item = (event.target as HTMLElement | null)?.closest<HTMLElement>('.chain-item');
     if (!item) {
@@ -182,6 +220,7 @@ export function mountEditorSidebar(handlers: EditorSidebarHandlers): EditorSideb
       : 'Selecionar coleções';
     selectIcon.textContent = bulkMode ? 'close' : 'checklist';
     newButton.hidden = bulkMode;
+    importFolderButton.hidden = bulkMode || !handlers.onImportFolderFiles;
     bulkRow.hidden = !bulkMode;
     if (bulkMode) {
       const count = state.chainsBulkSelection.length;

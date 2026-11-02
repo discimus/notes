@@ -41,6 +41,10 @@ import { renderNavToggle } from '../components/NavToggle.js';
 import { togglePinnedChain } from '../app/pinnedChains.js';
 import { getAutoOpenBlankEditor } from '../app/autoOpenBlankEditor.js';
 import { getAutoImportFiles } from '../app/autoImportFiles.js';
+import {
+  startFolderImportFromDataTransfer,
+  startFolderImportFromFiles,
+} from '../app/folderImportLauncher.js';
 import { installUnloadGuard } from '../app/unloadGuard.js';
 import { el } from '../dom.js';
 import { showComposerModal } from './menus.js';
@@ -267,6 +271,12 @@ export function mountEditorView(
     },
     onImportFiles: (chainId, files) => {
       void importFilesToChain(chainId, files);
+    },
+    onImportFolderFiles: (files) => {
+      void startFolderImportFromFiles(files);
+    },
+    onImportFolderDrop: (dataTransfer) => {
+      void startFolderImportFromDataTransfer(dataTransfer);
     },
   });
 
@@ -496,6 +506,9 @@ export function mountEditorView(
       },
       onImportFiles: (files) => {
         void importFilesToChain(tab.chainId, files);
+      },
+      onImportFolderDrop: (dataTransfer) => {
+        void startFolderImportFromDataTransfer(dataTransfer);
       },
       onRename: () => {
         beginTabRename(tabsElement, tab.id);

@@ -15,6 +15,11 @@ import {
 } from '../app/noteContentTypes.js';
 import { showChainMenu, showComposerModal } from './menus.js';
 import { renderNavToggle } from '../components/NavToggle.js';
+import {
+  startFolderImportFromDataTransfer,
+  startFolderImportFromFiles,
+} from '../app/folderImportLauncher.js';
+import { dropHasDirectory } from '../app/textFolderImport.js';
 
 function canBulkSelect(view: AppState['view']): boolean {
   return view === 'chains' || view === 'chain-detail';
@@ -92,6 +97,15 @@ function renderChainsToolbar(state: AppState): HTMLElement {
       '<span class="material-symbols-rounded" aria-hidden="true">add</span>';
     newBtn.addEventListener('click', () => showComposerModal());
     toolbar.appendChild(newBtn);
+
+    const folderBtn = el('button', 'btn-icon');
+    folderBtn.type = 'button';
+    folderBtn.dataset['importFolder'] = 'true';
+    folderBtn.setAttribute('aria-label', 'Importar pasta');
+    folderBtn.setAttribute('title', 'Importar pasta');
+    folderBtn.innerHTML =
+      '<span class="material-symbols-rounded" aria-hidden="true">create_new_folder</span>';
+    toolbar.appendChild(folderBtn);
   }
 
   return toolbar;
@@ -128,6 +142,41 @@ export function renderChainsLayout(state: AppState): HTMLElement {
   panel.appendChild(list);
 
   layout.appendChild(panel);
+
+  const folderInput = document.createElement('input');
+  folderInput.type = 'file';
+  folderInput.multiple = true;
+  folderInput.hidden = true;
+  folderInput.id = 'chains-import-folder-input';
+  folderInput.setAttribute('webkitdirectory', '');
+  layout.appendChild(folderInput);
+
+  panel.addEventListener('click', (event) => {
+    const target = event.target as Element | null;
+    if (!target?.closest('[data-import-folder]')) return;
+    folderInput.click();
+  });
+
+  folderInput.addEventListener('change', () => {
+    const files = folderInput.files ? [...folderInput.files] : [];
+    folderInput.value = '';
+    if (files.length > 0) void startFolderImportFromFiles(files);
+  });
+
+  panel.addEventListener('dragover', (event) => {
+    if (Array.from(event.dataTransfer?.types ?? []).includes('Files')) {
+      event.preventDefault();
+    }
+  });
+
+  panel.addEventListener('drop', (event) => {
+    if (!dropHasDirectory(event.dataTransfer)) return;
+    event.preventDefault();
+    event.stopPropagation();
+    if (event.dataTransfer) {
+      void startFolderImportFromDataTransfer(event.dataTransfer);
+    }
+  });
 
   const detail = el('div', 'detail-panel');
   detail.setAttribute('id', 'detail-panel');
