@@ -56,7 +56,7 @@ describe('Ação Colar nas quick actions', () => {
     ).toBe('Colar');
     expect(
       paste.querySelector('.material-symbols-rounded')?.textContent
-    ).toBe('content_paste');
+    ).toBe('content_paste_go');
 
     paste.click();
     expect(onPasteText).toHaveBeenCalledTimes(1);

@@ -41,7 +41,7 @@ export function renderQuickActions(options: QuickActionsOptions): string {
         title="Colar texto da área de transferência"
         aria-label="Colar texto como nova nota">
         <span class="chain-quick-action__icon-wrap">
-          <span class="material-symbols-rounded chain-quick-action__icon" aria-hidden="true">content_paste</span>
+          <span class="material-symbols-rounded chain-quick-action__icon" aria-hidden="true">content_paste_go</span>
         </span>
         <span class="chain-quick-action__label">Colar</span>
       </button>
@@ -63,7 +63,7 @@ export function renderQuickActions(options: QuickActionsOptions): string {
       <button class="chain-quick-action chain-quick-action--primary" id="${documentId}" type="button"
         aria-label="Documento"${controlsAttribute}${expandedAttribute}>
         <span class="chain-quick-action__icon-wrap">
-          <span class="material-symbols-rounded chain-quick-action__icon" aria-hidden="true">edit_note</span>
+          <span class="material-symbols-rounded chain-quick-action__icon" aria-hidden="true">note_add</span>
           ${badge}
         </span>
         <span class="chain-quick-action__label">Documento</span>
@@ -71,13 +71,13 @@ export function renderQuickActions(options: QuickActionsOptions): string {
       ${pasteAction}
       <button class="chain-quick-action"${imageIdAttribute} type="button" disabled title="Em breve" aria-label="Imagem, em breve">
         <span class="chain-quick-action__icon-wrap">
-          <span class="material-symbols-rounded chain-quick-action__icon" aria-hidden="true">image</span>
+          <span class="material-symbols-rounded chain-quick-action__icon" aria-hidden="true">add_photo_alternate</span>
         </span>
         <span class="chain-quick-action__label">Imagem</span>
       </button>
       <button class="chain-quick-action"${audioIdAttribute} type="button" disabled title="Em breve" aria-label="Áudio, em breve">
         <span class="chain-quick-action__icon-wrap">
-          <span class="material-symbols-rounded chain-quick-action__icon" aria-hidden="true">audio_file</span>
+          <span class="material-symbols-rounded chain-quick-action__icon" aria-hidden="true">mic</span>
         </span>
         <span class="chain-quick-action__label">Áudio</span>
       </button>
