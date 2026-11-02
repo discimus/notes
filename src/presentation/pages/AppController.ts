@@ -33,6 +33,7 @@ import {
   CreateChainWithNote,
   AppendNoteToChain,
   UpdateNoteContent,
+  DeleteNote,
   UpdateChainTitle,
   AssignTagToChain,
   RemoveTagFromChain,
@@ -69,6 +70,7 @@ const createChainWithHeader = new CreateChainWithHeader(chainRepo, tagRepo);
 const createChainWithNoteUseCase = new CreateChainWithNote(chainRepo);
 const appendNote = new AppendNoteToChain(chainRepo);
 const updateNote = new UpdateNoteContent(chainRepo, tagRepo);
+const deleteNoteUseCase = new DeleteNote(chainRepo, tagRepo, attachmentRepo);
 const updateTitle = new UpdateChainTitle(chainRepo);
 const assignTag = new AssignTagToChain(chainRepo, tagRepo);
 const removeTag = new RemoveTagFromChain(chainRepo, tagRepo);
@@ -435,6 +437,39 @@ export const AppController = {
       if (appState.get().view === 'editor') {
         await loadChains();
       } else {
+        await openChain(chainId, false);
+      }
+      return true;
+    } catch (e: unknown) {
+      snackbar.error((e as Error).message);
+      return false;
+    }
+  },
+
+  async deleteNote(chainId: string, noteId: string): Promise<boolean> {
+    const confirmed = await showConfirmDialog({
+      title: 'Excluir nota?',
+      body: 'A nota será removida permanentemente da cadeia, incluindo suas tags e anexos.',
+      icon: 'delete',
+      confirmLabel: 'Excluir',
+      destructive: true,
+    });
+    if (!confirmed) return false;
+
+    try {
+      await deleteNoteUseCase.execute({ chainId, noteId });
+      editorStore.removeNoteFromChainTabs(chainId, noteId);
+      if (appState.get().timelinePreviewNoteId === noteId) {
+        appState.set({ timelinePreviewNoteId: null });
+      }
+      snackbar.success('Nota excluída.');
+      await Promise.allSettled([loadChains(), loadTags()]);
+
+      if (appState.get().view === 'editor') {
+        await refreshEditorChainTab(chainId);
+      } else if (appState.get().view === 'timeline') {
+        await AppController.reloadTimeline();
+      } else if (appState.get().view === 'chain-detail') {
         await openChain(chainId, false);
       }
       return true;

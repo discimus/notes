@@ -68,6 +68,7 @@ export interface ChainDocumentHandlers {
   onAddChainImages?: (files: File[]) => void;
   onAddChainAudio?: () => void;
   onDeleteNoteAttachment?: (noteId: string, attachment: AttachmentDTO) => void;
+  onDeleteNote?: (noteId: string) => void;
   onAddNoteTag?: (noteId: string, tagName: string) => Promise<boolean>;
   onRemoveNoteTag?: (noteId: string, tag: TagDTO) => void;
   onCreateNote: () => void;
@@ -99,6 +100,7 @@ interface NoteRenderHandlers {
   onEdit?: (noteId: string, options?: { focus?: boolean; preview?: boolean }) => void;
   onAddImages?: (noteId: string, files: File[]) => void;
   onAddAudio?: (noteId: string) => void;
+  onDelete?: (noteId: string) => void;
   onDeleteAttachment?: (noteId: string, attachment: AttachmentDTO) => void;
   showTags?: boolean;
 }
@@ -187,12 +189,19 @@ function renderNote(
 
   const addAudio = el('button', 'btn-icon chain-note__attach chain-note__attach--audio');
   addAudio.type = 'button';
-  addAudio.setAttribute('aria-label', 'Gravar áudio nesta nota');
-  addAudio.title = 'Gravar áudio nesta nota';
+  addAudio.setAttribute('aria-label', 'Gravar A�udio nesta nota');
+  addAudio.title = 'Gravar A�udio nesta nota';
   addAudio.innerHTML = '<span class="material-symbols-rounded" aria-hidden="true">mic</span>';
   addAudio.addEventListener('click', () => handlers.onAddAudio?.(note.id));
 
-  actions.append(edit, addImage, addAudio);
+  const remove = el('button', 'btn-icon chain-note__delete');
+  remove.type = 'button';
+  remove.setAttribute('aria-label', 'Excluir nota');
+  remove.title = 'Excluir nota';
+  remove.innerHTML = '<span class="material-symbols-rounded" aria-hidden="true">delete</span>';
+  remove.addEventListener('click', () => handlers.onDelete?.(note.id));
+
+  actions.append(edit, addImage, addAudio, remove);
   meta.appendChild(actions);
 
   const noteTags = note.tags ?? [];
@@ -865,6 +874,9 @@ export function mountChainDocument(
                   : {}),
                 ...(handlers.onAddNoteAudio
                   ? { onAddAudio: handlers.onAddNoteAudio }
+                  : {}),
+                ...(handlers.onDeleteNote
+                  ? { onDelete: handlers.onDeleteNote }
                   : {}),
                 ...(handlers.onDeleteNoteAttachment
                   ? { onDeleteAttachment: handlers.onDeleteNoteAttachment }

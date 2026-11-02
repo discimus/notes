@@ -132,6 +132,17 @@ export class IdbChainRepository
     await db.put('notes', note.toData());
   }
 
+  async deleteNoteFromChain(chain: Chain, noteId: UUID): Promise<void> {
+    const db = await this.db();
+    const tx = db.transaction(['chains', 'notes'], 'readwrite');
+    await tx.objectStore('chains').put(chain.toData());
+    await tx.objectStore('notes').delete(noteId);
+    for (const note of chain.notes) {
+      await tx.objectStore('notes').put(note.toData());
+    }
+    await tx.done;
+  }
+
   async delete(id: UUID): Promise<void> {
     const db = await this.db();
     const hasAttachments = db.objectStoreNames.contains('attachments');

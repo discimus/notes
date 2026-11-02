@@ -2099,7 +2099,8 @@
   flex-shrink: 0;
 }
 .chain-note__edit,
-.chain-note__attach {
+.chain-note__attach,
+.chain-note__delete {
   width: 40px;
   height: 40px;
   margin: -4px -4px -4px 0;
@@ -2107,8 +2108,12 @@
   opacity: 0;
   transition: opacity var(--md-sys-motion-duration-short3);
 }
+.chain-note__delete {
+  color: var(--md-sys-color-error);
+}
 .chain-note__edit::after,
-.chain-note__attach::after {
+.chain-note__attach::after,
+.chain-note__delete::after {
   content: '';
   position: absolute;
   inset: -4px;
@@ -2116,12 +2121,15 @@
 }
 .chain-note:hover .chain-note__edit,
 .chain-note:hover .chain-note__attach,
+.chain-note:hover .chain-note__delete,
 .chain-note:focus-within .chain-note__edit,
-.chain-note:focus-within .chain-note__attach {
+.chain-note:focus-within .chain-note__attach,
+.chain-note:focus-within .chain-note__delete {
   opacity: 1;
 }
 .chain-note__edit .material-symbols-rounded,
-.chain-note__attach .material-symbols-rounded {
+.chain-note__attach .material-symbols-rounded,
+.chain-note__delete .material-symbols-rounded {
   font-size: 18px;
 }
 .chain-note__tags {
@@ -2309,6 +2317,7 @@
 @media (hover: none) {
   .chain-note__edit,
   .chain-note__attach,
+  .chain-note__delete,
   .chain-attachment--image .chain-attachment__actions {
     opacity: 1;
   }

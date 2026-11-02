@@ -107,6 +107,10 @@ export class Note {
     return new Note(data);
   }
 
+  withPosition(position: number): Note {
+    return Note.reconstitute({ ...this.toData(), position });
+  }
+
   get id(): UUID { return this._id; }
   get content(): string { return this._content; }
   get chainId(): UUID { return this._chainId; }

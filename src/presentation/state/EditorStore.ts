@@ -621,6 +621,40 @@ export class EditorStore {
     if (changed) this.notify();
   }
 
+  removeNoteFromChainTabs(chainId: string, noteId: string): void {
+    let changed = false;
+
+    this.tabs.forEach((tab) => {
+      if (tab.kind !== 'chain' || tab.chainId !== chainId) return;
+
+      const nextNotes = tab.notes.filter((note) => note.id !== noteId);
+      const nextNoteTabs = tab.noteTabs.filter(
+        (noteTab) => noteTab.editingNoteId !== noteId
+      );
+      if (
+        nextNotes.length === tab.notes.length &&
+        nextNoteTabs.length === tab.noteTabs.length
+      ) {
+        return;
+      }
+
+      tab.notes = nextNotes;
+      tab.noteTabs = nextNoteTabs;
+      if (!tab.noteTabs.some((noteTab) => noteTab.id === tab.activeNoteTabId)) {
+        tab.activeNoteTabId = tab.noteTabs[0]?.id ?? null;
+      }
+      if (tab.noteTabs.length === 0) {
+        tab.composerCollapsed = true;
+      }
+      changed = true;
+    });
+
+    if (changed) {
+      this.persist();
+      this.notify();
+    }
+  }
+
   updateChainTitleInTabs(chainId: string, title: string): void {
     let changed = false;
 

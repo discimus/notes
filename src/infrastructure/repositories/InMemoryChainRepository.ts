@@ -89,6 +89,16 @@ export class InMemoryChainRepository
     }
   }
 
+  async deleteNoteFromChain(chain: Chain, _noteId: UUID): Promise<void> {
+    const notes = chain.notes.map((note) =>
+      Note.reconstitute(note.toData())
+    );
+    this.chains.set(chain.id, {
+      chain: Chain.reconstitute(chain.toData(), notes),
+      notes,
+    });
+  }
+
   async delete(id: UUID): Promise<void> {
     this.chains.delete(id);
   }

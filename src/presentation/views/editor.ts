@@ -331,6 +331,9 @@ export function mountEditorView(
         onAddNoteAudio: (noteId) => {
           void recordAudioForNote(tab.id, tab.chainId, noteId);
         },
+        onDeleteNote: (noteId) => {
+          void AppController.deleteNote(tab.chainId, noteId);
+        },
         onAddChainImages: (files) => {
           if (files.length > 0) {
             void addChainEndImages(tab.chainId, files);

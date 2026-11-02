@@ -179,6 +179,31 @@ export class Chain {
     return tail;
   }
 
+  removeNote(noteId: UUID): Note {
+    const index = this._notes.findIndex((note) => note.id === noteId);
+    if (index < 0) {
+      throw new InvariantViolationError(
+        `A nota ${noteId} não pertence à cadeia ${this._id}.`
+      );
+    }
+
+    const [removed] = this._notes.splice(index, 1);
+    if (!removed) {
+      throw new InvariantViolationError(`Não foi possível remover a nota ${noteId}.`);
+    }
+
+    if (removed.isHeader()) {
+      this._headerNoteId = undefined;
+    }
+
+    const firstPosition = this._headerNoteId ? 0 : 1;
+    this._notes = this._notes.map((note, noteIndex) =>
+      note.withPosition(firstPosition + noteIndex)
+    );
+    this._updatedAt = now();
+    return removed;
+  }
+
   updateTitle(title: string | undefined): void {
     this._title = title?.trim() || undefined;
     this._updatedAt = now();

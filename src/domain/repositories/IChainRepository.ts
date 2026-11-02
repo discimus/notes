@@ -16,6 +16,7 @@ export interface IChainRepository {
   save(chain: Chain, notes: Note[]): Promise<void>;
   saveChainOnly(chain: Chain): Promise<void>;
   saveNote(note: Note): Promise<void>;
+  deleteNoteFromChain(chain: Chain, noteId: UUID): Promise<void>;
   delete(id: UUID): Promise<void>;
   countByTagId(tagId: UUID): Promise<number>;
 }
