@@ -1,5 +1,6 @@
 import { el } from '../dom.js';
 import { formatMediaDuration } from './attachmentMedia.js';
+import { playEndCue, playStartCue } from './audioCue.js';
 
 export interface AudioPlayerControls {
   player: HTMLAudioElement;
@@ -151,7 +152,9 @@ export function createAudioPlayer(
       player.pause();
       return;
     }
+    const freshStart = player.ended || player.currentTime === 0;
     if (player.ended) player.currentTime = 0;
+    if (freshStart) playStartCue();
     player.play().catch(() => onError?.());
   });
 
@@ -176,9 +179,10 @@ export function createAudioPlayer(
   player.addEventListener('ended', () => {
     playing = false;
     playBtn.innerHTML = icon('play_arrow');
-    playBtn.setAttribute('aria-label', 'Reproduzir áudio');
-    playBtn.title = 'Reproduzir áudio';
+    playBtn.setAttribute('aria-label', 'Reproduzir A�udio');
+    playBtn.title = 'Reproduzir A�udio';
     stopProgress();
+    playEndCue();
   });
   player.addEventListener('error', () => {
     stopProgress();

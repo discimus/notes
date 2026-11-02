@@ -1,3 +1,5 @@
+import { playStartCue } from './audioCue.js';
+
 export interface CascadeEntry {
   player: HTMLAudioElement;
   playBtn: HTMLButtonElement;
@@ -72,6 +74,7 @@ export function createAudioCascade(
       current = next;
       autoStarting.add(next);
       pauseOthers(next);
+      playStartCue();
       entry.player.play().catch(() => {
         autoStarting.delete(next);
         stopCascade();

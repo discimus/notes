@@ -5,6 +5,7 @@ import {
   type RecordedAudio,
 } from './audioRecorder.js';
 import { formatMediaDuration } from './attachmentMedia.js';
+import { playRecordingStartCue } from './audioCue.js';
 
 export const CHAIN_AUDIO_KEY = 'chain';
 
@@ -19,6 +20,7 @@ export interface InlineAudioState {
 
 export interface InlineAudioRecorderOptions {
   startRecordingFn?: () => Promise<AudioRecorderController>;
+  recordStartCueFn?: () => void;
   onChange?: () => void;
   onError?: (message: string) => void;
   timerIntervalMs?: number;
@@ -57,6 +59,7 @@ export function createInlineAudioRecorder(
   options: InlineAudioRecorderOptions = {}
 ): InlineAudioRecorder {
   const startRecordingFn = options.startRecordingFn ?? startAudioRecording;
+  const recordStartCueFn = options.recordStartCueFn ?? playRecordingStartCue;
   const intervalMs = options.timerIntervalMs ?? 250;
   let pending: PendingRecording | null = null;
   let active: ActiveRecording | null = null;
@@ -139,6 +142,7 @@ export function createInlineAudioRecorder(
           saving: false,
         };
         ensureTimer();
+        recordStartCueFn();
         notify();
       })
       .catch((error: unknown) => {
