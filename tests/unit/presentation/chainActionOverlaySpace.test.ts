@@ -119,7 +119,9 @@ describe('Chain action overlay space', () => {
     expect(root.style.getPropertyValue('--chain-actions-overlay-space')).toBe('64px');
   });
 
-  it('congela o espaço enquanto o compositor está aberto', () => {
+  it('congela o espaço enquanto o compositor está aberto e só remede ao rolar', () => {
+    let now = Date.now();
+    vi.spyOn(Date, 'now').mockImplementation(() => now);
     const { view, root, setFooter } = mountMeasured();
 
     window.dispatchEvent(new Event('resize'));
@@ -136,6 +138,13 @@ describe('Chain action overlay space', () => {
 
     view.update(makeTab({ composerCollapsed: true }));
     vi.advanceTimersByTime(0);
+    expect(root.style.getPropertyValue('--chain-actions-overlay-space')).toBe('120px');
+
+    now += 200;
+    root
+      .querySelector<HTMLElement>('#chain-document-scroll')
+      ?.dispatchEvent(new Event('scroll'));
+    vi.advanceTimersByTime(150);
     expect(root.style.getPropertyValue('--chain-actions-overlay-space')).toBe('300px');
   });
 });

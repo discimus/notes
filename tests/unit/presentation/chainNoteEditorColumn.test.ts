@@ -89,7 +89,7 @@ describe('Chain right editor column', () => {
     if (latestNote) {
       host
         .querySelector<HTMLElement>(
-          `[data-note-id="${latestNote.id}"] .chain-note__body`
+          `[data-note-id="${latestNote.id}"] .chain-note__edit`
         )
         ?.click();
     }
@@ -148,7 +148,7 @@ describe('Chain right editor column', () => {
     });
 
     host
-      .querySelector<HTMLElement>('[data-note-id="note-1"] .chain-note__body')
+      .querySelector<HTMLElement>('[data-note-id="note-1"] .chain-note__edit')
       ?.click();
 
     await vi.waitFor(() => {

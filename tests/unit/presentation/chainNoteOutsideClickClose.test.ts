@@ -95,7 +95,7 @@ describe('Chain note history outside click', () => {
     if (latestNote) {
       host
         .querySelector<HTMLElement>(
-          `[data-note-id="${latestNote.id}"] .chain-note__body`
+          `[data-note-id="${latestNote.id}"] .chain-note__edit`
         )
         ?.click();
     }
@@ -107,7 +107,7 @@ describe('Chain note history outside click', () => {
     const { store, host, chainId } = mountWithNotes([first, second]);
 
     await vi.waitFor(() => {
-      expect(findEditTab(store, chainId, 'note-2')).toMatchObject({ preview: true });
+      expect(findEditTab(store, chainId, 'note-2')).toMatchObject({ preview: false });
     });
 
     host.querySelector<HTMLElement>('#chain-history')?.click();
@@ -124,7 +124,7 @@ describe('Chain note history outside click', () => {
     const { store, host, chainId } = mountWithNotes([first, second]);
 
     await vi.waitFor(() => {
-      expect(findEditTab(store, chainId, 'note-2')).toMatchObject({ preview: true });
+      expect(findEditTab(store, chainId, 'note-2')).toMatchObject({ preview: false });
     });
 
     host
@@ -136,32 +136,33 @@ describe('Chain note history outside click', () => {
     });
   });
 
-  it('não fecha a aba ao clicar no corpo de outra nota', async () => {
+  it('não fecha a aba de edição ao abrir outra nota', async () => {
     const { store, host, chainId } = mountWithNotes([first, second]);
 
     await vi.waitFor(() => {
-      expect(findEditTab(store, chainId, 'note-2')).toMatchObject({ preview: true });
+      expect(findEditTab(store, chainId, 'note-2')).toMatchObject({ preview: false });
     });
 
     host
-      .querySelector<HTMLElement>('[data-note-id="note-1"] .chain-note__body')
+      .querySelector<HTMLElement>('[data-note-id="note-1"] .chain-note__edit')
       ?.click();
 
     await vi.waitFor(() => {
-      expect(findEditTab(store, chainId, 'note-1')).toMatchObject({ preview: true });
+      expect(findEditTab(store, chainId, 'note-1')).toMatchObject({ preview: false });
     });
 
     const tab = store.getTab(chainId);
     if (!tab || tab.kind !== 'chain') throw new Error('Coleção não encontrada');
     expect(tab.composerCollapsed).toBe(false);
-    expect(findEditTab(store, chainId, 'note-2')).toBeNull();
+    expect(findEditTab(store, chainId, 'note-2')).not.toBeNull();
+    expect(findEditTab(store, chainId, 'note-1')).not.toBeNull();
   });
 
-  it('remove a prévia automática ao editar outra nota', async () => {
+  it('mantém abas de edição ao editar outra nota', async () => {
     const { store, host, chainId } = mountWithNotes([first, second]);
 
     await vi.waitFor(() => {
-      expect(findEditTab(store, chainId, 'note-2')).toMatchObject({ preview: true });
+      expect(findEditTab(store, chainId, 'note-2')).toMatchObject({ preview: false });
     });
 
     host
@@ -174,14 +175,15 @@ describe('Chain note history outside click', () => {
       expect(findEditTab(store, chainId, 'note-1')).toMatchObject({ preview: false });
     });
 
-    expect(findEditTab(store, chainId, 'note-2')).toBeNull();
+    expect(findEditTab(store, chainId, 'note-2')).not.toBeNull();
+    expect(findEditTab(store, chainId, 'note-1')).not.toBeNull();
   });
 
   it('fecha a aba de novo documento ao clicar fora do corpo', async () => {
     const { store, host, chainId } = mountWithNotes([first, second]);
 
     await vi.waitFor(() => {
-      expect(findEditTab(store, chainId, 'note-2')).toMatchObject({ preview: true });
+      expect(findEditTab(store, chainId, 'note-2')).toMatchObject({ preview: false });
     });
 
     host.querySelector<HTMLButtonElement>('#chain-note-new')?.click();
@@ -203,7 +205,7 @@ describe('Chain note history outside click', () => {
 
     const after = store.getTab(chainId);
     if (!after || after.kind !== 'chain') throw new Error('Coleção não encontrada');
-    expect(findEditTab(store, chainId, 'note-2')).toMatchObject({ preview: true });
+    expect(findEditTab(store, chainId, 'note-2')).toMatchObject({ preview: false });
     expect(after.composerCollapsed).toBe(false);
   });
 });

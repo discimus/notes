@@ -108,12 +108,12 @@ describe('Editor close note edit tab with Escape', () => {
     if (!findEditTab(store, chainId, 'note-2')) {
       document
         .querySelector<HTMLElement>(
-          '[data-note-id="note-2"] .chain-note__body'
+          '[data-note-id="note-2"] .chain-note__edit'
         )
         ?.click();
     }
     await vi.waitFor(() => {
-      expect(findEditTab(store, chainId, 'note-2')).toMatchObject({ preview: true });
+      expect(findEditTab(store, chainId, 'note-2')).toMatchObject({ preview: false });
     });
     const composer = document.querySelector<HTMLTextAreaElement>(
       '#chain-composer-input'
@@ -254,7 +254,7 @@ describe('Editor close note edit tab with Escape', () => {
 
     const after = store.getTab(chainId);
     if (!after || after.kind !== 'chain') throw new Error('Coleção não encontrada');
-    expect(findEditTab(store, chainId, 'note-2')).toMatchObject({ preview: true });
+    expect(findEditTab(store, chainId, 'note-2')).toMatchObject({ preview: false });
     expect(after.composerCollapsed).toBe(false);
   });
 

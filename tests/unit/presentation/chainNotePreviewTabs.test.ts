@@ -44,22 +44,13 @@ function makeChainDetail(notes: NoteDTO[]): ChainDetailDTO {
   };
 }
 
-function activeEditNoteId(store: EditorStore, chainTabId: string): string | null {
-  const tab = store.getTab(chainTabId);
-  if (!tab || tab.kind !== 'chain') return null;
-  return (
-    tab.noteTabs.find((noteTab) => noteTab.id === tab.activeNoteTabId)
-      ?.editingNoteId ?? null
-  );
-}
-
 function findEditTab(store: EditorStore, chainTabId: string, noteId: string) {
   const tab = store.getTab(chainTabId);
   if (!tab || tab.kind !== 'chain') return null;
   return tab.noteTabs.find((noteTab) => noteTab.editingNoteId === noteId) ?? null;
 }
 
-describe('Chain note preview tabs', () => {
+describe('Prévia e edição da nota na coleção', () => {
   beforeEach(() => {
     sessionStorage.clear();
     document.body.innerHTML = '<div id="editor-host"></div>';
@@ -103,88 +94,85 @@ describe('Chain note preview tabs', () => {
     return { store, host, chainId: chain.id };
   }
 
-  function clickNoteBody(host: HTMLElement, noteId: string): void {
+  it('abre o preview da timeline pelo corpo sem abrir o editor', () => {
+    const { store, host, chainId } = mountWithNotes([first, second]);
+
     host
-      .querySelector<HTMLElement>(`[data-note-id="${noteId}"] .chain-note__body`)
+      .querySelector<HTMLElement>('[data-note-id="note-2"] .chain-note__body')
       ?.click();
-  }
 
-  async function openNotePreview(
-    store: EditorStore,
-    host: HTMLElement,
-    chainId: string,
-    noteId = 'note-2'
-  ): Promise<void> {
-    clickNoteBody(host, noteId);
-    await vi.waitFor(() => {
-      expect(activeEditNoteId(store, chainId)).toBe(noteId);
-    });
-  }
-
-  it('abre a nota mais recente como prévia substituível ao clicar', async () => {
-    const { store, host, chainId } = mountWithNotes([first, second]);
-    await openNotePreview(store, host, chainId);
-
-    const editTab = findEditTab(store, chainId, 'note-2');
-    expect(editTab).toMatchObject({ preview: true });
-
-    const wrapper = host.querySelector<HTMLElement>(
-      `#chain-note-tabs [data-tab-id="${editTab!.id}"]`
-    );
-    const button = wrapper?.querySelector<HTMLButtonElement>('[role="tab"]');
-    expect(wrapper?.classList.contains('editor-tab--preview')).toBe(true);
-    expect(button?.getAttribute('aria-description')).toContain('prévia substituível');
-    expect(button?.getAttribute('aria-description')).toContain('dois cliques');
-    expect(
-      host.querySelector<HTMLElement>('[data-note-id="note-1"] .chain-note__body')?.title
-    ).toContain('clique duas vezes');
-  });
-
-  it('substitui a prévia limpa ao clicar uma vez em outra nota', async () => {
-    const { store, host, chainId } = mountWithNotes([first, second]);
-    await openNotePreview(store, host, chainId);
-
-    clickNoteBody(host, 'note-1');
-
-    await vi.waitFor(() => {
-      expect(activeEditNoteId(store, chainId)).toBe('note-1');
-    });
-
-    const chainTab = store.getTab(chainId);
-    if (!chainTab || chainTab.kind !== 'chain') throw new Error('Coleção não encontrada');
-    expect(chainTab.noteTabs.map((noteTab) => noteTab.editingNoteId)).toEqual([
-      'note-1',
-    ]);
+    const preview = host.querySelector<HTMLElement>('#chain-note-preview');
+    expect(preview?.hidden).toBe(false);
+    expect(preview?.textContent).toContain('Segunda nota');
     expect(findEditTab(store, chainId, 'note-2')).toBeNull();
-    expect(findEditTab(store, chainId, 'note-1')).toMatchObject({ preview: true });
   });
 
-  it('mantém a aba aberta ao clicar duas vezes na nota', async () => {
-    const { store, host, chainId } = mountWithNotes([first, second]);
-    await openNotePreview(store, host, chainId);
+  it('troca o preview ao visualizar outra nota', () => {
+    const { host } = mountWithNotes([first, second]);
 
-    clickNoteBody(host, 'note-1');
-    clickNoteBody(host, 'note-1');
+    host
+      .querySelector<HTMLElement>('[data-note-id="note-2"] .chain-note__body')
+      ?.click();
+    host
+      .querySelector<HTMLElement>('[data-note-id="note-1"] .chain-note__preview')
+      ?.click();
+
+    const preview = host.querySelector<HTMLElement>('#chain-note-preview');
+    expect(preview?.textContent).toContain('Primeira nota');
+    expect(
+      host
+        .querySelector('[data-note-id="note-1"]')
+        ?.classList.contains('chain-note--previewing')
+    ).toBe(true);
+  });
+
+  it('abre o editor pela ação de editar do preview', async () => {
+    const { store, host, chainId } = mountWithNotes([first, second]);
+
+    host
+      .querySelector<HTMLButtonElement>(
+        '[data-note-id="note-2"] .chain-note__preview'
+      )
+      ?.click();
+    host
+      .querySelector<HTMLButtonElement>(
+        '#chain-note-preview .timeline-preview__actions .btn'
+      )
+      ?.click();
 
     await vi.waitFor(() => {
-      expect(findEditTab(store, chainId, 'note-1')).toMatchObject({
+      expect(findEditTab(store, chainId, 'note-2')).toMatchObject({
         preview: false,
       });
     });
-
-    clickNoteBody(host, 'note-2');
-
-    await vi.waitFor(() => {
-      expect(activeEditNoteId(store, chainId)).toBe('note-2');
-    });
-
-    expect(findEditTab(store, chainId, 'note-1')).toMatchObject({ preview: false });
-    expect(findEditTab(store, chainId, 'note-2')).toMatchObject({ preview: true });
+    expect(host.querySelector<HTMLElement>('#chain-note-preview')?.hidden).toBe(
+      true
+    );
   });
 
-  it('abre a nota pelo botão de editar como aba persistente', async () => {
+  it('mantém o scroll da lista ao trocar o preview pelo editor', async () => {
     const { store, host, chainId } = mountWithNotes([first, second]);
-    await openNotePreview(store, host, chainId);
+    const list = host.querySelector<HTMLElement>('#chain-document-scroll')!;
+    list.scrollTop = 140;
+
+    host
+      .querySelector<HTMLButtonElement>(
+        '[data-note-id="note-2"] .chain-note__preview'
+      )
+      ?.click();
+    list.scrollTop = 140;
+    host
+      .querySelector<HTMLElement>('#chain-note-preview')
+      ?.dispatchEvent(new MouseEvent('dblclick', { bubbles: true, cancelable: true }));
+
+    await vi.waitFor(() => {
+      expect(findEditTab(store, chainId, 'note-2')).not.toBeNull();
+    });
+    expect(list.scrollTop).toBe(140);
+  });
+
+  it('abre o editor pelo botão de editar da nota', async () => {
+    const { store, host, chainId } = mountWithNotes([first, second]);
 
     host
       .querySelector<HTMLButtonElement>(
@@ -193,40 +181,9 @@ describe('Chain note preview tabs', () => {
       ?.click();
 
     await vi.waitFor(() => {
-      expect(activeEditNoteId(store, chainId)).toBe('note-1');
-    });
-
-    expect(findEditTab(store, chainId, 'note-1')).toMatchObject({ preview: false });
-    expect(findEditTab(store, chainId, 'note-2')).toBeNull();
-    const chainTab = store.getTab(chainId);
-    if (!chainTab || chainTab.kind !== 'chain') {
-      throw new Error('Coleção não encontrada');
-    }
-    expect(chainTab.noteTabs).toHaveLength(1);
-  });
-
-  it('promove a prévia ao editar o conteúdo e remove a marcação visual', async () => {
-    const { store, host, chainId } = mountWithNotes([first, second]);
-    await openNotePreview(store, host, chainId);
-
-    const editTab = findEditTab(store, chainId, 'note-2')!;
-    expect(editTab.preview).toBe(true);
-
-    const composer = host.querySelector<HTMLTextAreaElement>('#chain-composer-input');
-    if (!composer) throw new Error('Compositor não encontrado');
-    composer.value = 'Segunda nota atualizada';
-    composer.dispatchEvent(new Event('input', { bubbles: true }));
-
-    await vi.waitFor(() => {
-      expect(findEditTab(store, chainId, 'note-2')).toMatchObject({
+      expect(findEditTab(store, chainId, 'note-1')).toMatchObject({
         preview: false,
       });
     });
-
-    expect(
-      host.querySelector<HTMLElement>(
-        `#chain-note-tabs [data-tab-id="${editTab.id}"]`
-      )?.classList.contains('editor-tab--preview')
-    ).toBe(false);
   });
 });

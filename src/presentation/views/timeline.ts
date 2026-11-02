@@ -13,6 +13,7 @@ import type { ChainSummaryDTO, TagDTO, TimelineEntryDTO } from '@application/dto
 import { renderLinkedText } from '../components/LinkedText.js';
 import { renderMarkdownContent } from '../components/MarkdownContent.js';
 import { highlightTextInElement } from '../components/SearchHighlight.js';
+import { renderNotePreview } from '../components/NotePreview.js';
 import { renderEmptyDetail, renderLoadingState } from '../components/states.js';
 import { renderNavToggle } from '../components/NavToggle.js';
 import { getTimelineChainColors } from '../app/timelineColors.js';
@@ -801,98 +802,28 @@ function renderTimelinePreview(host: HTMLElement, state: AppState): void {
     return;
   }
 
-  host.hidden = false;
-  host.replaceChildren();
-
   const colors = getTimelineChainColors(
     state.chainSummaries.map((chain) => chain.id)
   );
   const accent =
     colors.get(entry.chainId) ?? 'var(--md-sys-color-outline-variant)';
-  host.style.setProperty('--timeline-chain-accent', accent);
 
-  const header = el('div', 'timeline-preview__header');
-  const heading = el('div', 'timeline-preview__heading');
-  const eyebrow = el('span', 'timeline-preview__eyebrow');
-  eyebrow.textContent = 'Prévia da nota';
-  const title = el('h2', 'timeline-preview__title');
-  title.textContent = entry.chainTitle;
-  heading.append(eyebrow, title);
-
-  const close = el('button', 'btn-icon timeline-preview__close');
-  close.type = 'button';
-  close.setAttribute('aria-label', 'Fechar prévia');
-  close.title = 'Fechar prévia';
-  close.innerHTML =
-    '<span class="material-symbols-rounded" aria-hidden="true">close</span>';
-  close.addEventListener('click', () => {
-    appState.set({ timelinePreviewNoteId: null });
+  renderNotePreview(host, entry, {
+    query: state.timelineFilters.query,
+    accent,
+    onClose: () => appState.set({ timelinePreviewNoteId: null }),
+    action: {
+      label: 'Abrir coleção',
+      icon: 'open_in_new',
+      onClick: () => {
+        void AppController.openTimelineResult(
+          entry.chainId,
+          entry.note.id,
+          state.timelineFilters.query
+        );
+      },
+    },
   });
-  header.append(heading, close);
-
-  const meta = el('div', 'timeline-preview__meta');
-  const chain = el('span', 'timeline-preview__chain');
-  const dot = el('span', 'timeline-chain-swatch');
-  dot.setAttribute('aria-hidden', 'true');
-  dot.style.backgroundColor = accent;
-  const chainName = el('span');
-  chainName.textContent = entry.chainTitle;
-  chain.append(dot, chainName);
-
-  const time = el('time', 'timeline-preview__time');
-  time.dateTime = entry.note.createdAt;
-  time.textContent = `${formatDateFull(entry.note.createdAt)} • ${formatTime(
-    entry.note.createdAt
-  )}`;
-
-  meta.append(chain, time);
-  if ((entry.note.contentType ?? 'text') !== 'text') {
-    const type = el('span', 'timeline-entry__type');
-    type.textContent = contentTypeLabel(entry.note.contentType ?? 'text');
-    meta.appendChild(type);
-  }
-
-  const content = el('div', 'timeline-preview__content');
-  const type = entry.note.contentType ?? 'text';
-  const isMarkdown = type === 'markdown';
-  const isCode = type === 'code';
-  const text = el(
-    isMarkdown ? 'div' : 'p',
-    `timeline-preview__text${isCode ? ' timeline-preview__text--code' : ''}${
-      isMarkdown ? ' note-markdown' : ''
-    }`
-  );
-  if (isMarkdown) renderMarkdownContent(text, entry.note.content);
-  else renderLinkedText(text, entry.note.content);
-  highlightTextInElement(text, state.timelineFilters.query);
-  content.appendChild(text);
-
-  if (entry.note.tags && entry.note.tags.length > 0) {
-    const tags = el('div', 'timeline-preview__tags');
-    entry.note.tags.forEach((tag) => {
-      const chip = el('span', 'chip chip--sm');
-      chip.textContent = tag.name;
-      tags.appendChild(chip);
-    });
-    content.appendChild(tags);
-  }
-
-  const actions = el('div', 'timeline-preview__actions');
-  const open = el('button', 'btn btn-tonal');
-  open.type = 'button';
-  open.innerHTML =
-    '<span class="material-symbols-rounded" aria-hidden="true">open_in_new</span> Abrir coleção';
-  open.addEventListener('click', () => {
-    void AppController.openTimelineResult(
-      entry.chainId,
-      entry.note.id,
-      state.timelineFilters.query
-    );
-  });
-  actions.appendChild(open);
-  content.appendChild(actions);
-
-  host.append(header, meta, content);
 }
 
 function updateTimelineSlider(

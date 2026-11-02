@@ -64,7 +64,8 @@ describe('Layout do compositor da coleção', () => {
     expect(body?.firstElementChild?.classList.contains('chain-document__scroll')).toBe(
       true
     );
-    expect(body?.lastElementChild?.classList.contains('chain-composer')).toBe(
+    expect(body?.querySelector('.chain-composer')).not.toBeNull();
+    expect(body?.querySelector('#chain-note-preview')?.classList.contains('timeline-preview')).toBe(
       true
     );
 

@@ -34,6 +34,8 @@ import { renderQuickActions } from './QuickActions.js';
 import { renderLinkedText } from './LinkedText.js';
 import { renderMarkdownContent } from './MarkdownContent.js';
 import { highlightTextInElement } from './SearchHighlight.js';
+import { renderNotePreview } from './NotePreview.js';
+import { getTimelineChainColors } from '../app/timelineColors.js';
 import { stopAttachmentAudio, renderNoteAttachments } from './NoteAttachments.js';
 import { stopAllAudioCascades } from './audioList.js';
 import { releaseAllAttachmentUrls } from './attachmentUrls.js';
@@ -60,7 +62,6 @@ const COMPACT_DELAY_MS = 120;
 const EXPAND_DELAY_MS = 120;
 const SCROLL_IGNORE_MS = 100;
 const SCROLL_BOTTOM_TOLERANCE = 16;
-const PREVIEW_DOUBLE_CLICK_MS = 500;
 const PERIOD_FLASH_MS = 1200;
 const PERIOD_HIGHLIGHT_MS = 5000;
 const PERIOD_HIGHLIGHT_FADE_MS = 300;
@@ -113,6 +114,7 @@ function noteTabLabel(noteTab: ChainNoteTab): string {
 }
 
 interface NoteRenderHandlers {
+  onPreview?: (noteId: string) => void;
   onEdit?: (noteId: string, options?: { focus?: boolean; preview?: boolean }) => void;
   onAddImages?: (noteId: string, files: File[]) => void;
   onToggleAudio?: (noteId: string) => void;
@@ -198,6 +200,14 @@ function renderNote(
 
   const actions = el('div', 'chain-note__actions');
 
+  const preview = el('button', 'btn-icon chain-note__preview');
+  preview.type = 'button';
+  preview.setAttribute('aria-label', 'Visualizar nota');
+  preview.title = 'Visualizar nota';
+  preview.innerHTML =
+    '<span class="material-symbols-rounded" aria-hidden="true">visibility</span>';
+  preview.addEventListener('click', () => handlers.onPreview?.(note.id));
+
   const edit = el('button', 'btn-icon chain-note__edit');
   edit.type = 'button';
   edit.setAttribute('aria-label', 'Editar nota');
@@ -235,7 +245,7 @@ function renderNote(
   remove.innerHTML = '<span class="material-symbols-rounded" aria-hidden="true">delete</span>';
   remove.addEventListener('click', () => handlers.onDelete?.(note.id));
 
-  actions.append(edit, addImage, addAudio, remove);
+  actions.append(preview, edit, addImage, addAudio, remove);
   meta.appendChild(actions);
 
   const noteTags = note.tags ?? [];
@@ -263,11 +273,11 @@ function renderNote(
       isCode ? ' chain-note__body--code chain-note__body--verbatim' : ''
     }${isMarkdown ? ' chain-note__body--markdown' : ''}`
   );
-  body.title = 'Clique para abrir; clique duas vezes para manter a aba aberta.';
+  body.title = 'Clique para visualizar; use Editar para abrir o editor.';
   body.addEventListener('click', (event) => {
     const target = event.target as Element | null;
     if (target?.closest('a, button')) return;
-    handlers.onEdit?.(note.id, { preview: event.detail < 2 });
+    handlers.onPreview?.(note.id);
   });
 
   const setDropTarget = (active: boolean): void => {
@@ -388,6 +398,8 @@ export function mountChainDocument(
         </div>
       </div>
       </div>
+
+      <aside class="timeline-preview chain-note-preview" id="chain-note-preview" aria-label="Prévia da nota" hidden></aside>
     </div>
 
     <p class="sr-only" id="chain-period-status" role="status" aria-live="polite"></p>
@@ -440,9 +452,11 @@ export function mountChainDocument(
   const activeLine = mountActiveLineHighlight(composer, panel);
   const composerShell = root.querySelector<HTMLElement>('#chain-composer')!;
   const composerBody = root.querySelector<HTMLElement>('#chain-composer-body')!;
+  const previewHost = root.querySelector<HTMLElement>('#chain-note-preview')!;
   const actionFooter = root.querySelector<HTMLElement>('.chain-document__footer')!;
 
   let currentTab = tab;
+  let previewNoteId: string | null = null;
   const audioRecorder = createInlineAudioRecorder({
     ...(handlers.startAudioRecordingFn
       ? { startRecordingFn: handlers.startAudioRecordingFn }
@@ -453,8 +467,6 @@ export function mountChainDocument(
   const noteTagEditors = new Map<string, InlineTagEditorView>();
   let autoEditAttempted = false;
   let autoEditFrame: number | null = null;
-  let lastPreviewClick: { noteId: string; at: number } | null = null;
-  let actionSpaceObserver: ResizeObserver | null = null;
   let activePeriodKey: string | null = null;
   const flashTimers = new Map<string, ReturnType<typeof setTimeout>>();
   let periodHighlightTimer: ReturnType<typeof setTimeout> | null = null;
@@ -663,28 +675,85 @@ export function mountChainDocument(
   const onActionSpaceResize = (): void => syncActionOverlaySpace();
   window.addEventListener('resize', onActionSpaceResize);
 
-  if (typeof ResizeObserver !== 'undefined') {
-    actionSpaceObserver = new ResizeObserver(() => syncActionOverlaySpace());
-    actionSpaceObserver.observe(actionFooter);
-    actionSpaceObserver.observe(root);
+  function syncPreview(): void {
+    const previousScrollTop = scroll.scrollTop;
+    const note =
+      previewNoteId === null
+        ? undefined
+        : currentTab.notes.find((item) => item.id === previewNoteId);
+    if (!note) previewNoteId = null;
+
+    const open = Boolean(note);
+    root.classList.toggle('chain-document--preview-open', open);
+    previewHost.hidden = !open;
+    history.querySelectorAll<HTMLElement>('.chain-note').forEach((article) => {
+      article.classList.toggle(
+        'chain-note--previewing',
+        article.dataset['noteId'] === previewNoteId
+      );
+    });
+
+    if (!note) {
+      previewHost.replaceChildren();
+      scroll.scrollTop = previousScrollTop;
+      return;
+    }
+
+    const accent =
+      getTimelineChainColors([currentTab.chainId]).get(currentTab.chainId) ??
+      'var(--md-sys-color-outline-variant)';
+
+    renderNotePreview(
+      previewHost,
+      {
+        chainId: currentTab.chainId,
+        chainTitle: currentTab.title,
+        note,
+      },
+      {
+        accent,
+        onClose: () => closePreview(),
+        action: {
+          label: 'Editar nota',
+          icon: 'edit',
+          onClick: () => {
+            closePreview();
+            handlers.onEditNote?.(note.id);
+          },
+        },
+      }
+    );
+    scroll.scrollTop = previousScrollTop;
   }
+
+  function closePreview(): void {
+    previewNoteId = null;
+    syncPreview();
+  }
+
+  function openPreview(noteId: string): void {
+    previewNoteId = noteId;
+    syncPreview();
+  }
+
+  previewHost.addEventListener('dblclick', (event) => {
+    const target = event.target as Element | null;
+    if (target?.closest('a, button, input, textarea, select')) return;
+    const note =
+      previewNoteId === null
+        ? undefined
+        : currentTab.notes.find((item) => item.id === previewNoteId);
+    if (!note) return;
+    closePreview();
+    handlers.onEditNote?.(note.id);
+  });
 
   const requestEdit = (
     noteId: string,
     options?: { focus?: boolean; preview?: boolean }
   ): void => {
     cancelAutoEdit();
-    if (options?.preview === true) {
-      const now = Date.now();
-      const isDoubleClick =
-        lastPreviewClick?.noteId === noteId &&
-        now - lastPreviewClick.at <= PREVIEW_DOUBLE_CLICK_MS;
-      lastPreviewClick = { noteId, at: now };
-      if (isDoubleClick) {
-        handlers.onEditNote?.(noteId, { ...options, preview: false });
-        return;
-      }
-    }
+    closePreview();
     if (options) handlers.onEditNote?.(noteId, options);
     else handlers.onEditNote?.(noteId);
   };
@@ -704,7 +773,7 @@ export function mountChainDocument(
   const syncActionFooter = (): void => {
     root.classList.toggle(
       'chain-document--actions-compact',
-      footerCompact || !currentTab.composerCollapsed
+      footerCompact
     );
   };
 
@@ -733,7 +802,6 @@ export function mountChainDocument(
     documentAction.title =
       dirtyCount > 0 ? 'Documento · há notas não salvas' : 'Documento';
     syncActionFooter();
-    syncActionOverlaySpace();
   };
 
   const renderTags = (): void => {
@@ -792,6 +860,35 @@ export function mountChainDocument(
       });
   };
 
+  const syncNoteEditingState = (
+    editingNoteIds: Set<string>,
+    activeEditNoteId: string | null
+  ): void => {
+    history.querySelectorAll<HTMLElement>('.chain-note').forEach((article) => {
+      const noteId = article.dataset['noteId'];
+      if (!noteId) return;
+
+      const selected = noteId === activeEditNoteId;
+      article.classList.toggle('chain-note--selected', selected);
+      article.setAttribute('aria-current', selected ? 'true' : 'false');
+
+      const meta = article.querySelector<HTMLElement>('.chain-note__meta');
+      if (!meta) return;
+      const existing = meta.querySelector<HTMLElement>('.chain-note__editing');
+      if (!editingNoteIds.has(noteId)) {
+        existing?.remove();
+        return;
+      }
+      if (existing) return;
+
+      const badge = el('span', 'chain-note__editing');
+      badge.textContent = 'Em edição';
+      const actions = meta.querySelector<HTMLElement>('.chain-note__actions');
+      if (actions) meta.insertBefore(badge, actions);
+      else meta.appendChild(badge);
+    });
+  };
+
   const renderNotes = (): void => {
     const editingNoteIds = new Set(
       currentTab.noteTabs
@@ -810,9 +907,7 @@ export function mountChainDocument(
             .join(',')}`
       )
       .join('|');
-    const signature = `${notesSignature}#${[...editingNoteIds].sort().join(',')}#${
-      activeEditNoteId ?? ''
-    }`;
+    const signature = notesSignature;
 
     const periods = buildNotePeriods(currentTab.notes, 'asc');
     const activeMonth = findPeriodMonth(periods, activePeriodKey);
@@ -896,6 +991,7 @@ export function mountChainDocument(
     }
 
     if (signature === renderedNotesSignature && currentTab.status === previousStatus) {
+      syncNoteEditingState(editingNoteIds, activeEditNoteId);
       syncNoteTagEditors();
       return;
     }
@@ -935,6 +1031,7 @@ export function mountChainDocument(
               editingNoteIds.has(note.id),
               note.id === activeEditNoteId,
               {
+                onPreview: openPreview,
                 onEdit: requestEdit,
                 ...(handlers.onAddNoteImages
                   ? { onAddImages: handlers.onAddNoteImages }
@@ -1079,8 +1176,12 @@ export function mountChainDocument(
       return;
     }
     if (target.closest('.chain-note__body')) return;
+    if (target.closest('#chain-note-preview')) return;
     if (target.closest('button, a, input, textarea, select, [contenteditable="true"]')) {
       return;
+    }
+    if (previewNoteId !== null) {
+      closePreview();
     }
     if (currentTab.composerCollapsed) return;
 
@@ -1116,6 +1217,12 @@ export function mountChainDocument(
       return;
     }
     if (isEscapeHandledByChild(event)) return;
+    if (previewNoteId !== null) {
+      event.preventDefault();
+      event.stopPropagation();
+      closePreview();
+      return;
+    }
     if (currentTab.composerCollapsed) return;
 
     const active = activeNoteTab();
@@ -1444,6 +1551,7 @@ export function mountChainDocument(
     syncQuickActions();
     renderNoteTabs();
     syncNoteEditor();
+    syncPreview();
 
     if (justLoaded) {
       requestAnimationFrame(() => {
@@ -1527,8 +1635,6 @@ export function mountChainDocument(
     history.removeEventListener('keydown', onHistoryKeyDown);
     root.removeEventListener('keydown', onEditorKeyDown);
     window.removeEventListener('resize', onActionSpaceResize);
-    actionSpaceObserver?.disconnect();
-    actionSpaceObserver = null;
     audioRecorder.flush();
     stopAllAudioCascades();
     stopAttachmentAudio();
@@ -1567,12 +1673,12 @@ export function mountChainDocument(
     setSaving,
     focusNoteEditor: () => {
       if (currentTab.composerCollapsed) {
-        documentAction.focus();
+        documentAction.focus({ preventScroll: true });
         return;
       }
       const noteTab = activeNoteTab();
-      if (noteTab) composer.focus();
-      else newNote.focus();
+      if (noteTab) composer.focus({ preventScroll: true });
+      else newNote.focus({ preventScroll: true });
     },
     focusSearchMatch: (query) => {
       const noteTab = activeNoteTab();

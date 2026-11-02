@@ -63,6 +63,7 @@ export function mountInlineTagEditor(
   let editing = false;
   let pending = false;
   let input: HTMLInputElement | null = null;
+  let renderedTagsSignature = '__initial__';
 
   const showError = (message: string): void => {
     error.textContent = message;
@@ -389,13 +390,22 @@ export function mountInlineTagEditor(
 
   renderAddButton();
   renderChips();
+  renderedTagsSignature = '';
 
   return {
     element: root,
     update: (nextTags: TagDTO[], nextAvailableTags: TagDTO[] = []) => {
+      const signature = nextTags
+        .map((tag) => `${tag.id}\u0000${tag.name}`)
+        .join('\u0001');
+
       tags = nextTags.map((tag) => ({ ...tag }));
       availableTags = nextAvailableTags.map((tag) => ({ ...tag }));
-      renderChips();
+
+      if (signature !== renderedTagsSignature) {
+        renderedTagsSignature = signature;
+        renderChips();
+      }
 
       if (editing && input?.value.trim()) renderSuggestions();
       else closeSuggestions();

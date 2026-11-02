@@ -83,30 +83,38 @@ describe('Chain quick actions with composer open', () => {
     return { view, scroll };
   }
 
-  it('mantém as ações compactas durante o scroll enquanto o compositor está aberto', () => {
+  it('só compacta as ações por rolagem, mesmo com o compositor aberto', () => {
     const { view, scroll } = mount();
     const root = view.element;
     const compactClass = 'chain-document--actions-compact';
 
-    expect(root.classList.contains(compactClass)).toBe(true);
+    expect(root.classList.contains(compactClass)).toBe(false);
 
     scroll.scrollTop = 200;
     scroll.dispatchEvent(new Event('scroll'));
     vi.advanceTimersByTime(0);
+    expect(root.classList.contains(compactClass)).toBe(false);
+
+    vi.advanceTimersByTime(119);
+    expect(root.classList.contains(compactClass)).toBe(false);
+    vi.advanceTimersByTime(1);
     expect(root.classList.contains(compactClass)).toBe(true);
 
     scroll.scrollTop = 100;
     scroll.dispatchEvent(new Event('scroll'));
+    vi.advanceTimersByTime(0);
+    expect(root.classList.contains(compactClass)).toBe(true);
+
     vi.advanceTimersByTime(119);
     expect(root.classList.contains(compactClass)).toBe(true);
 
     vi.advanceTimersByTime(1);
-    expect(root.classList.contains(compactClass)).toBe(true);
+    expect(root.classList.contains(compactClass)).toBe(false);
 
     scroll.scrollTop = 0;
     scroll.dispatchEvent(new Event('scroll'));
     vi.advanceTimersByTime(0);
-    expect(root.classList.contains(compactClass)).toBe(true);
+    expect(root.classList.contains(compactClass)).toBe(false);
   });
 
   it('volta a seguir o scroll quando o compositor fecha', () => {
