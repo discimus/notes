@@ -1,5 +1,9 @@
 import { appState } from '../../state/AppState.js';
 import {
+  getAutoOpenBlankEditor,
+  setAutoOpenBlankEditor,
+} from '../../app/autoOpenBlankEditor.js';
+import {
   setFullNoteContent,
 } from '../../app/noteContentDisplay.js';
 import {
@@ -54,5 +58,18 @@ export const notesSettings: readonly SettingDefinition[] = [
     ],
     get: () => appState.get().noteImageLayout,
     set: (value) => setNoteImageLayout(value as NoteImageLayout),
+  },
+  {
+    id: 'notes.auto-open-blank-editor',
+    section: 'notes',
+    control: 'toggle',
+    controlId: 'settings-auto-open-blank-editor',
+    label: 'Abrir editor em branco',
+    description:
+      'Ao acessar uma cadeia, abre automaticamente um documento em branco no editor.',
+    keywords: ['editor', 'documento', 'branco', 'cadeia', 'abrir'],
+    defaultValue: false,
+    get: getAutoOpenBlankEditor,
+    set: setAutoOpenBlankEditor,
   },
 ];

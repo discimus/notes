@@ -38,6 +38,7 @@ import { snackbar } from '../components/Snackbar.js';
 import { showConfirmDialog } from '../components/Dialog.js';
 import { renderNavToggle } from '../components/NavToggle.js';
 import { togglePinnedChain } from '../app/pinnedChains.js';
+import { getAutoOpenBlankEditor } from '../app/autoOpenBlankEditor.js';
 import { el } from '../dom.js';
 import { showComposerModal } from './menus.js';
 import type { AttachmentDTO } from '@application/dto/index.js';
@@ -304,6 +305,7 @@ export function mountEditorView(
     }
 
     const view = mountChainDocument(tab as ChainTab, {
+      initialEditorMode: getAutoOpenBlankEditor() ? 'blank' : 'none',
       onNoteInput: (noteTabId, value) => {
         store.updateChainNoteTab(tab.id, noteTabId, value);
         const updated = store.getTab(tab.id);

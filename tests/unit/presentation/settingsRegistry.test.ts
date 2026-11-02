@@ -46,6 +46,7 @@ describe('registry de configurações', () => {
     expect(settingsForSection('notes').map((setting) => setting.id)).toEqual([
       'notes.full-content',
       'notes.image-layout',
+      'notes.auto-open-blank-editor',
     ]);
     expect(settingsForSection('behavior')).toHaveLength(1);
   });

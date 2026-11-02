@@ -91,6 +91,15 @@ describe('Chain note history outside click', () => {
     });
     store.setChainTabNotes(chain.id, makeChainDetail(notes));
 
+    const latestNote = notes[notes.length - 1];
+    if (latestNote) {
+      host
+        .querySelector<HTMLElement>(
+          `[data-note-id="${latestNote.id}"] .chain-note__body`
+        )
+        ?.click();
+    }
+
     return { store, host, chainId: chain.id };
   }
 

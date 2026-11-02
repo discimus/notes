@@ -58,6 +58,7 @@ const PERIOD_HIGHLIGHT_MS = 5000;
 const PERIOD_HIGHLIGHT_FADE_MS = 300;
 
 export interface ChainDocumentHandlers {
+  initialEditorMode?: 'latest' | 'blank' | 'none';
   onNoteInput: (noteTabId: string, value: string) => void;
   onContentTypeChange?: (noteTabId: string, contentType: NoteContentType) => void;
   onSaveNote: (noteTabId: string) => void;
@@ -779,29 +780,45 @@ export function mountChainDocument(
     const activeMonth = findPeriodMonth(periods, activePeriodKey);
     periodMenu.update(periods, activePeriodKey);
 
+    const initialEditorMode = handlers.initialEditorMode ?? 'latest';
     const hasPendingDraft = currentTab.noteTabs.some(
       (noteTab) => !noteTab.editingNoteId && noteTab.content.trim().length > 0
     );
-    if (hasPendingDraft || (currentTab.status === 'loaded' && currentTab.notes.length === 0)) {
+    if (hasPendingDraft) {
       autoEditAttempted = true;
     }
     if (
       editingNoteIds.size === 0 &&
       !hasPendingDraft &&
       !autoEditAttempted &&
-      currentTab.status === 'loaded' &&
-      currentTab.notes.length > 0
+      currentTab.status === 'loaded'
     ) {
       autoEditAttempted = true;
-      const lastGroup = noteGroups[noteGroups.length - 1];
-      const latestNote = lastGroup?.notes[lastGroup.notes.length - 1];
-      if (latestNote) {
-        autoEditFrame = requestAnimationFrame(() => {
-          autoEditFrame = null;
-          if (currentTab.noteTabs.some((noteTab) => noteTab.editingNoteId)) return;
-          if (currentTab.status !== 'loaded') return;
-          handlers.onEditNote?.(latestNote.id, { focus: false, preview: true });
-        });
+
+      if (initialEditorMode === 'blank') {
+        if (currentTab.composerCollapsed) {
+          autoEditFrame = requestAnimationFrame(() => {
+            autoEditFrame = null;
+            if (currentTab.noteTabs.some((noteTab) => noteTab.editingNoteId)) return;
+            if (currentTab.status !== 'loaded') return;
+            if (!currentTab.composerCollapsed) return;
+            handlers.onNewDocument?.();
+          });
+        }
+      } else if (
+        initialEditorMode === 'latest' &&
+        currentTab.notes.length > 0
+      ) {
+        const lastGroup = noteGroups[noteGroups.length - 1];
+        const latestNote = lastGroup?.notes[lastGroup.notes.length - 1];
+        if (latestNote) {
+          autoEditFrame = requestAnimationFrame(() => {
+            autoEditFrame = null;
+            if (currentTab.noteTabs.some((noteTab) => noteTab.editingNoteId)) return;
+            if (currentTab.status !== 'loaded') return;
+            handlers.onEditNote?.(latestNote.id, { focus: false, preview: true });
+          });
+        }
       }
     }
 

@@ -12,6 +12,7 @@ import {
 import { DraftStore } from '../state/DraftStore.js';
 import { pushNavigation } from '../app/navigation.js';
 import { getSettings } from '../app/settings.js';
+import { getAutoOpenBlankEditor } from '../app/autoOpenBlankEditor.js';
 import {
   prepareTextImport as prepareTextFile,
   prepareTextImportBatch as prepareTextFileBatch,
@@ -811,6 +812,11 @@ export const AppController = {
 
     if (!wasEditor) {
       await loadChains();
+    }
+
+    if (getAutoOpenBlankEditor()) {
+      editorStore.setChainComposerCollapsed(tab.id, false);
+      editorStore.ensureChainNoteTab(tab.id);
     }
 
     return tab.id;

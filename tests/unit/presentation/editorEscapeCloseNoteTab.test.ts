@@ -105,6 +105,13 @@ describe('Editor close note edit tab with Escape', () => {
     store: EditorStore,
     chainId: string
   ): Promise<HTMLTextAreaElement> {
+    if (!findEditTab(store, chainId, 'note-2')) {
+      document
+        .querySelector<HTMLElement>(
+          '[data-note-id="note-2"] .chain-note__body'
+        )
+        ?.click();
+    }
     await vi.waitFor(() => {
       expect(findEditTab(store, chainId, 'note-2')).toMatchObject({ preview: true });
     });

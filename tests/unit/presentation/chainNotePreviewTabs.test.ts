@@ -109,12 +109,21 @@ describe('Chain note preview tabs', () => {
       ?.click();
   }
 
-  it('abre a nota mais recente como prévia substituível na carga', async () => {
-    const { store, host, chainId } = mountWithNotes([first, second]);
-
+  async function openNotePreview(
+    store: EditorStore,
+    host: HTMLElement,
+    chainId: string,
+    noteId = 'note-2'
+  ): Promise<void> {
+    clickNoteBody(host, noteId);
     await vi.waitFor(() => {
-      expect(activeEditNoteId(store, chainId)).toBe('note-2');
+      expect(activeEditNoteId(store, chainId)).toBe(noteId);
     });
+  }
+
+  it('abre a nota mais recente como prévia substituível ao clicar', async () => {
+    const { store, host, chainId } = mountWithNotes([first, second]);
+    await openNotePreview(store, host, chainId);
 
     const editTab = findEditTab(store, chainId, 'note-2');
     expect(editTab).toMatchObject({ preview: true });
@@ -133,10 +142,7 @@ describe('Chain note preview tabs', () => {
 
   it('substitui a prévia limpa ao clicar uma vez em outra nota', async () => {
     const { store, host, chainId } = mountWithNotes([first, second]);
-
-    await vi.waitFor(() => {
-      expect(activeEditNoteId(store, chainId)).toBe('note-2');
-    });
+    await openNotePreview(store, host, chainId);
 
     clickNoteBody(host, 'note-1');
 
@@ -155,10 +161,7 @@ describe('Chain note preview tabs', () => {
 
   it('mantém a aba aberta ao clicar duas vezes na nota', async () => {
     const { store, host, chainId } = mountWithNotes([first, second]);
-
-    await vi.waitFor(() => {
-      expect(activeEditNoteId(store, chainId)).toBe('note-2');
-    });
+    await openNotePreview(store, host, chainId);
 
     clickNoteBody(host, 'note-1');
     clickNoteBody(host, 'note-1');
@@ -181,10 +184,7 @@ describe('Chain note preview tabs', () => {
 
   it('abre a nota pelo botão de editar como aba persistente', async () => {
     const { store, host, chainId } = mountWithNotes([first, second]);
-
-    await vi.waitFor(() => {
-      expect(activeEditNoteId(store, chainId)).toBe('note-2');
-    });
+    await openNotePreview(store, host, chainId);
 
     host
       .querySelector<HTMLButtonElement>(
@@ -207,10 +207,7 @@ describe('Chain note preview tabs', () => {
 
   it('promove a prévia ao editar o conteúdo e remove a marcação visual', async () => {
     const { store, host, chainId } = mountWithNotes([first, second]);
-
-    await vi.waitFor(() => {
-      expect(activeEditNoteId(store, chainId)).toBe('note-2');
-    });
+    await openNotePreview(store, host, chainId);
 
     const editTab = findEditTab(store, chainId, 'note-2')!;
     expect(editTab.preview).toBe(true);
