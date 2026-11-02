@@ -4,6 +4,8 @@ import { editorStore } from '../state/EditorStore.js';
 import type { EditorTarget } from '../state/EditorStore.js';
 import { snackbar } from '../components/Snackbar.js';
 import { showConfirmDialog } from '../components/Dialog.js';
+import { showExampleScenarioDialog } from '../components/OnboardingDialog.js';
+import { offerExampleScenarioIfNeeded } from '../app/onboarding.js';
 import {
   hasCachedAttachmentPlaybackUrl,
   registerAttachmentPlaybackUrl,
@@ -55,6 +57,7 @@ import {
   AddNoteAttachment,
   DeleteNoteAttachment,
   GetAttachmentBlob,
+  LoadExampleScenario,
 } from '@application/use-cases/index.js';
 
 import { IdbChainRepository } from '@infrastructure/repositories/IdbChainRepository.js';
@@ -93,6 +96,7 @@ const deleteTag = new DeleteTag(tagRepo);
 const addNoteAttachmentUseCase = new AddNoteAttachment(chainRepo, attachmentRepo);
 const deleteNoteAttachmentUseCase = new DeleteNoteAttachment(attachmentRepo);
 const getAttachmentBlobUseCase = new GetAttachmentBlob(attachmentRepo);
+const loadExampleScenario = new LoadExampleScenario(chainRepo, tagRepo);
 
 async function preloadAudioAttachments(detail: ChainDetailDTO): Promise<void> {
   const audios = detail.notes.flatMap((note) =>
@@ -403,6 +407,49 @@ export const AppController = {
   async init(): Promise<void> {
     await loadChains();
     await loadTags();
+    setTimeout(() => {
+      void AppController.offerExampleScenario();
+    }, 200);
+  },
+
+  async offerExampleScenario(): Promise<void> {
+    let primaryChainId: string | null = null;
+
+    try {
+      const loaded = await offerExampleScenarioIfNeeded({
+        isLibraryEmpty: async () => {
+          const [chains, tags] = await Promise.all([
+            chainRepo.findAll(),
+            tagRepo.findAll(),
+          ]);
+          return chains.length === 0 && tags.length === 0;
+        },
+        confirmLoadExamples: showExampleScenarioDialog,
+        loadExamples: async () => {
+          const result = await loadExampleScenario.execute();
+          primaryChainId = result.primaryChainId;
+          await Promise.all([loadChains(), loadTags()]);
+        },
+      });
+
+      if (!loaded || !primaryChainId) return;
+
+      try {
+        const detail = await getChainDetails.execute(primaryChainId);
+        await AppController.openChainInEditor(primaryChainId, detail);
+      } catch {
+        snackbar.error('Cenário carregado, mas não foi possível abrir a coleção inicial.');
+        return;
+      }
+
+      snackbar.success('Cenário de exemplo carregado.');
+    } catch (error: unknown) {
+      snackbar.error(
+        error instanceof Error
+          ? error.message
+          : 'Não foi possível carregar o cenário de exemplo.'
+      );
+    }
   },
 
   async createChain(title: string): Promise<void> {

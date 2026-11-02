@@ -26,3 +26,5 @@ export { DeleteTag } from './DeleteTag.js';
 export { AddNoteAttachment } from './AddNoteAttachment.js';
 export { DeleteNoteAttachment } from './DeleteNoteAttachment.js';
 export { GetAttachmentBlob } from './GetAttachmentBlob.js';
+export { LoadExampleScenario } from './LoadExampleScenario.js';
+export type { LoadExampleScenarioResult } from './LoadExampleScenario.js';
