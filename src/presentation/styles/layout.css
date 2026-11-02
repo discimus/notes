@@ -1564,6 +1564,24 @@
 }
 .timeline-search-row {
   flex-wrap: nowrap;
+  max-height: 72px;
+  overflow: visible;
+  opacity: 1;
+  transition:
+    max-height var(--md-sys-motion-duration-short4)
+      var(--md-sys-motion-easing-standard),
+    margin-bottom var(--md-sys-motion-duration-short4)
+      var(--md-sys-motion-easing-standard),
+    opacity var(--md-sys-motion-duration-short3)
+      var(--md-sys-motion-easing-standard);
+}
+.timeline-panel--search-hidden .timeline-search-row {
+  max-height: 0;
+  margin-bottom: -6px;
+  overflow: hidden;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
 }
 .timeline-search-row .timeline-filter-search {
   flex: 1;

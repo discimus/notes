@@ -28,6 +28,11 @@ import { enableMagneticDragScroll } from '../components/dragScroll.js';
 
 let queryTimer: ReturnType<typeof setTimeout> | null = null;
 let timelineOutsideClickCleanup: (() => void) | null = null;
+const timelineScrollIgnoreUntil = new WeakMap<HTMLElement, number>();
+
+function markTimelineProgrammaticScroll(container: HTMLElement): void {
+  timelineScrollIgnoreUntil.set(container, performance.now() + 120);
+}
 
 const TIMELINE_VISIBLE_TAGS = 3;
 
@@ -697,6 +702,7 @@ export function renderTimelineLayout(state: AppState): HTMLElement {
     }
     const commit = (): void => {
       setSliderAdjusting(false);
+      markTimelineProgrammaticScroll(list);
       list.scrollTop = 0;
       void AppController.seekTimelinePage(page);
     };
@@ -718,6 +724,47 @@ export function renderTimelineLayout(state: AppState): HTMLElement {
   slider.addEventListener('change', () => seekSliderPage(true));
   slider.addEventListener('blur', () => setSliderAdjusting(false));
 
+  let lastTimelineScrollTop = list.scrollTop;
+  let timelineSearchHidden = false;
+  let timelineSearchFrame: number | null = null;
+
+  const setTimelineSearchHidden = (hidden: boolean): void => {
+    if (timelineSearchHidden === hidden) return;
+    timelineSearchHidden = hidden;
+    layout.classList.toggle('timeline-panel--search-hidden', hidden);
+  };
+
+  const syncTimelineSearchVisibility = (): void => {
+    if (timelineSearchFrame !== null) return;
+    timelineSearchFrame = requestAnimationFrame(() => {
+      timelineSearchFrame = null;
+      if (!list.isConnected) return;
+
+      const current = list.scrollTop;
+      const delta = current - lastTimelineScrollTop;
+      lastTimelineScrollTop = current;
+
+      if (
+        performance.now() <
+        (timelineScrollIgnoreUntil.get(list) ?? 0)
+      ) {
+        return;
+      }
+
+      if (
+        current <= 8 ||
+        searchRow.contains(document.activeElement) ||
+        filtersDetails.open
+      ) {
+        setTimelineSearchHidden(false);
+        return;
+      }
+
+      if (delta > 4) setTimelineSearchHidden(true);
+      else if (delta < -4) setTimelineSearchHidden(false);
+    });
+  };
+
   list.addEventListener('scroll', () => {
     syncTimelineSliderFromScroll(
       list,
@@ -725,6 +772,7 @@ export function renderTimelineLayout(state: AppState): HTMLElement {
       pageLabel,
       appState.get()
     );
+    syncTimelineSearchVisibility();
     if (list.scrollTop < 120) {
       void AppController.loadPreviousTimeline();
     }
@@ -1515,6 +1563,8 @@ function updateTimelineEntries(
     hint.textContent = 'Role para carregar mais';
     container.appendChild(hint);
   }
+
+  markTimelineProgrammaticScroll(container);
 
   if (isPrepending) {
     const nextAnchor = anchorId
