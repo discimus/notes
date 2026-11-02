@@ -27,6 +27,13 @@ SPA vanilla TS + DDD + Clean Architecture. Build: Vite 5, tsc strict. Persist: I
 - QA visual ou interação real com a aplicação só quando o usuário solicitar explicitamente.
 - Prefira testes com jsdom/DOM para validar UI, estado, abas, diálogos, foco, teclado e atributos ARIA.
 
+## Git e stashes
+
+- **NUNCA** aplicar stashes (`git stash apply`, `git stash pop` ou equivalentes).
+- **NUNCA** recuperar alterações de stashes via `git checkout <stash>`, `git cherry-pick` de commits de stash ou comandos similares.
+- Não criar stashes para preservar ou contornar mudanças sem autorização explícita do usuário.
+- Se uma alteração necessária existir apenas em um stash, interrompa e peça ao usuário para aplicá-la manualmente.
+
 ## Documentação
 
 - **NUNCA** editar `AGENTS.md` ou qualquer outro `.md` sem pedido explícito do usuário.
