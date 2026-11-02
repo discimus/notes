@@ -161,6 +161,12 @@ export interface UpdateNoteCommand {
   contentType?: NoteContentType | undefined;
 }
 
+export interface RenameNoteFileCommand {
+  chainId: UUID;
+  noteId: UUID;
+  fileName: string;
+}
+
 export interface DeleteNoteCommand {
   chainId: UUID;
   noteId: UUID;

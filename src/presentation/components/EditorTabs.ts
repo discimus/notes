@@ -15,6 +15,7 @@ export interface TabListItem {
   icon: string;
   dirty: boolean;
   renamable?: boolean;
+  renameAriaLabel?: string;
   preview?: boolean;
   editing?: boolean;
 }
@@ -140,7 +141,7 @@ export function renderTabList(
       input.type = 'text';
       input.className = 'editor-tab__rename-input';
       input.value = item.label;
-      input.setAttribute('aria-label', 'Renomear coleção');
+      input.setAttribute('aria-label', item.renameAriaLabel ?? 'Renomear coleção');
       input.autocomplete = 'off';
 
       wrapper.classList.add('editor-tab--renaming');

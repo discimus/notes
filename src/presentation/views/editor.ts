@@ -458,6 +458,15 @@ export function mountEditorView(
       onCloseNote: (noteTabId) => {
         void requestCloseChainNoteTab(tab.id, noteTabId);
       },
+      onRenameNote: (noteTabId, fileName) => {
+        const current = store.getTab(tab.id);
+        const noteTab =
+          current?.kind === 'chain'
+            ? current.noteTabs.find((item) => item.id === noteTabId)
+            : undefined;
+        if (!noteTab?.editingNoteId) return;
+        void AppController.renameNoteFile(tab.chainId, noteTab.editingNoteId, fileName);
+      },
       onNewDocument: () => {
         const current = store.getTab(tab.id);
         if (!current || current.kind !== 'chain') return;

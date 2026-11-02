@@ -98,6 +98,7 @@ export interface ChainDocumentHandlers {
   onCreateNote: () => void;
   onSelectNote: (noteTabId: string) => void;
   onCloseNote: (noteTabId: string) => void;
+  onRenameNote?: (noteTabId: string, fileName: string) => void;
   onNewDocument?: () => void;
   onImportFiles?: (files: File[]) => void;
   onRename?: () => void;
@@ -114,6 +115,9 @@ export interface ChainDocumentView {
 }
 
 function noteTabLabel(noteTab: ChainNoteTab): string {
+  if (noteTab.editingNoteId && noteTab.sourceFileName?.trim()) {
+    return noteTab.sourceFileName;
+  }
   const title = deriveEditorTitle(noteTab.content);
   if (noteTab.editingNoteId) {
     return title === 'Sem título' ? 'Nota em edição' : title;
@@ -1771,6 +1775,8 @@ export function mountChainDocument(
             : NOTE_CONTENT_TYPE_META[type].icon,
         dirty: isChainNoteTabDirty(noteTab),
         editing,
+        renamable: editing,
+        ...(editing ? { renameAriaLabel: 'Renomear arquivo' } : {}),
         preview: noteTab.preview === true,
       };
     });
@@ -1783,6 +1789,7 @@ export function mountChainDocument(
         onSelect: handlers.onSelectNote,
         onClose: handlers.onCloseNote,
         onCreate: handlers.onCreateNote,
+        onRename: (noteTabId, fileName) => handlers.onRenameNote?.(noteTabId, fileName),
       },
       {
         panelId: 'chain-note-panel',

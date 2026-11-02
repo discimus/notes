@@ -49,6 +49,7 @@ import {
   CreateChainWithNote,
   AppendNoteToChain,
   UpdateNoteContent,
+  RenameNoteFile,
   DeleteNote,
   MoveNotesToChain,
   UpdateChainTitle,
@@ -88,6 +89,7 @@ const createChainWithHeader = new CreateChainWithHeader(chainRepo, tagRepo);
 const createChainWithNoteUseCase = new CreateChainWithNote(chainRepo);
 const appendNote = new AppendNoteToChain(chainRepo);
 const updateNote = new UpdateNoteContent(chainRepo, tagRepo);
+const renameNoteFileUseCase = new RenameNoteFile(chainRepo);
 const deleteNoteUseCase = new DeleteNote(chainRepo, tagRepo, attachmentRepo);
 const moveNotesUseCase = new MoveNotesToChain(chainRepo, tagRepo, attachmentRepo);
 const updateTitle = new UpdateChainTitle(chainRepo);
@@ -619,6 +621,27 @@ export const AppController = {
         ...(contentType ? { contentType } : {}),
       });
       snackbar.success('Nota atualizada.');
+      editorStore.updateNoteInChainTabs(chainId, note);
+      if (appState.get().view === 'editor') {
+        await loadChains();
+      } else {
+        await openChain(chainId, false);
+      }
+      return true;
+    } catch (e: unknown) {
+      snackbar.error((e as Error).message);
+      return false;
+    }
+  },
+
+  async renameNoteFile(
+    chainId: string,
+    noteId: string,
+    fileName: string
+  ): Promise<boolean> {
+    try {
+      const note = await renameNoteFileUseCase.execute({ chainId, noteId, fileName });
+      snackbar.success('Arquivo renomeado.');
       editorStore.updateNoteInChainTabs(chainId, note);
       if (appState.get().view === 'editor') {
         await loadChains();

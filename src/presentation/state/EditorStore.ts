@@ -28,6 +28,7 @@ export interface ChainNoteTab {
   id: string;
   content: string;
   contentType?: NoteContentType | undefined;
+  sourceFileName?: string | undefined;
   editingNoteId?: string | undefined;
   baseContent?: string | undefined;
   baseContentType?: NoteContentType | undefined;
@@ -113,6 +114,8 @@ function isChainNoteTab(value: unknown): value is ChainNoteTab {
     typeof value['content'] === 'string' &&
     (value['contentType'] === undefined ||
       isNoteContentType(value['contentType'])) &&
+    (value['sourceFileName'] === undefined ||
+      typeof value['sourceFileName'] === 'string') &&
     (value['editingNoteId'] === undefined || typeof value['editingNoteId'] === 'string') &&
     (value['baseContent'] === undefined || typeof value['baseContent'] === 'string') &&
     (value['baseContentType'] === undefined ||
@@ -419,6 +422,11 @@ export class EditorStore {
     const preview = options.preview === true;
     const existing = tab.noteTabs.find((item) => item.editingNoteId === note.id);
     if (existing) {
+      if (note.sourceFileName) {
+        existing.sourceFileName = note.sourceFileName;
+      } else {
+        delete existing.sourceFileName;
+      }
       if (existing.preview === true && (!preview || isChainNoteTabDirty(existing))) {
         existing.preview = false;
       }
@@ -449,6 +457,7 @@ export class EditorStore {
       id: generateId(),
       content: note.content,
       contentType: baseType,
+      ...(note.sourceFileName ? { sourceFileName: note.sourceFileName } : {}),
       editingNoteId: note.id,
       baseContent: note.content,
       baseContentType: baseType,
@@ -526,7 +535,7 @@ export class EditorStore {
   markChainNoteTabSaved(
     chainTabId: string,
     noteTabId: string,
-    note: Pick<NoteDTO, 'id' | 'content' | 'contentType'>
+    note: Pick<NoteDTO, 'id' | 'content' | 'contentType' | 'sourceFileName'>
   ): void {
     const tab = this.tabs.find((item) => item.id === chainTabId);
     if (!tab || tab.kind !== 'chain') return;
@@ -536,6 +545,11 @@ export class EditorStore {
     const baseType = contentTypeOf({ contentType: note.contentType });
     noteTab.content = note.content;
     noteTab.contentType = baseType;
+    if (note.sourceFileName) {
+      noteTab.sourceFileName = note.sourceFileName;
+    } else {
+      delete noteTab.sourceFileName;
+    }
     noteTab.editingNoteId = note.id;
     noteTab.baseContent = note.content;
     noteTab.baseContentType = baseType;
@@ -620,6 +634,15 @@ export class EditorStore {
 
     tab.title = detail.displayTitle;
     tab.notes = detail.notes.map(cloneNote);
+    for (const noteTab of tab.noteTabs) {
+      if (!noteTab.editingNoteId) continue;
+      const note = tab.notes.find((item) => item.id === noteTab.editingNoteId);
+      if (note?.sourceFileName) {
+        noteTab.sourceFileName = note.sourceFileName;
+      } else {
+        delete noteTab.sourceFileName;
+      }
+    }
     tab.status = 'loaded';
     this.persist();
     this.notify();
@@ -661,6 +684,14 @@ export class EditorStore {
           ? { tags: existing.tags }
           : {}),
       });
+      for (const noteTab of tab.noteTabs) {
+        if (noteTab.editingNoteId !== note.id) continue;
+        if (note.sourceFileName) {
+          noteTab.sourceFileName = note.sourceFileName;
+        } else {
+          delete noteTab.sourceFileName;
+        }
+      }
       changed = true;
     });
 

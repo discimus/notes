@@ -225,6 +225,15 @@ export class Note {
     this._updatedAt = now();
   }
 
+  renameSourceFileName(fileName: string, existingNames: ReadonlySet<string>): void {
+    const trimmed = fileName.trim();
+    if (!trimmed) {
+      throw new ValidationError('O nome do arquivo não pode ser vazio.');
+    }
+    this._sourceFileName = uniqueFileName(trimmed.normalize('NFC'), existingNames);
+    this._updatedAt = now();
+  }
+
   ensureUniqueSourceFileName(existingNames: ReadonlySet<string>): void {
     if (!this._sourceFileName) return;
     this._sourceFileName = uniqueFileName(this._sourceFileName, existingNames);

@@ -1,87 +1,133 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { NoteDTO } from '@application/dto/index.js';
-import type { ChainTab } from '@presentation/state/EditorStore.js';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { ChainDetailDTO, NoteDTO } from '@application/dto/index.js';
 import { appState } from '@presentation/state/AppState.js';
-import { mountChainDocument } from '@presentation/components/ChainDocument.js';
+import { EditorStore } from '@presentation/state/EditorStore.js';
+import { mountEditorView } from '@presentation/views/editor.js';
+import { AppController } from '@presentation/pages/AppController.js';
 
-function note(overrides: Partial<NoteDTO> = {}): NoteDTO {
+let cleanup: (() => void) | null = null;
+
+function makeNote(overrides: Partial<NoteDTO> = {}): NoteDTO {
   return {
     id: 'note-1',
-    content: 'Conteúdo da nota',
+    content: 'Conteúdo original',
     chainId: 'chain-1',
     position: 1,
     role: 'tail',
-    contentType: 'text',
-    sourceFileName: '26010214-conteudo-da-nota.txt',
-    createdAt: '2026-01-02T14:00:00.000Z',
-    updatedAt: '2026-01-02T14:00:00.000Z',
+    sourceFileName: 'relatorio.md',
+    createdAt: '2026-01-02T10:00:00.000Z',
+    updatedAt: '2026-01-02T10:00:00.000Z',
     ...overrides,
   };
 }
 
-function tab(source: NoteDTO): ChainTab {
+function makeChainDetail(note: NoteDTO): ChainDetailDTO {
   return {
-    kind: 'chain',
-    id: 'tab-chain',
-    chainId: 'chain-1',
-    title: 'Projeto principal',
-    notes: [source],
-    noteTabs: [{ id: 'note-tab-1', content: '' }],
-    activeNoteTabId: 'note-tab-1',
-    composerCollapsed: false,
-    status: 'loaded',
+    id: 'chain-1',
+    displayTitle: 'Projeto principal',
+    noteCount: 1,
+    createdAt: '2026-01-01T10:00:00.000Z',
+    updatedAt: note.updatedAt,
+    tagIds: [],
+    tags: [],
+    headerExcerpt: '',
+    notes: [note],
   };
 }
 
-function handlers() {
-  return {
-    onNoteInput: vi.fn(),
-    onSaveNote: vi.fn(),
-    onCreateNote: vi.fn(),
-    onSelectNote: vi.fn(),
-    onCloseNote: vi.fn(),
-    onNewDocument: vi.fn(),
-  };
-}
-
-describe('ChainDocument nome do arquivo', () => {
+describe('nome de arquivo nas abas de nota', () => {
   beforeEach(() => {
-    document.body.innerHTML = '';
+    sessionStorage.clear();
+    document.body.innerHTML = '<div id="editor-host"></div>';
     appState.set({
+      view: 'editor',
       chainSummaries: [
         {
           id: 'chain-1',
           displayTitle: 'Projeto principal',
           noteCount: 1,
-          createdAt: '2026-01-01T00:00:00.000Z',
-          updatedAt: '2026-01-02T00:00:00.000Z',
+          createdAt: '2026-01-01T10:00:00.000Z',
+          updatedAt: '2026-01-02T10:00:00.000Z',
           tagIds: [],
           tags: [],
           headerExcerpt: '',
         },
       ],
+      chainFilterQuery: '',
+      isLoading: false,
     });
+    vi.spyOn(AppController, 'loadEditorChainTab').mockResolvedValue(undefined);
   });
 
-  it('exibe label com o nome do arquivo na listagem de notas', () => {
-    const view = mountChainDocument(tab(note()), handlers());
-
-    const label = view.element.querySelector<HTMLElement>('.chain-note__file');
-    expect(label?.getAttribute('title')).toBe('26010214-conteudo-da-nota.txt');
-    expect(
-      label?.querySelector('.chain-note__file-name')?.textContent
-    ).toBe('26010214-conteudo-da-nota.txt');
-    expect(
-      label?.querySelector('.chain-note__file-icon')?.textContent
-    ).toBe('description');
+  afterEach(() => {
+    cleanup?.();
+    cleanup = null;
+    vi.restoreAllMocks();
+    document.body.innerHTML = '';
   });
 
-  it('não exibe a label quando a nota não possui nome de arquivo', () => {
-    const view = mountChainDocument(
-      tab(note({ sourceFileName: undefined })),
-      handlers()
+  function mountWithNote(note: NoteDTO) {
+    const store = new EditorStore();
+    const host = document.getElementById('editor-host') as HTMLElement;
+    cleanup = mountEditorView(host, store);
+
+    const chain = store.openChainTab('chain-1', 'Projeto principal', {
+      composerCollapsed: true,
+    });
+    store.setChainTabNotes(chain.id, makeChainDetail(note));
+
+    return { store, host, chainId: chain.id };
+  }
+
+  it('usa o nome do arquivo no nome da aba de edição', async () => {
+    const note = makeNote();
+    const { host, chainId, store } = mountWithNote(note);
+
+    host.querySelector<HTMLButtonElement>('.chain-note__edit')?.click();
+
+    await vi.waitFor(() => {
+      expect(
+        host.querySelector('#chain-note-tabs .editor-tab__label')?.textContent
+      ).toBe('relatorio.md');
+    });
+
+    const chainTab = store.getTab(chainId);
+    if (!chainTab || chainTab.kind !== 'chain') throw new Error('Coleção não encontrada');
+    expect(
+      chainTab.noteTabs.find((tab) => tab.editingNoteId === note.id)?.sourceFileName
+    ).toBe('relatorio.md');
+  });
+
+  it('permite renomear o arquivo com duplo clique na aba', async () => {
+    const note = makeNote();
+    const { host } = mountWithNote(note);
+    const rename = vi
+      .spyOn(AppController, 'renameNoteFile')
+      .mockResolvedValue(true);
+
+    host.querySelector<HTMLButtonElement>('.chain-note__edit')?.click();
+
+    await vi.waitFor(() => {
+      expect(
+        host.querySelector('#chain-note-tabs .editor-tab__label')?.textContent
+      ).toBe('relatorio.md');
+    });
+
+    const label = host.querySelector<HTMLElement>(
+      '#chain-note-tabs .editor-tab__label'
     );
+    label?.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
 
-    expect(view.element.querySelector('.chain-note__file')).toBeNull();
+    const input = host.querySelector<HTMLInputElement>('.editor-tab__rename-input');
+    expect(input?.value).toBe('relatorio.md');
+    expect(input?.getAttribute('aria-label')).toBe('Renomear arquivo');
+
+    if (!input) throw new Error('Input de rename não encontrado');
+    input.value = 'relatorio-final.md';
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+
+    await vi.waitFor(() => {
+      expect(rename).toHaveBeenCalledWith('chain-1', 'note-1', 'relatorio-final.md');
+    });
   });
 });

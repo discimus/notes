@@ -3,6 +3,7 @@ export { CreateChainWithNote } from './CreateChainWithNote.js';
 export { CreateChainWithHeader } from './CreateChainWithHeader.js';
 export { AppendNoteToChain } from './AppendNoteToChain.js';
 export { UpdateNoteContent } from './UpdateNoteContent.js';
+export { RenameNoteFile } from './RenameNoteFile.js';
 export { DeleteNote } from './DeleteNote.js';
 export { MoveNotesToChain } from './MoveNotesToChain.js';
 export { UpdateChainTitle } from './UpdateChainTitle.js';
