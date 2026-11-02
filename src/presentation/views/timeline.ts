@@ -19,6 +19,8 @@ import { getTimelineChainColors } from '../app/timelineColors.js';
 
 let queryTimer: ReturnType<typeof setTimeout> | null = null;
 
+const TIMELINE_VISIBLE_TAGS = 3;
+
 const CONTENT_TYPES: Array<{ value: NoteContentType; label: string }> = [
   { value: 'text', label: 'Texto' },
   { value: 'code', label: 'Código' },
@@ -881,7 +883,11 @@ function renderTimelinePreview(host: HTMLElement, state: AppState): void {
   open.innerHTML =
     '<span class="material-symbols-rounded" aria-hidden="true">open_in_new</span> Abrir cadeia';
   open.addEventListener('click', () => {
-    void AppController.navigateTo('editor', entry.chainId);
+    void AppController.openTimelineResult(
+      entry.chainId,
+      entry.note.id,
+      state.timelineFilters.query
+    );
   });
   actions.appendChild(open);
   content.appendChild(actions);
@@ -1060,6 +1066,22 @@ function renderEntries(
     timeEl.textContent = formatTime(entry.note.createdAt);
 
     const body = el('div', 'timeline-entry__body');
+    const top = el('div', 'timeline-entry__top');
+    const chainLink = el('button', 'timeline-entry__chain');
+    chainLink.setAttribute('aria-label', `Abrir cadeia: ${entry.chainTitle}`);
+    const chainDot = el('span', 'timeline-chain-swatch');
+    chainDot.setAttribute('aria-hidden', 'true');
+    chainDot.style.backgroundColor =
+      colors.get(entry.chainId) ?? 'var(--md-sys-color-outline-variant)';
+    const chainLabel = el('span', 'timeline-entry__chain-name');
+    chainLabel.textContent = entry.chainTitle;
+    chainLink.append(chainDot, chainLabel);
+    chainLink.addEventListener('click', (event) => {
+      event.stopPropagation();
+      void AppController.navigateTo('editor', entry.chainId);
+    });
+    top.append(chainLink, timeEl);
+
     const type = entry.note.contentType ?? 'text';
     const isCode = type === 'code';
     const isMarkdown = type === 'markdown';
@@ -1072,23 +1094,10 @@ function renderEntries(
     if (isMarkdown) renderMarkdownContent(textEl, entry.note.content);
     else renderLinkedText(textEl, entry.note.content);
     highlightTextInElement(textEl, query);
+    const content = el('div', 'timeline-entry__content');
+    content.appendChild(textEl);
 
     const meta = el('div', 'timeline-entry__meta');
-    const chainLink = el('button', 'timeline-entry__chain');
-    chainLink.setAttribute('aria-label', `Abrir cadeia: ${entry.chainTitle}`);
-    const chainDot = el('span', 'timeline-chain-swatch');
-    chainDot.setAttribute('aria-hidden', 'true');
-    chainDot.style.backgroundColor =
-      colors.get(entry.chainId) ?? 'var(--md-sys-color-outline-variant)';
-    const chainLabel = el('span');
-    chainLabel.textContent = entry.chainTitle;
-    chainLink.append(chainDot, chainLabel);
-    chainLink.addEventListener('click', (event) => {
-      event.stopPropagation();
-      void AppController.navigateTo('editor', entry.chainId);
-    });
-    meta.appendChild(chainLink);
-
     if (type !== 'text') {
       const typeBadge = el('span', 'timeline-entry__type');
       typeBadge.textContent = contentTypeLabel(type);
@@ -1097,17 +1106,37 @@ function renderEntries(
 
     if (entry.note.tags && entry.note.tags.length > 0) {
       const tags = el('div', 'timeline-entry__tags');
-      entry.note.tags.forEach((tag) => {
+      const visibleTags = entry.note.tags.slice(0, TIMELINE_VISIBLE_TAGS);
+      visibleTags.forEach((tag) => {
         const chip = el('span', 'chip chip--sm');
         chip.textContent = tag.name;
         tags.appendChild(chip);
       });
+      const hiddenTags = entry.note.tags.slice(TIMELINE_VISIBLE_TAGS);
+      if (hiddenTags.length > 0) {
+        const more = el('span', 'chip chip--sm timeline-entry__tag-more');
+        more.textContent = `+${hiddenTags.length}`;
+        more.title = hiddenTags.map((tag) => tag.name).join(', ');
+        more.setAttribute(
+          'aria-label',
+          `Mais ${hiddenTags.length} tags: ${hiddenTags
+            .map((tag) => tag.name)
+            .join(', ')}`
+        );
+        tags.appendChild(more);
+      }
       meta.appendChild(tags);
     }
 
-    body.appendChild(textEl);
-    body.appendChild(meta);
-    row.appendChild(timeEl);
+    const openIcon = el(
+      'span',
+      'material-symbols-rounded timeline-entry__open'
+    );
+    openIcon.setAttribute('aria-hidden', 'true');
+    openIcon.textContent = 'chevron_right';
+    meta.appendChild(openIcon);
+
+    body.append(top, content, meta);
     row.appendChild(body);
     container.appendChild(row);
   });

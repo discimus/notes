@@ -352,6 +352,36 @@ async function loadTimelinePage(offset: number, mode: 'replace' | 'append'): Pro
   }
 }
 
+async function openNoteInEditor(
+  chainId: string,
+  noteId: string,
+  query: string
+): Promise<void> {
+  try {
+    const detail = await getChainDetails.execute(chainId);
+    const note = detail.notes.find((item) => item.id === noteId);
+    if (!note) throw new Error('Nota não encontrada.');
+
+    const tab = editorStore.openChainTab(chainId, detail.displayTitle, {
+      composerCollapsed: true,
+      preview: false,
+    });
+    editorStore.setChainTabNotes(tab.id, detail);
+    editorStore.openChainNoteEditTab(tab.id, note);
+
+    appState.set({
+      editorFocusRequest: {
+        noteId,
+        query,
+      },
+    });
+    await AppController.openChainInEditor(chainId, detail);
+  } catch (e: unknown) {
+    appState.set({ editorFocusRequest: null });
+    snackbar.error((e as Error).message);
+  }
+}
+
 export const AppController = {
   async init(): Promise<void> {
     await loadChains();
@@ -752,29 +782,15 @@ export const AppController = {
   },
 
   async openSearchResult(chainId: string, noteId: string): Promise<void> {
-    try {
-      const detail = await getChainDetails.execute(chainId);
-      const note = detail.notes.find((item) => item.id === noteId);
-      if (!note) throw new Error('Nota não encontrada.');
+    await openNoteInEditor(chainId, noteId, appState.get().searchQuery);
+  },
 
-      const tab = editorStore.openChainTab(chainId, detail.displayTitle, {
-        composerCollapsed: true,
-        preview: false,
-      });
-      editorStore.setChainTabNotes(tab.id, detail);
-      editorStore.openChainNoteEditTab(tab.id, note);
-
-      appState.set({
-        editorFocusRequest: {
-          noteId,
-          query: appState.get().searchQuery,
-        },
-      });
-      await AppController.openChainInEditor(chainId, detail);
-    } catch (e: unknown) {
-      appState.set({ editorFocusRequest: null });
-      snackbar.error((e as Error).message);
-    }
+  async openTimelineResult(
+    chainId: string,
+    noteId: string,
+    query: string
+  ): Promise<void> {
+    await openNoteInEditor(chainId, noteId, query);
   },
 
   async updateChainTitle(chainId: string, title: string | undefined): Promise<void> {
