@@ -2,6 +2,7 @@ import type {
   AttachmentDTO,
   NoteContentType,
   NoteDTO,
+  NoteTagSuggestionDTO,
   TagDTO,
 } from '@application/dto/index.js';
 import type { ChainNoteTab, ChainTab } from '../state/EditorStore.js';
@@ -95,6 +96,15 @@ export interface ChainDocumentHandlers {
   onMoveSelected?: (noteIds: string[]) => Promise<boolean>;
   onAddNoteTag?: (noteId: string, tagName: string) => Promise<boolean>;
   onRemoveNoteTag?: (noteId: string, tag: TagDTO) => void;
+  onAcceptNoteTagSuggestion?: (
+    chainId: string,
+    noteId: string,
+    suggestion: NoteTagSuggestionDTO
+  ) => Promise<boolean>;
+  onDismissNoteTagSuggestion?: (
+    noteId: string,
+    suggestion: NoteTagSuggestionDTO
+  ) => void;
   onCreateNote: () => void;
   onSelectNote: (noteTabId: string) => void;
   onCloseNote: (noteTabId: string) => void;
@@ -1009,7 +1019,11 @@ export function mountChainDocument(
         noteTagEditors.delete(noteId);
         return;
       }
-      editor.update(note.tags ?? [], appState.get().allTags);
+      editor.update(
+        note.tags ?? [],
+        appState.get().allTags,
+        appState.get().tagSuggestionsByNoteId[noteId] ?? []
+      );
     });
   };
 
@@ -1025,6 +1039,14 @@ export function mountChainDocument(
         onAdd: (tagName) =>
           handlers.onAddNoteTag?.(noteId, tagName) ?? Promise.resolve(false),
         onRemove: (tag) => handlers.onRemoveNoteTag?.(noteId, tag),
+        onAcceptSuggestion: (suggestion) =>
+          handlers.onAcceptNoteTagSuggestion?.(
+            currentTab.chainId,
+            noteId,
+            suggestion
+          ) ?? Promise.resolve(false),
+        onDismissSuggestion: (suggestion) =>
+          handlers.onDismissNoteTagSuggestion?.(noteId, suggestion),
       },
       {
         addButtonClassName: 'chain-note__tag-add',
@@ -1035,7 +1057,11 @@ export function mountChainDocument(
         removeAriaLabel: (tag) => `Remover tag ${tag.name} desta nota`,
       }
     );
-    editor.update(note.tags ?? [], appState.get().allTags);
+    editor.update(
+      note.tags ?? [],
+      appState.get().allTags,
+      appState.get().tagSuggestionsByNoteId[noteId] ?? []
+    );
     noteTagEditors.set(noteId, editor);
   };
 

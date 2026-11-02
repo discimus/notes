@@ -2,6 +2,7 @@
   ChainSummaryDTO,
   ChainDetailDTO,
   NoteContentType,
+  NoteTagSuggestionDTO,
   TagDTO,
   SearchResultDTO,
   TimelineEntryDTO,
@@ -60,6 +61,9 @@ export interface AppState {
   fullNoteContent: boolean;
   noteImageLayout: NoteImageLayout;
   pinnedChainIds: string[];
+  tagSuggestionsEnabled: boolean;
+  autoAssignTagsEnabled: boolean;
+  tagSuggestionsByNoteId: Record<string, NoteTagSuggestionDTO[]>;
 }
 
 type Listener = (state: AppState) => void;
@@ -108,6 +112,9 @@ class AppStateStore {
     fullNoteContent: false,
     noteImageLayout: 'thumbnails',
     pinnedChainIds: [],
+    tagSuggestionsEnabled: false,
+    autoAssignTagsEnabled: false,
+    tagSuggestionsByNoteId: {},
   };
 
   private listeners = new Set<Listener>();

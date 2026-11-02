@@ -447,6 +447,10 @@ export function mountEditorView(
         onRemoveNoteTag: (noteId, tag) => {
           void AppController.removeNoteTag(tab.chainId, noteId, tag.id);
         },
+        onAcceptNoteTagSuggestion: (chainId, noteId, suggestion) =>
+          AppController.acceptNoteTagSuggestion(chainId, noteId, suggestion),
+        onDismissNoteTagSuggestion: (noteId, suggestion) =>
+          AppController.dismissNoteTagSuggestion(noteId, suggestion),
         onCreateNote: () => {
         createChainNoteTab(tab.id);
       },
@@ -1176,12 +1180,29 @@ export function mountEditorView(
 
   document.addEventListener('keydown', onKeyDown);
 
+  let previousTagSuggestionsEnabled = appState.get().tagSuggestionsEnabled;
+  let previousAutoAssignTagsEnabled = appState.get().autoAssignTagsEnabled;
   const unsubscribeStore = store.subscribe(renderSnapshot);
   const unsubscribeApp = appState.subscribe((state) => {
+    const suggestionsEnabledNow =
+      !previousTagSuggestionsEnabled && state.tagSuggestionsEnabled;
+    const autoAssignEnabledNow =
+      !previousAutoAssignTagsEnabled &&
+      state.autoAssignTagsEnabled &&
+      state.tagSuggestionsEnabled;
+    previousTagSuggestionsEnabled = state.tagSuggestionsEnabled;
+    previousAutoAssignTagsEnabled = state.autoAssignTagsEnabled;
+
     const active = store.getActiveTab();
     sidebarView.update(state, activeChainId(active));
     if (activeDocument?.kind === 'chain' && active?.kind === 'chain') {
       activeDocument.view.update(active);
+    }
+    if (
+      (suggestionsEnabledNow || autoAssignEnabledNow) &&
+      active?.kind === 'chain'
+    ) {
+      AppController.requestTagSuggestionsForChain(active.chainId);
     }
     applyEditorFocusRequest();
     applyEditorPreviewRequest();

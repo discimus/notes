@@ -3054,6 +3054,73 @@
 .tag-editor__error[hidden] {
   display: none;
 }
+.tag-editor__suggestions {
+  flex-basis: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  min-width: 0;
+}
+.tag-editor__suggestions[hidden] {
+  display: none;
+}
+.tag-editor__suggestions-label {
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: var(--md-sys-typescale-label-medium-size);
+  line-height: var(--md-sys-typescale-label-medium-line-height);
+}
+.chip.chip--suggestion {
+  gap: 2px;
+  padding: 0 4px 0 0;
+  border-color: color-mix(
+    in srgb,
+    var(--md-sys-color-primary) 42%,
+    var(--md-sys-color-outline-variant)
+  );
+  background-color: color-mix(
+    in srgb,
+    var(--md-sys-color-primary) 7%,
+    transparent
+  );
+  color: var(--md-sys-color-on-surface);
+  font-size: var(--md-sys-typescale-label-medium-size);
+  line-height: var(--md-sys-typescale-label-medium-line-height);
+}
+.chip.chip--suggestion-new {
+  border-style: dashed;
+  background-color: transparent;
+}
+.chip--suggestion .chip__suggestion-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.chip__suggestion-action {
+  display: inline-flex;
+  align-items: center;
+  align-self: stretch;
+  min-width: 0;
+  padding: 1px 4px 1px 10px;
+  border-radius: var(--md-sys-shape-corner-full) 0 0 var(--md-sys-shape-corner-full);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.chip__suggestion-action:hover,
+.chip__suggestion-action:focus-visible {
+  background-color: color-mix(
+    in srgb,
+    var(--md-sys-color-primary) 10%,
+    transparent
+  );
+}
+.chip__suggestion-action:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
 .tag-suggestions {
   position: fixed;
   z-index: 120;

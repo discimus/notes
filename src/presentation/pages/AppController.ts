@@ -39,7 +39,11 @@ import type {
   ChainDetailDTO,
   NoteContentType,
   NoteDTO,
+  NoteTagSuggestionDTO,
 } from '@application/dto/index.js';
+import { TagSuggestionService } from '@application/tagSuggestions/TagSuggestionService.js';
+import { selectAutoAssignSuggestions } from '@application/tagSuggestions/autoAssign.js';
+import { LocalTagSuggestionCache } from '@infrastructure/persistence/LocalTagSuggestionCache.js';
 import type { ISODateString } from '@shared/types/index.js';
 import { beginPendingOperation } from '@shared/utilities/index.js';
 
@@ -82,6 +86,7 @@ import { IdbAttachmentRepository } from '@infrastructure/repositories/IdbAttachm
 const chainRepo = new IdbChainRepository();
 const tagRepo = new IdbTagRepository();
 const attachmentRepo = new IdbAttachmentRepository();
+const tagSuggestionService = new TagSuggestionService(new LocalTagSuggestionCache());
 
 // Use cases
 const createEmptyChain = new CreateChain(chainRepo);
@@ -258,6 +263,7 @@ async function loadEditorChainTab(
     const detail = await getChainDetails.execute(chainId);
     await preloadAudioAttachments(detail);
     editorStore.setChainTabNotes(tabId, detail);
+    scheduleTagSuggestions(chainId, detail);
   } catch (error: unknown) {
     editorStore.setChainTabError(tabId);
     snackbar.error(
@@ -279,6 +285,7 @@ async function refreshEditorChainTab(chainId: string): Promise<void> {
     const detail = await getChainDetails.execute(chainId);
     await preloadAudioAttachments(detail);
     syncEditorChainTab(chainId, detail);
+    scheduleTagSuggestions(chainId, detail);
   } catch {
     editorStore.setChainTabError(tab.id);
   }
@@ -289,6 +296,130 @@ async function refreshAfterAttachmentChange(chainId: string): Promise<void> {
     await refreshEditorChainTab(chainId);
   } else {
     await openChain(chainId, false);
+  }
+}
+
+let pendingTagSuggestion: { chainId: string; detail: ChainDetailDTO; token: number } | null =
+  null;
+let tagSuggestionTimer: ReturnType<typeof setTimeout> | null = null;
+let tagSuggestionSequence = 0;
+
+function removeSuggestionFromState(noteId: string, normalizedName: string): void {
+  const current = appState.get().tagSuggestionsByNoteId;
+  const suggestions = current[noteId];
+  if (!suggestions) return;
+
+  appState.set({
+    tagSuggestionsByNoteId: {
+      ...current,
+      [noteId]: suggestions.filter(
+        (suggestion) => suggestion.normalizedName !== normalizedName
+      ),
+    },
+  });
+}
+
+function scheduleTagSuggestions(chainId: string, detail: ChainDetailDTO): void {
+  if (!appState.get().tagSuggestionsEnabled) return;
+
+  const token = ++tagSuggestionSequence;
+  pendingTagSuggestion = { chainId, detail, token };
+  if (tagSuggestionTimer) clearTimeout(tagSuggestionTimer);
+  tagSuggestionTimer = setTimeout(() => {
+    tagSuggestionTimer = null;
+    const pending = pendingTagSuggestion;
+    if (!pending) return;
+    const run = (): void => {
+      void runTagSuggestions(pending);
+    };
+    if (typeof requestIdleCallback === 'function') {
+      requestIdleCallback(run, { timeout: 1000 });
+    } else {
+      setTimeout(run, 0);
+    }
+  }, 300);
+}
+
+async function runTagSuggestions(pending: {
+  chainId: string;
+  detail: ChainDetailDTO;
+  token: number;
+}): Promise<void> {
+  if (pending.token !== tagSuggestionSequence) return;
+
+  const state = appState.get();
+  if (!state.tagSuggestionsEnabled) return;
+
+  try {
+    const result = tagSuggestionService.suggest({
+      chainId: pending.chainId,
+      notes: pending.detail.notes,
+      availableTags: state.allTags,
+      chainTags: pending.detail.tags,
+    });
+    if (pending.token !== tagSuggestionSequence) return;
+
+    const current = appState.get();
+    appState.set({
+      tagSuggestionsByNoteId: {
+        ...current.tagSuggestionsByNoteId,
+        ...result.suggestionsByNoteId,
+      },
+    });
+
+    if (state.autoAssignTagsEnabled) {
+      await autoAssignTagSuggestions(pending.chainId, pending.detail, result.suggestionsByNoteId);
+    }
+  } catch {
+    return;
+  }
+}
+
+async function autoAssignTagSuggestions(
+  chainId: string,
+  detail: ChainDetailDTO,
+  suggestionsByNoteId: Record<string, NoteTagSuggestionDTO[]>
+): Promise<void> {
+  if (!appState.get().autoAssignTagsEnabled) return;
+  let changed = false;
+
+  for (const note of detail.notes) {
+    const suggestions = suggestionsByNoteId[note.id] ?? [];
+    const selected = selectAutoAssignSuggestions(suggestions, note.tags?.length ?? 0);
+    for (const suggestion of selected) {
+      try {
+        await assignNoteTag.execute({
+          chainId,
+          noteId: note.id,
+          tagName: suggestion.name,
+        });
+        tagSuggestionService.markAccepted(note.id, suggestion.normalizedName);
+        removeSuggestionFromState(note.id, suggestion.normalizedName);
+        changed = true;
+      } catch {
+        continue;
+      }
+    }
+  }
+
+  if (!changed) return;
+  await Promise.allSettled([loadTags(), loadChains()]);
+  if (appState.get().view === 'editor') {
+    const tab = editorStore.findChainTab(chainId);
+    if (tab) {
+      const nextDetail = await getChainDetails.execute(chainId);
+      syncEditorChainTab(chainId, nextDetail);
+    }
+  }
+}
+
+async function requestTagSuggestionsForChain(chainId: string): Promise<void> {
+  if (!appState.get().tagSuggestionsEnabled) return;
+  try {
+    const detail = await getChainDetails.execute(chainId);
+    scheduleTagSuggestions(chainId, detail);
+  } catch {
+    return;
   }
 }
 
@@ -988,6 +1119,7 @@ export const AppController = {
         ...(contentType ? { contentType } : {}),
       });
       await Promise.allSettled([loadChains()]);
+      void requestTagSuggestionsForChain(chainId);
       return { ok: true, note, chainTitle: chainTitleById(chainId) };
     } catch (error: unknown) {
       const message = editorErrorMessage(error);
@@ -1042,6 +1174,7 @@ export const AppController = {
 
       const chainTab = editorStore.findChainTab(chainId);
       if (chainTab) editorStore.appendNoteToChainTab(chainTab.id, note);
+      void requestTagSuggestionsForChain(chainId);
 
       const chainTitle = chainTitleById(chainId);
       snackbar.success('Documento importado.', {
@@ -1306,6 +1439,30 @@ export const AppController = {
       snackbar.error((e as Error).message);
       return false;
     }
+  },
+
+  async acceptNoteTagSuggestion(
+    chainId: string,
+    noteId: string,
+    suggestion: NoteTagSuggestionDTO
+  ): Promise<boolean> {
+    const added = await AppController.assignNoteTag(chainId, noteId, suggestion.name);
+    if (!added) return false;
+    tagSuggestionService.markAccepted(noteId, suggestion.normalizedName);
+    removeSuggestionFromState(noteId, suggestion.normalizedName);
+    return true;
+  },
+
+  dismissNoteTagSuggestion(
+    noteId: string,
+    suggestion: NoteTagSuggestionDTO
+  ): void {
+    tagSuggestionService.dismiss(noteId, suggestion.normalizedName);
+    removeSuggestionFromState(noteId, suggestion.normalizedName);
+  },
+
+  requestTagSuggestionsForChain(chainId: string): void {
+    void requestTagSuggestionsForChain(chainId);
   },
 
   async removeNoteTag(

@@ -37,6 +37,16 @@ export interface NoteDTO {
   updatedAt: ISODateString;
 }
 
+export interface NoteTagSuggestionDTO {
+  noteId: UUID;
+  name: string;
+  normalizedName: string;
+  score: number;
+  isNew: boolean;
+  existingTagId?: UUID | undefined;
+  sources: string[];
+}
+
 export interface AddNoteAttachmentCommand {
   chainId: UUID;
   noteId?: UUID | undefined;

@@ -48,6 +48,8 @@ describe('registry de configurações', () => {
       'notes.full-content',
       'notes.image-layout',
       'notes.auto-open-blank-editor',
+      'notes.auto-tag-suggestions',
+      'notes.auto-assign-tags',
     ]);
     expect(settingsForSection('behavior').map((setting) => setting.id)).toEqual([
       'behavior.confirm-before-trash',

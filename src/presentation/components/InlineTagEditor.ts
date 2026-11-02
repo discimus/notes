@@ -1,4 +1,4 @@
-import type { TagDTO } from '@application/dto/index.js';
+import type { NoteTagSuggestionDTO, TagDTO } from '@application/dto/index.js';
 import { normalizeText } from '@shared/utilities/index.js';
 import { filterTagSuggestions } from '../app/tagSuggestions.js';
 import { el } from '../dom.js';
@@ -6,6 +6,8 @@ import { el } from '../dom.js';
 export interface InlineTagEditorHandlers {
   onAdd: (name: string) => Promise<boolean>;
   onRemove: (tag: TagDTO) => void;
+  onAcceptSuggestion?: (suggestion: NoteTagSuggestionDTO) => Promise<boolean>;
+  onDismissSuggestion?: (suggestion: NoteTagSuggestionDTO) => void;
 }
 
 export interface InlineTagEditorOptions {
@@ -20,7 +22,11 @@ export interface InlineTagEditorOptions {
 
 export interface InlineTagEditorView {
   element: HTMLElement;
-  update: (tags: TagDTO[], availableTags?: TagDTO[]) => void;
+  update: (
+    tags: TagDTO[],
+    availableTags?: TagDTO[],
+    suggestions?: NoteTagSuggestionDTO[]
+  ) => void;
   startEditing: () => void;
   destroy: () => void;
 }
@@ -39,12 +45,16 @@ export function mountInlineTagEditor(
   const root = el('div', 'tag-editor');
   const chipsHost = el('div', 'tag-editor__chips');
   const controlHost = el('div', 'tag-editor__control');
+  const suggestionsHost = el('div', 'tag-editor__suggestions');
   const error = el('p', 'tag-editor__error');
 
   error.id = errorId;
   error.setAttribute('role', 'status');
   error.setAttribute('aria-live', 'polite');
   error.hidden = true;
+  suggestionsHost.hidden = true;
+  suggestionsHost.setAttribute('role', 'group');
+  suggestionsHost.setAttribute('aria-label', 'Sugestões de tags');
 
   const listbox = el('div', 'tag-suggestions');
   listbox.id = listboxId;
@@ -53,17 +63,19 @@ export function mountInlineTagEditor(
   listbox.hidden = true;
   document.body.appendChild(listbox);
 
-  root.append(chipsHost, controlHost, error);
+  root.append(chipsHost, controlHost, suggestionsHost, error);
   container.appendChild(root);
 
   let tags: TagDTO[] = [];
   let availableTags: TagDTO[] = [];
   let suggestions: TagDTO[] = [];
+  let autoSuggestions: NoteTagSuggestionDTO[] = [];
   let activeIndex = -1;
   let editing = false;
   let pending = false;
   let input: HTMLInputElement | null = null;
   let renderedTagsSignature = '__initial__';
+  let renderedSuggestionsSignature = '__initial__';
 
   const showError = (message: string): void => {
     error.textContent = message;
@@ -211,6 +223,79 @@ export function mountInlineTagEditor(
       });
 
       chipsHost.appendChild(chip);
+    });
+  };
+
+  const renderAutoSuggestions = (): void => {
+    const assigned = new Set(tags.map((tag) => normalizeText(tag.name)));
+    const visible = autoSuggestions.filter(
+      (suggestion) =>
+        !assigned.has(suggestion.normalizedName) &&
+        (handlers.onAcceptSuggestion || handlers.onDismissSuggestion)
+    );
+    const signature = visible
+      .map(
+        (suggestion) =>
+          `${suggestion.normalizedName}\u0000${suggestion.isNew ? 'new' : 'existing'}`
+      )
+      .join('\u0001');
+
+    if (signature === renderedSuggestionsSignature) return;
+    renderedSuggestionsSignature = signature;
+    suggestionsHost.replaceChildren();
+    suggestionsHost.hidden = visible.length === 0;
+    if (visible.length === 0) return;
+
+    const label = el('span', 'tag-editor__suggestions-label');
+    label.textContent = 'Sugestões';
+    suggestionsHost.appendChild(label);
+
+    visible.forEach((suggestion) => {
+      const chip = el(
+        'span',
+        `chip chip--suggestion${suggestion.isNew ? ' chip--suggestion-new' : ''}`
+      );
+      chip.title = suggestion.isNew ? 'Nova tag' : 'Tag existente';
+
+      if (handlers.onAcceptSuggestion) {
+        const accept = el('button', 'chip__suggestion-action');
+        accept.type = 'button';
+        accept.setAttribute(
+          'aria-label',
+          `${suggestion.isNew ? 'Adicionar nova tag' : 'Adicionar tag'} ${suggestion.name}`
+        );
+        const text = el('span', 'chip__suggestion-label');
+        text.textContent = suggestion.name;
+        accept.appendChild(text);
+        accept.addEventListener('click', async (event) => {
+          event.stopPropagation();
+          if (accept.disabled) return;
+          accept.disabled = true;
+          const accepted = await handlers.onAcceptSuggestion?.(suggestion);
+          if (!accepted) accept.disabled = false;
+        });
+        chip.appendChild(accept);
+      } else {
+        const text = el('span', 'chip__suggestion-label');
+        text.textContent = suggestion.name;
+        chip.appendChild(text);
+      }
+
+      if (handlers.onDismissSuggestion) {
+        const dismiss = el('button', 'chip__remove');
+        dismiss.type = 'button';
+        dismiss.setAttribute('aria-label', `Descartar sugestão ${suggestion.name}`);
+        dismiss.title = 'Descartar sugestão';
+        dismiss.innerHTML =
+          '<span class="material-symbols-rounded" aria-hidden="true">close</span>';
+        dismiss.addEventListener('click', (event) => {
+          event.stopPropagation();
+          handlers.onDismissSuggestion?.(suggestion);
+        });
+        chip.appendChild(dismiss);
+      }
+
+      suggestionsHost.appendChild(chip);
     });
   };
 
@@ -394,18 +479,28 @@ export function mountInlineTagEditor(
 
   return {
     element: root,
-    update: (nextTags: TagDTO[], nextAvailableTags: TagDTO[] = []) => {
+    update: (
+      nextTags: TagDTO[],
+      nextAvailableTags: TagDTO[] = [],
+      nextAutoSuggestions: NoteTagSuggestionDTO[] = []
+    ) => {
       const signature = nextTags
         .map((tag) => `${tag.id}\u0000${tag.name}`)
         .join('\u0001');
 
       tags = nextTags.map((tag) => ({ ...tag }));
       availableTags = nextAvailableTags.map((tag) => ({ ...tag }));
+      autoSuggestions = nextAutoSuggestions.map((suggestion) => ({
+        ...suggestion,
+        sources: [...suggestion.sources],
+      }));
 
       if (signature !== renderedTagsSignature) {
         renderedTagsSignature = signature;
         renderChips();
       }
+
+      renderAutoSuggestions();
 
       if (editing && input?.value.trim()) renderSuggestions();
       else closeSuggestions();

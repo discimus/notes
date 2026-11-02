@@ -4,6 +4,14 @@ import {
   setAutoOpenBlankEditor,
 } from '../../app/autoOpenBlankEditor.js';
 import {
+  getAutoTagSuggestions,
+  setAutoTagSuggestions,
+} from '../../app/autoTagSuggestions.js';
+import {
+  getAutoAssignTags,
+  setAutoAssignTags,
+} from '../../app/autoAssignTags.js';
+import {
   setFullNoteContent,
 } from '../../app/noteContentDisplay.js';
 import {
@@ -71,5 +79,31 @@ export const notesSettings: readonly SettingDefinition[] = [
     defaultValue: false,
     get: getAutoOpenBlankEditor,
     set: setAutoOpenBlankEditor,
+  },
+  {
+    id: 'notes.auto-tag-suggestions',
+    section: 'notes',
+    control: 'toggle',
+    controlId: 'settings-auto-tag-suggestions',
+    label: 'Sugestões automáticas de tags',
+    description:
+      'Mostra sugestões de tags nas notas com base no conteúdo, sem atribuí-las automaticamente.',
+    keywords: ['tag', 'sugestão', 'automático', 'conteúdo'],
+    defaultValue: false,
+    get: getAutoTagSuggestions,
+    set: setAutoTagSuggestions,
+  },
+  {
+    id: 'notes.auto-assign-tags',
+    section: 'notes',
+    control: 'toggle',
+    controlId: 'settings-auto-assign-tags',
+    label: 'Atribuir tags automaticamente',
+    description:
+      'Adiciona até 3 tags por nota usando as sugestões mais relevantes. Requer sugestões automáticas ativadas.',
+    keywords: ['tag', 'atribuição', 'automático', 'sugestão'],
+    defaultValue: false,
+    get: getAutoAssignTags,
+    set: setAutoAssignTags,
   },
 ];

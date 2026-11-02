@@ -8,6 +8,8 @@ import { initNoteContentDisplay } from './noteContentDisplay.js';
 import { initNoteImageLayout } from './noteImageLayout.js';
 import { initPinnedChains } from './pinnedChains.js';
 import { initNavigationHistory } from './navigation.js';
+import { initAutoTagSuggestions } from './autoTagSuggestions.js';
+import { initAutoAssignTags } from './autoAssignTags.js';
 import { AppController } from '../pages/AppController.js';
 import { initNavResponsive, renderNavDrawer, updateNavDrawer } from '../views/nav.js';
 import { renderChainsLayout, updateChainsLayout } from '../views/chains.js';
@@ -25,6 +27,8 @@ export function renderApp(root: HTMLElement): void {
   initNoteContentDisplay();
   initNoteImageLayout();
   initPinnedChains();
+  initAutoTagSuggestions();
+  initAutoAssignTags();
   initEditorSession();
   root.innerHTML = '';
 
