@@ -2169,6 +2169,7 @@
   min-height: 0;
   max-height: none;
   overflow-y: auto;
+  overflow-anchor: none;
   overscroll-behavior: contain;
   padding: var(--spacing-4) var(--spacing-6) var(--spacing-2);
 }
@@ -2269,6 +2270,14 @@
 .period-menu__year-count {
   font-variant-numeric: tabular-nums;
 }
+.chain-history-sentinel {
+  display: flex;
+  justify-content: center;
+  padding: var(--spacing-3) 0 var(--spacing-5);
+}
+.chain-history-sentinel__button {
+  white-space: nowrap;
+}
 .chain-date-group {
   margin-bottom: var(--spacing-8);
 }
@@ -2309,6 +2318,8 @@
 }
 .chain-note {
   padding: var(--spacing-2) 0 var(--spacing-6);
+  content-visibility: auto;
+  contain-intrinsic-size: auto 140px;
 }
 .chain-note:focus {
   outline: none;

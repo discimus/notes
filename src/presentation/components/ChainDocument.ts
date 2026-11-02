@@ -65,6 +65,10 @@ const SCROLL_BOTTOM_TOLERANCE = 16;
 const PERIOD_FLASH_MS = 1200;
 const PERIOD_HIGHLIGHT_MS = 5000;
 const PERIOD_HIGHLIGHT_FADE_MS = 300;
+const HISTORY_INITIAL_PAGE = 80;
+const HISTORY_PAGE_SIZE = 80;
+const HISTORY_MAX_WINDOW = 240;
+const HISTORY_SCROLL_SUPPRESS_MS = 400;
 
 export interface ChainDocumentHandlers {
   initialEditorMode?: 'latest' | 'blank' | 'none';
@@ -512,6 +516,7 @@ export function mountChainDocument(
     onError: (message) => snackbar.error(message),
   });
   const noteTagEditors = new Map<string, InlineTagEditorView>();
+  let noteTagEditorObserver: IntersectionObserver | null = null;
   let autoEditAttempted = false;
   let autoEditFrame: number | null = null;
   let activePeriodKey: string | null = null;
@@ -606,10 +611,17 @@ export function mountChainDocument(
 
   const focusFirstNoteOfPeriod = (noteIds: string[]): void => {
     const selected = new Set(noteIds);
-    const target =
+    let target =
       [...history.querySelectorAll<HTMLElement>('.chain-note')].find((note) =>
         selected.has(note.dataset['noteId'] ?? '')
       ) ?? null;
+    if (!target && noteIds[0]) {
+      ensureHistoryWindowForNote(noteIds[0]);
+      target =
+        [...history.querySelectorAll<HTMLElement>('.chain-note')].find((note) =>
+          selected.has(note.dataset['noteId'] ?? '')
+        ) ?? null;
+    }
     if (!target) return;
 
     target.focus({ preventScroll: true });
@@ -896,6 +908,9 @@ export function mountChainDocument(
   let savingState = false;
   let actionsCompact = false;
   let footerCompact = false;
+  let historyWindowStart = Math.max(0, tab.notes.length - HISTORY_INITIAL_PAGE);
+  let historyWindowEnd = tab.notes.length;
+  let historySentinelObserver: IntersectionObserver | null = null;
 
   const syncActionFooter = (): void => {
     root.classList.toggle(
@@ -966,7 +981,13 @@ export function mountChainDocument(
     tagEditor.update(summary?.tags ?? [], appState.get().allTags);
   };
 
+  const disconnectNoteTagEditorObserver = (): void => {
+    noteTagEditorObserver?.disconnect();
+    noteTagEditorObserver = null;
+  };
+
   const destroyNoteTagEditors = (): void => {
+    disconnectNoteTagEditorObserver();
     noteTagEditors.forEach((editor) => editor.destroy());
     noteTagEditors.clear();
   };
@@ -983,35 +1004,65 @@ export function mountChainDocument(
     });
   };
 
+  const mountNoteTagEditorForHost = (host: HTMLElement): void => {
+    const noteId = host.dataset['noteId'];
+    if (!noteId || noteTagEditors.has(noteId)) return;
+    const note = currentTab.notes.find((item) => item.id === noteId);
+    if (!note) return;
+
+    const editor = mountInlineTagEditor(
+      host,
+      {
+        onAdd: (tagName) =>
+          handlers.onAddNoteTag?.(noteId, tagName) ?? Promise.resolve(false),
+        onRemove: (tag) => handlers.onRemoveNoteTag?.(noteId, tag),
+      },
+      {
+        addButtonClassName: 'chain-note__tag-add',
+        addButtonAriaLabel: 'Adicionar tag \u00e0 nota',
+        addButtonTitle: 'Adicionar tag',
+        addButtonHaspopup: 'dialog',
+        addButtonText: 'Nova tag',
+        removeAriaLabel: (tag) => `Remover tag ${tag.name} desta nota`,
+      }
+    );
+    editor.update(note.tags ?? [], appState.get().allTags);
+    noteTagEditors.set(noteId, editor);
+  };
+
   const mountNoteTagEditors = (): void => {
     destroyNoteTagEditors();
-    history
-      .querySelectorAll<HTMLElement>('[data-note-tags-host="true"]')
-      .forEach((host) => {
-        const noteId = host.dataset['noteId'];
-        if (!noteId) return;
-        const note = currentTab.notes.find((item) => item.id === noteId);
-        if (!note) return;
+    const hosts = [
+      ...history.querySelectorAll<HTMLElement>(
+        '[data-note-tags-host="true"]'
+      ),
+    ];
 
-        const editor = mountInlineTagEditor(
-          host,
-          {
-            onAdd: (tagName) =>
-              handlers.onAddNoteTag?.(noteId, tagName) ?? Promise.resolve(false),
-            onRemove: (tag) => handlers.onRemoveNoteTag?.(noteId, tag),
-          },
-          {
-            addButtonClassName: 'chain-note__tag-add',
-            addButtonAriaLabel: 'Adicionar tag \u00e0 nota',
-            addButtonTitle: 'Adicionar tag',
-            addButtonHaspopup: 'dialog',
-            addButtonText: 'Nova tag',
-            removeAriaLabel: (tag) => `Remover tag ${tag.name} desta nota`,
+    if (typeof IntersectionObserver === 'undefined') {
+      hosts.forEach(mountNoteTagEditorForHost);
+      return;
+    }
+
+    noteTagEditorObserver = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          const host = entry.target as HTMLElement;
+          const noteId = host.dataset['noteId'];
+          if (!noteId) return;
+          if (entry.isIntersecting) {
+            mountNoteTagEditorForHost(host);
+            return;
           }
-        );
-        editor.update(note.tags ?? [], appState.get().allTags);
-        noteTagEditors.set(noteId, editor);
-      });
+          if (host.contains(document.activeElement)) return;
+          const editor = noteTagEditors.get(noteId);
+          if (!editor) return;
+          editor.destroy();
+          noteTagEditors.delete(noteId);
+        });
+      },
+      { root: scroll, rootMargin: '500px 0px' }
+    );
+    hosts.forEach((host) => noteTagEditorObserver?.observe(host));
   };
 
   const syncNoteEditingState = (
@@ -1043,6 +1094,188 @@ export function mountChainDocument(
     });
   };
 
+  const disconnectHistorySentinelObserver = (): void => {
+    historySentinelObserver?.disconnect();
+    historySentinelObserver = null;
+  };
+
+  const resetHistoryWindow = (): void => {
+    const count = currentTab.notes.length;
+    historyWindowStart = Math.max(0, count - HISTORY_INITIAL_PAGE);
+    historyWindowEnd = count;
+  };
+
+  const clampHistoryWindow = (): void => {
+    const count = currentTab.notes.length;
+    if (count === 0) {
+      historyWindowStart = 0;
+      historyWindowEnd = 0;
+      return;
+    }
+    if (historyWindowEnd <= 0 || historyWindowEnd > count) {
+      historyWindowEnd = count;
+    }
+    historyWindowStart = Math.max(
+      0,
+      Math.min(historyWindowStart, count - 1)
+    );
+    if (historyWindowEnd <= historyWindowStart) {
+      historyWindowEnd = Math.min(
+        count,
+        historyWindowStart + HISTORY_INITIAL_PAGE
+      );
+    }
+    if (historyWindowEnd - historyWindowStart > HISTORY_MAX_WINDOW) {
+      historyWindowStart = historyWindowEnd - HISTORY_MAX_WINDOW;
+    }
+  };
+
+  const captureHistoryAnchor = (
+    prefer: 'first' | 'last'
+  ): { id: string; top: number } | null => {
+    const cards = history.querySelectorAll<HTMLElement>('.chain-note');
+    const element =
+      prefer === 'last' ? cards[cards.length - 1] : cards[0];
+    const id = element?.dataset['noteId'];
+    if (!element || !id) return null;
+    return {
+      id,
+      top: element.getBoundingClientRect().top - scroll.getBoundingClientRect().top,
+    };
+  };
+
+  const suppressCompactDuringHistoryChange = (): void => {
+    ignoreCompactUntil = Date.now() + HISTORY_SCROLL_SUPPRESS_MS;
+  };
+
+  const restoreHistoryAnchor = (
+    anchor: { id: string; top: number } | null
+  ): void => {
+    suppressCompactDuringHistoryChange();
+    if (!anchor) {
+      lastScrollTop = scroll.scrollTop;
+      return;
+    }
+    const target = history.querySelector<HTMLElement>(
+      `.chain-note[data-note-id="${anchor.id}"]`
+    );
+    if (!target) {
+      lastScrollTop = scroll.scrollTop;
+      return;
+    }
+    const top =
+      target.getBoundingClientRect().top - scroll.getBoundingClientRect().top;
+    scroll.scrollTop += top - anchor.top;
+    lastScrollTop = scroll.scrollTop;
+  };
+
+  function loadOlderNotes(): void {
+    if (historyWindowStart <= 0) return;
+    const anchor = captureHistoryAnchor('first');
+    cancelCompact();
+    cancelExpand();
+    upwardDistance = 0;
+    setActionsCompact(false);
+    suppressCompactDuringHistoryChange();
+    historyWindowStart = Math.max(0, historyWindowStart - HISTORY_PAGE_SIZE);
+    if (historyWindowEnd - historyWindowStart > HISTORY_MAX_WINDOW) {
+      historyWindowEnd = historyWindowStart + HISTORY_MAX_WINDOW;
+    }
+    renderNotes();
+    restoreHistoryAnchor(anchor);
+    requestAnimationFrame(() => restoreHistoryAnchor(anchor));
+  }
+
+  function loadNewerNotes(): void {
+    if (historyWindowEnd >= currentTab.notes.length) return;
+    const anchor = captureHistoryAnchor('last');
+    cancelCompact();
+    cancelExpand();
+    upwardDistance = 0;
+    suppressCompactDuringHistoryChange();
+    historyWindowEnd = Math.min(
+      currentTab.notes.length,
+      historyWindowEnd + HISTORY_PAGE_SIZE
+    );
+    if (historyWindowEnd - historyWindowStart > HISTORY_MAX_WINDOW) {
+      historyWindowStart = historyWindowEnd - HISTORY_MAX_WINDOW;
+    }
+    renderNotes();
+    restoreHistoryAnchor(anchor);
+    requestAnimationFrame(() => restoreHistoryAnchor(anchor));
+  }
+
+  function ensureHistoryWindowForNote(noteId: string): boolean {
+    const existing = history.querySelector<HTMLElement>(
+      `.chain-note[data-note-id="${noteId}"]`
+    );
+    if (existing) return true;
+
+    const index = currentTab.notes.findIndex((note) => note.id === noteId);
+    if (index < 0) return false;
+
+    const count = currentTab.notes.length;
+    historyWindowStart = Math.max(
+      0,
+      Math.min(index - Math.floor(HISTORY_MAX_WINDOW / 2), count - HISTORY_MAX_WINDOW)
+    );
+    historyWindowEnd = Math.min(
+      count,
+      historyWindowStart + HISTORY_MAX_WINDOW
+    );
+    suppressCompactDuringHistoryChange();
+    renderNotes();
+    lastScrollTop = scroll.scrollTop;
+    return Boolean(
+      history.querySelector<HTMLElement>(
+        `.chain-note[data-note-id="${noteId}"]`
+      )
+    );
+  }
+
+  const renderHistorySentinel = (
+    direction: 'older' | 'newer'
+  ): HTMLElement => {
+    const wrapper = el('div', 'chain-history-sentinel');
+    wrapper.dataset['historySentinel'] = direction;
+    const button = el('button', 'btn btn-text chain-history-sentinel__button');
+    button.type = 'button';
+    button.textContent =
+      direction === 'older'
+        ? 'Carregar notas anteriores'
+        : 'Carregar notas posteriores';
+    button.addEventListener('click', () => {
+      if (direction === 'older') loadOlderNotes();
+      else loadNewerNotes();
+    });
+    wrapper.appendChild(button);
+    return wrapper;
+  };
+
+  const observeHistorySentinels = (): void => {
+    disconnectHistorySentinelObserver();
+    if (typeof IntersectionObserver === 'undefined') return;
+    const sentinels = [
+      ...history.querySelectorAll<HTMLElement>('[data-history-sentinel]'),
+    ];
+    if (sentinels.length === 0) return;
+
+    historySentinelObserver = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting) return;
+          const direction = (entry.target as HTMLElement).dataset[
+            'historySentinel'
+          ];
+          if (direction === 'older') loadOlderNotes();
+          else if (direction === 'newer') loadNewerNotes();
+        });
+      },
+      { root: scroll, rootMargin: '600px 0px' }
+    );
+    sentinels.forEach((sentinel) => historySentinelObserver?.observe(sentinel));
+  };
+
   const renderNotes = (): void => {
     const editingNoteIds = new Set(
       currentTab.noteTabs
@@ -1052,15 +1285,23 @@ export function mountChainDocument(
     const activeEditNoteId =
       currentTab.noteTabs.find((noteTab) => noteTab.id === currentTab.activeNoteTabId)
         ?.editingNoteId ?? null;
-    const noteGroups = groupNotesByDate(currentTab.notes);
-    const notesSignature = currentTab.notes
-      .map(
+    clampHistoryWindow();
+    const windowNotes = currentTab.notes.slice(
+      historyWindowStart,
+      historyWindowEnd
+    );
+    const noteGroups = groupNotesByDate(windowNotes);
+    const notesSignature = [
+      currentTab.notes.length,
+      historyWindowStart,
+      historyWindowEnd,
+      ...windowNotes.map(
         (note) =>
           `${note.id}:${note.updatedAt}:${(note.attachments ?? [])
             .map((attachment) => attachment.id)
             .join(',')}`
-      )
-      .join('|');
+      ),
+    ].join('|');
     const signature = notesSignature;
 
     const periods = buildNotePeriods(currentTab.notes, 'asc');
@@ -1163,6 +1404,10 @@ export function mountChainDocument(
         )
       );
     } else {
+      if (historyWindowStart > 0) {
+        history.appendChild(renderHistorySentinel('older'));
+      }
+
       noteGroups.forEach((group) => {
         const section = el('section', 'chain-date-group');
         section.setAttribute('aria-label', group.fullLabel);
@@ -1224,8 +1469,13 @@ export function mountChainDocument(
 
         history.appendChild(section);
       });
+
+      if (historyWindowEnd < currentTab.notes.length) {
+        history.appendChild(renderHistorySentinel('newer'));
+      }
     }
 
+    observeHistorySentinels();
     mountNoteTagEditors();
     syncPeriodSelection(activeMonth?.noteIds ?? []);
     renderedNotesSignature = signature;
@@ -1626,9 +1876,15 @@ export function mountChainDocument(
   };
 
   const scrollToSearchTarget = (noteId: string): void => {
-    const target = history.querySelector<HTMLElement>(
+    let target = history.querySelector<HTMLElement>(
       `.chain-note[data-note-id="${noteId}"]`
     );
+    if (!target) {
+      if (!ensureHistoryWindowForNote(noteId)) return;
+      target = history.querySelector<HTMLElement>(
+        `.chain-note[data-note-id="${noteId}"]`
+      );
+    }
     if (!target) return;
 
     const scrollRect = scroll.getBoundingClientRect();
@@ -1702,6 +1958,8 @@ export function mountChainDocument(
   const update = (tabValue: ChainTab): void => {
     const justLoaded =
       previousStatus === 'loading' && tabValue.status === 'loaded';
+    const previousChainId = currentTab.chainId;
+    const previousCount = currentTab.notes.length;
     if (tabValue.chainId !== currentTab.chainId) {
       clearPeriodHighlightTimers();
       clearPeriodHighlightClasses();
@@ -1710,6 +1968,18 @@ export function mountChainDocument(
       if (selectionMode) setSelectionMode(false);
     }
     currentTab = tabValue;
+    if (tabValue.chainId !== previousChainId) {
+      resetHistoryWindow();
+    } else if (tabValue.notes.length !== previousCount) {
+      if (previousCount === 0 && tabValue.notes.length > 0) {
+        resetHistoryWindow();
+      } else {
+        if (historyWindowEnd === previousCount) {
+          historyWindowEnd = tabValue.notes.length;
+        }
+        clampHistoryWindow();
+      }
+    }
     root.setAttribute('aria-label', `Coleção ${tabValue.title}`);
     root.dataset['chainId'] = tabValue.chainId;
 
@@ -1827,6 +2097,7 @@ export function mountChainDocument(
     activeLine.destroy();
     tagEditor.destroy();
     destroyNoteTagEditors();
+    disconnectHistorySentinelObserver();
   };
 
   update(tab);
@@ -1867,6 +2138,7 @@ export function mountChainDocument(
           .querySelectorAll('.chain-note--search-target')
           .forEach((note) => note.classList.remove('chain-note--search-target'));
 
+        ensureHistoryWindowForNote(editingNoteId);
         const target = history.querySelector<HTMLElement>(
           `.chain-note[data-note-id="${editingNoteId}"]`
         );

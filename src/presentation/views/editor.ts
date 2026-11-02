@@ -976,7 +976,7 @@ export function mountEditorView(
   };
 
   const renderSnapshot = (): void => {
-    const snapshot = store.getSnapshot();
+    const snapshot = store.getTabsSnapshot();
 
     renderEditorTabs(tabsElement, snapshot, {
       onSelect: (id) => {
@@ -1000,7 +1000,7 @@ export function mountEditorView(
       },
     });
 
-    const active = store.getActiveTab();
+    const active = store.getActiveTabForRender();
 
     if (!active) {
       destroyDocument();

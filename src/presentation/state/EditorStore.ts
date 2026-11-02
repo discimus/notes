@@ -202,9 +202,35 @@ export class EditorStore {
     };
   }
 
+  getTabsSnapshot(): EditorSnapshot {
+    return {
+      tabs: this.tabs.map((tab) =>
+        tab.kind === 'draft'
+          ? cloneTab(tab)
+          : {
+              ...tab,
+              notes: [],
+              noteTabs: tab.noteTabs.map(cloneNoteTab),
+            }
+      ),
+      activeTabId: this.activeTabId,
+    };
+  }
+
   getActiveTab(): EditorTab | null {
     const tab = this.tabs.find((item) => item.id === this.activeTabId);
     return tab ? cloneTab(tab) : null;
+  }
+
+  getActiveTabForRender(): EditorTab | null {
+    const tab = this.tabs.find((item) => item.id === this.activeTabId);
+    if (!tab) return null;
+    if (tab.kind === 'draft') return cloneTab(tab);
+    return {
+      ...tab,
+      notes: tab.notes,
+      noteTabs: tab.noteTabs.map(cloneNoteTab),
+    };
   }
 
   getTab(id: string): EditorTab | null {
@@ -883,7 +909,7 @@ export class EditorStore {
   }
 
   private notify(): void {
-    const snapshot = this.getSnapshot();
+    const snapshot = this.getTabsSnapshot();
     this.listeners.forEach((listener) => listener(snapshot));
   }
 }
