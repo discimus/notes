@@ -7,6 +7,8 @@ export {
   createDefaultTagSuggestionPipeline,
   documentSignature,
   preprocessContent,
+  preprocessSourceFileName,
+  SourceFileNameExtractor,
   TagSuggestionPipeline,
   TfIdfExtractor,
   TfIdfIndex,

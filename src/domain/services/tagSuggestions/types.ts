@@ -24,6 +24,7 @@ export interface ExtractionInput {
   document: PreprocessedDocument;
   corpus: PreprocessedDocument[];
   tfidfIndex?: TermWeightIndex | undefined;
+  sourceFileName?: string | undefined;
 }
 
 export interface KeywordExtractor {

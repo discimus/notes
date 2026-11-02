@@ -55,9 +55,15 @@ export function preprocessContent(content: string): PreprocessedDocument {
   };
 }
 
-export function documentSignature(content: string, contentType: string | undefined): string {
+export function documentSignature(
+  content: string,
+  contentType: string | undefined,
+  sourceFileName?: string | undefined
+): string {
   let hash = 2166136261;
-  const input = `${contentType ?? 'text'}\u0000${content}`;
+  const input = `${contentType ?? 'text'}\u0000${
+    sourceFileName ?? ''
+  }\u0000${content}`;
   for (let index = 0; index < input.length; index += 1) {
     hash ^= input.charCodeAt(index);
     hash = Math.imul(hash, 16777619);

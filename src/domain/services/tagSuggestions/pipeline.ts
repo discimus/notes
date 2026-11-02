@@ -1,4 +1,5 @@
 import { consolidateSuggestions } from './consolidate.js';
+import { SourceFileNameExtractor } from './fileName.js';
 import { preprocessContent } from './preprocess.js';
 import type {
   ConsolidatedTagSuggestion,
@@ -13,6 +14,7 @@ import { YakeExtractor } from './yake.js';
 
 export interface TagSuggestionPipelineInput {
   content: string;
+  sourceFileName?: string | undefined;
   corpus?: readonly PreprocessedDocument[] | undefined;
   tfidfIndex?: TermWeightIndex | undefined;
   context: ConsolidationContext;
@@ -27,6 +29,7 @@ export class TagSuggestionPipeline {
       document,
       corpus: [...(input.corpus ?? [])],
       ...(input.tfidfIndex ? { tfidfIndex: input.tfidfIndex } : {}),
+      ...(input.sourceFileName ? { sourceFileName: input.sourceFileName } : {}),
     };
     const results = this.extractors.map((extractor) => ({
       id: extractor.id,
@@ -39,5 +42,9 @@ export class TagSuggestionPipeline {
 }
 
 export function createDefaultTagSuggestionPipeline(): TagSuggestionPipeline {
-  return new TagSuggestionPipeline([new YakeExtractor(), new TfIdfExtractor()]);
+  return new TagSuggestionPipeline([
+    new YakeExtractor(),
+    new TfIdfExtractor(),
+    new SourceFileNameExtractor(),
+  ]);
 }

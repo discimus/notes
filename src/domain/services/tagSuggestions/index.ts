@@ -1,6 +1,10 @@
 export { canonicalTagKey, tagNameFromTerm } from './canonicalize.js';
 export { consolidateSuggestions } from './consolidate.js';
 export type { WeightedKeywords } from './consolidate.js';
+export {
+  preprocessSourceFileName,
+  SourceFileNameExtractor,
+} from './fileName.js';
 export { createDefaultTagSuggestionPipeline, TagSuggestionPipeline } from './pipeline.js';
 export { documentSignature, preprocessContent } from './preprocess.js';
 export { TfIdfExtractor, TfIdfIndex } from './tfidf.js';

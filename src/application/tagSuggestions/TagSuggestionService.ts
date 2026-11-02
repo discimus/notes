@@ -74,7 +74,11 @@ export class TagSuggestionService {
     for (const note of input.notes) {
       if (targetIds && !targetIds.has(note.id)) continue;
 
-      const signature = documentSignature(note.content, note.contentType);
+      const signature = documentSignature(
+        note.content,
+        note.contentType,
+        note.sourceFileName
+      );
       if (!index.hasSignature(note.id, signature)) {
         index.upsert(note.id, signature, preprocessContent(note.content));
       }
@@ -85,6 +89,9 @@ export class TagSuggestionService {
         const suggestions = note.content.trim()
           ? this.pipeline.suggest({
               content: note.content,
+              ...(note.sourceFileName
+                ? { sourceFileName: note.sourceFileName }
+                : {}),
               tfidfIndex: index,
               context: {
                 assignedTagNames: (note.tags ?? []).map((tag) => tag.name),

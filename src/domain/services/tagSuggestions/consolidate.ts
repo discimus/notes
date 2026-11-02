@@ -22,6 +22,8 @@ interface CandidateAccumulator {
 const DEFAULT_LIMIT = 5;
 const EXISTING_TAG_BOOST = 1.15;
 const CHAIN_TAG_BOOST = 1.08;
+const FILE_NAME_SOURCE = 'filename';
+const FILE_NAME_BOOST = 1.1;
 
 function existingTagMap(
   availableTags: readonly ExistingTagReference[]
@@ -88,11 +90,14 @@ export function consolidateSuggestions(
       : chainTags.has(key)
         ? CHAIN_TAG_BOOST
         : 1;
+    const fileNameBoost = candidate.sources.has(FILE_NAME_SOURCE)
+      ? FILE_NAME_BOOST
+      : 1;
 
     consolidated.push({
       name,
       normalizedName: key,
-      score: Math.min(1, baseScore * contextBoost),
+      score: Math.min(1, baseScore * contextBoost * fileNameBoost),
       isNew: !existing,
       ...(existing ? { existingTagId: existing.id } : {}),
       sources: [...candidate.sources].sort(),
@@ -103,6 +108,9 @@ export function consolidateSuggestions(
     .sort((a, b) => {
       if (b.score !== a.score) return b.score - a.score;
       if (a.isNew !== b.isNew) return a.isNew ? 1 : -1;
+      const aFromFileName = a.sources.includes(FILE_NAME_SOURCE);
+      const bFromFileName = b.sources.includes(FILE_NAME_SOURCE);
+      if (aFromFileName !== bFromFileName) return aFromFileName ? -1 : 1;
       return a.name.localeCompare(b.name, 'pt-BR');
     })
     .slice(0, limit);

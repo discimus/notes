@@ -857,6 +857,9 @@ export const AppController = {
       } else {
         await openChain(chainId, false);
       }
+      if (appState.get().tagSuggestionsEnabled) {
+        AppController.requestTagSuggestionsForNote(chainId, noteId);
+      }
       return true;
     } catch (e: unknown) {
       snackbar.error((e as Error).message);
