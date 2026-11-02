@@ -17,7 +17,7 @@ import type {
 import type { SearchResult } from '@domain/services/index.js';
 import { rankSearchResult } from '@domain/services/index.js';
 import type { UUID } from '@shared/types/index.js';
-import { normalizeText } from '@shared/utilities/index.js';
+import { normalizeText, runPendingOperation } from '@shared/utilities/index.js';
 
 export class IdbChainRepository
   implements IChainRepository, ITimelineQueryRepository, ISearchQueryRepository
@@ -113,74 +113,84 @@ export class IdbChainRepository
   }
 
   async save(chain: Chain, notes: Note[]): Promise<void> {
-    const db = await this.db();
-    const tx = db.transaction(['chains', 'notes'], 'readwrite');
-    await tx.objectStore('chains').put(chain.toData());
-    for (const note of notes) {
-      await tx.objectStore('notes').put(note.toData());
-    }
-    await tx.done;
+    await runPendingOperation(async () => {
+      const db = await this.db();
+      const tx = db.transaction(['chains', 'notes'], 'readwrite');
+      await tx.objectStore('chains').put(chain.toData());
+      for (const note of notes) {
+        await tx.objectStore('notes').put(note.toData());
+      }
+      await tx.done;
+    });
   }
 
   async saveChainOnly(chain: Chain): Promise<void> {
-    const db = await this.db();
-    await db.put('chains', chain.toData());
+    await runPendingOperation(async () => {
+      const db = await this.db();
+      await db.put('chains', chain.toData());
+    });
   }
 
   async saveNote(note: Note): Promise<void> {
-    const db = await this.db();
-    await db.put('notes', note.toData());
+    await runPendingOperation(async () => {
+      const db = await this.db();
+      await db.put('notes', note.toData());
+    });
   }
 
   async deleteNoteFromChain(chain: Chain, noteId: UUID): Promise<void> {
-    const db = await this.db();
-    const tx = db.transaction(['chains', 'notes'], 'readwrite');
-    await tx.objectStore('chains').put(chain.toData());
-    await tx.objectStore('notes').delete(noteId);
-    for (const note of chain.notes) {
-      await tx.objectStore('notes').put(note.toData());
-    }
-    await tx.done;
+    await runPendingOperation(async () => {
+      const db = await this.db();
+      const tx = db.transaction(['chains', 'notes'], 'readwrite');
+      await tx.objectStore('chains').put(chain.toData());
+      await tx.objectStore('notes').delete(noteId);
+      for (const note of chain.notes) {
+        await tx.objectStore('notes').put(note.toData());
+      }
+      await tx.done;
+    });
   }
 
   async delete(id: UUID): Promise<void> {
-    const db = await this.db();
-    const hasAttachments = db.objectStoreNames.contains('attachments');
-    const hasAttachmentBlobs = db.objectStoreNames.contains('attachmentBlobs');
-    const stores = ['chains', 'notes', 'chainTags', 'noteTags'];
-    if (hasAttachments) stores.push('attachments');
-    if (hasAttachmentBlobs) stores.push('attachmentBlobs');
-    const tx = db.transaction(stores, 'readwrite');
-    await tx.objectStore('chains').delete(id);
+    await runPendingOperation(async () => {
+      const db = await this.db();
+      const hasAttachments = db.objectStoreNames.contains('attachments');
+      const hasAttachmentBlobs = db.objectStoreNames.contains('attachmentBlobs');
+      const stores = ['chains', 'notes', 'chainTags', 'noteTags'];
+      if (hasAttachments) stores.push('attachments');
+      if (hasAttachmentBlobs) stores.push('attachmentBlobs');
+      const tx = db.transaction(stores, 'readwrite');
+      await tx.objectStore('chains').delete(id);
 
-    const notes = await tx.objectStore('notes').index('by-chainId').getAllKeys(id);
-    for (const key of notes) {
-      await tx.objectStore('notes').delete(key);
-    }
-
-    const chainTags = await tx.objectStore('chainTags').index('by-chainId').getAll(id);
-    for (const ct of chainTags) {
-      await tx.objectStore('chainTags').delete([ct.chainId, ct.tagId]);
-    }
-
-    const noteTags = await tx.objectStore('noteTags').index('by-chainId').getAll(id);
-    for (const nt of noteTags) {
-      await tx.objectStore('noteTags').delete([nt.noteId, nt.tagId]);
-    }
-
-    // Remove attachments e blobs
-    if (hasAttachments && hasAttachmentBlobs) {
-      const attachmentKeys = await tx
-        .objectStore('attachments')
-        .index('by-chainId')
-        .getAllKeys(id);
-      for (const key of attachmentKeys) {
-        await tx.objectStore('attachments').delete(key);
-        await tx.objectStore('attachmentBlobs').delete(key);
+      const notes = await tx.objectStore('notes').index('by-chainId').getAllKeys(id);
+      for (const key of notes) {
+        await tx.objectStore('notes').delete(key);
       }
-    }
 
-    await tx.done;
+      const chainTags = await tx.objectStore('chainTags').index('by-chainId').getAll(id);
+      for (const ct of chainTags) {
+        await tx.objectStore('chainTags').delete([ct.chainId, ct.tagId]);
+      }
+
+      const noteTags = await tx.objectStore('noteTags').index('by-chainId').getAll(id);
+      for (const nt of noteTags) {
+        await tx.objectStore('noteTags').delete([nt.noteId, nt.tagId]);
+      }
+
+      // Remove attachments e blobs
+      if (hasAttachments && hasAttachmentBlobs) {
+        const attachmentKeys = await tx
+          .objectStore('attachments')
+          .index('by-chainId')
+          .getAllKeys(id);
+        for (const key of attachmentKeys) {
+          await tx.objectStore('attachments').delete(key);
+          await tx.objectStore('attachmentBlobs').delete(key);
+        }
+      }
+
+      await tx.done;
+    });
   }
 
   async findTimelinePage(query: TimelinePageQuery): Promise<TimelinePageResult> {

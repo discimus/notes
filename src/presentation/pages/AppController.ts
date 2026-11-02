@@ -41,6 +41,7 @@ import type {
   NoteDTO,
 } from '@application/dto/index.js';
 import type { ISODateString } from '@shared/types/index.js';
+import { beginPendingOperation } from '@shared/utilities/index.js';
 
 import {
   CreateChain,
@@ -832,6 +833,7 @@ export const AppController = {
     sourceCreatedAt?: ISODateString,
     metadata?: { contentHash?: string; sourceFileName?: string }
   ): Promise<TextImportNoteResult> {
+    const finishPendingOperation = beginPendingOperation();
     try {
       if (content.length >= STORAGE_PERSIST_THRESHOLD_BYTES) {
         await requestPersistentStorage();
@@ -868,6 +870,8 @@ export const AppController = {
       return { ok: true, note, chainTitle };
     } catch (error: unknown) {
       return { ok: false, error: editorErrorMessage(error) };
+    } finally {
+      finishPendingOperation();
     }
   },
 
@@ -893,6 +897,8 @@ export const AppController = {
     useSourceDates: boolean,
     onProgress?: (snapshot: TextImportQueueSnapshot) => void
   ): Promise<TextImportQueueResult> {
+    const finishPendingOperation = beginPendingOperation();
+    try {
     const importedNotes: NoteDTO[] = [];
 
     const result = await processTextImportQueue(items, {
@@ -958,6 +964,9 @@ export const AppController = {
     }
 
     return result;
+    } finally {
+      finishPendingOperation();
+    }
   },
 
   async importTextNotes(
@@ -965,6 +974,7 @@ export const AppController = {
     files: PreparedTextImport[],
     useSourceDates: boolean
   ): Promise<EditorBatchAppendResult> {
+    const finishPendingOperation = beginPendingOperation();
     try {
       const notes = await importTextNotesUseCase.execute({
         chainId,
@@ -995,6 +1005,8 @@ export const AppController = {
       return { ok: true, notes, chainTitle };
     } catch (error: unknown) {
       return { ok: false, error: editorErrorMessage(error) };
+    } finally {
+      finishPendingOperation();
     }
   },
 

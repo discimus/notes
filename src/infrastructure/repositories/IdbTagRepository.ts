@@ -4,6 +4,7 @@ import { getDatabase } from '../persistence/schema.js';
 import { Tag, ChainTag, NoteTag } from '@domain/entities/index.js';
 import type { ITagRepository } from '@domain/repositories/index.js';
 import type { UUID } from '@shared/types/index.js';
+import { runPendingOperation } from '@shared/utilities/index.js';
 
 export class IdbTagRepository implements ITagRepository {
   private async db(): Promise<IDBPDatabase<NotesDB>> {
@@ -75,44 +76,56 @@ export class IdbTagRepository implements ITagRepository {
   }
 
   async save(tag: Tag): Promise<void> {
-    const db = await this.db();
-    await db.put('tags', tag.toData());
+    await runPendingOperation(async () => {
+      const db = await this.db();
+      await db.put('tags', tag.toData());
+    });
   }
 
   async delete(id: UUID): Promise<void> {
-    const db = await this.db();
-    const tx = db.transaction(['tags', 'chainTags', 'noteTags'], 'readwrite');
-    await tx.objectStore('tags').delete(id);
-    const chainTags = await tx.objectStore('chainTags').index('by-tagId').getAll(id);
-    for (const ct of chainTags) {
-      await tx.objectStore('chainTags').delete([ct.chainId, ct.tagId]);
-    }
-    const noteTags = await tx.objectStore('noteTags').index('by-tagId').getAll(id);
-    for (const nt of noteTags) {
-      await tx.objectStore('noteTags').delete([nt.noteId, nt.tagId]);
-    }
-    await tx.done;
+    await runPendingOperation(async () => {
+      const db = await this.db();
+      const tx = db.transaction(['tags', 'chainTags', 'noteTags'], 'readwrite');
+      await tx.objectStore('tags').delete(id);
+      const chainTags = await tx.objectStore('chainTags').index('by-tagId').getAll(id);
+      for (const ct of chainTags) {
+        await tx.objectStore('chainTags').delete([ct.chainId, ct.tagId]);
+      }
+      const noteTags = await tx.objectStore('noteTags').index('by-tagId').getAll(id);
+      for (const nt of noteTags) {
+        await tx.objectStore('noteTags').delete([nt.noteId, nt.tagId]);
+      }
+      await tx.done;
+    });
   }
 
   async assignToChain(chainTag: ChainTag): Promise<void> {
-    const db = await this.db();
-    // Idempotente: usa put para evitar duplicatas
-    await db.put('chainTags', chainTag.toData());
+    await runPendingOperation(async () => {
+      const db = await this.db();
+      // Idempotente: usa put para evitar duplicatas
+      await db.put('chainTags', chainTag.toData());
+    });
   }
 
   async removeFromChain(chainId: UUID, tagId: UUID): Promise<void> {
-    const db = await this.db();
-    await db.delete('chainTags', [chainId, tagId]);
+    await runPendingOperation(async () => {
+      const db = await this.db();
+      await db.delete('chainTags', [chainId, tagId]);
+    });
   }
 
   async assignToNote(noteTag: NoteTag): Promise<void> {
-    const db = await this.db();
-    await db.put('noteTags', noteTag.toData());
+    await runPendingOperation(async () => {
+      const db = await this.db();
+      await db.put('noteTags', noteTag.toData());
+    });
   }
 
   async removeFromNote(noteId: UUID, tagId: UUID): Promise<void> {
-    const db = await this.db();
-    await db.delete('noteTags', [noteId, tagId]);
+    await runPendingOperation(async () => {
+      const db = await this.db();
+      await db.delete('noteTags', [noteId, tagId]);
+    });
   }
 
   async countChainsForTag(tagId: UUID): Promise<number> {

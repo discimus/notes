@@ -4,6 +4,7 @@ import { getDatabase } from '../persistence/schema.js';
 import { Attachment } from '@domain/entities/index.js';
 import type { IAttachmentRepository } from '@domain/repositories/index.js';
 import type { UUID } from '@shared/types/index.js';
+import { runPendingOperation } from '@shared/utilities/index.js';
 
 function sortAttachments(attachments: Attachment[]): Attachment[] {
   return attachments.sort((a, b) => {
@@ -30,32 +31,38 @@ export class IdbAttachmentRepository implements IAttachmentRepository {
   }
 
   async save(attachment: Attachment, blob: Blob): Promise<void> {
-    const db = await this.db();
-    const tx = db.transaction(['attachments', 'attachmentBlobs'], 'readwrite');
-    const metadataWrite = tx.objectStore('attachments').put(attachment.toData());
-    const blobWrite = tx
-      .objectStore('attachmentBlobs')
-      .put({ id: attachment.id, blob });
-    await Promise.all([metadataWrite, blobWrite, tx.done]);
+    await runPendingOperation(async () => {
+      const db = await this.db();
+      const tx = db.transaction(['attachments', 'attachmentBlobs'], 'readwrite');
+      const metadataWrite = tx.objectStore('attachments').put(attachment.toData());
+      const blobWrite = tx
+        .objectStore('attachmentBlobs')
+        .put({ id: attachment.id, blob });
+      await Promise.all([metadataWrite, blobWrite, tx.done]);
+    });
   }
 
   async delete(id: UUID): Promise<void> {
-    const db = await this.db();
-    const tx = db.transaction(['attachments', 'attachmentBlobs'], 'readwrite');
-    await tx.objectStore('attachments').delete(id);
-    await tx.objectStore('attachmentBlobs').delete(id);
-    await tx.done;
+    await runPendingOperation(async () => {
+      const db = await this.db();
+      const tx = db.transaction(['attachments', 'attachmentBlobs'], 'readwrite');
+      await tx.objectStore('attachments').delete(id);
+      await tx.objectStore('attachmentBlobs').delete(id);
+      await tx.done;
+    });
   }
 
   async deleteByChain(chainId: UUID): Promise<void> {
-    const db = await this.db();
-    const tx = db.transaction(['attachments', 'attachmentBlobs'], 'readwrite');
-    const keys = await tx.objectStore('attachments').index('by-chainId').getAllKeys(chainId);
-    for (const key of keys) {
-      await tx.objectStore('attachments').delete(key);
-      await tx.objectStore('attachmentBlobs').delete(key);
-    }
-    await tx.done;
+    await runPendingOperation(async () => {
+      const db = await this.db();
+      const tx = db.transaction(['attachments', 'attachmentBlobs'], 'readwrite');
+      const keys = await tx.objectStore('attachments').index('by-chainId').getAllKeys(chainId);
+      for (const key of keys) {
+        await tx.objectStore('attachments').delete(key);
+        await tx.objectStore('attachmentBlobs').delete(key);
+      }
+      await tx.done;
+    });
   }
 
   async getBlob(id: UUID): Promise<Blob | null> {

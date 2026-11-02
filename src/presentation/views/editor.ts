@@ -41,6 +41,7 @@ import { renderNavToggle } from '../components/NavToggle.js';
 import { togglePinnedChain } from '../app/pinnedChains.js';
 import { getAutoOpenBlankEditor } from '../app/autoOpenBlankEditor.js';
 import { getAutoImportFiles } from '../app/autoImportFiles.js';
+import { installUnloadGuard } from '../app/unloadGuard.js';
 import { el } from '../dom.js';
 import { showComposerModal } from './menus.js';
 import type { AttachmentDTO } from '@application/dto/index.js';
@@ -59,17 +60,8 @@ export function initEditorSession(store: EditorStore = editorStore): void {
   if (sessionInitialized) return;
   sessionInitialized = true;
 
-  const flush = (): void => store.flush();
-
-  window.addEventListener('beforeunload', (event) => {
-    flush();
-    if (!store.hasDirtyTabs()) return;
-    event.preventDefault();
-    event.returnValue = '';
-  });
-  window.addEventListener('pagehide', flush);
-  document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'hidden') flush();
+  installUnloadGuard({
+    flush: () => store.flush(),
   });
 }
 
