@@ -38,6 +38,22 @@ export class AddNoteAttachment {
       );
     }
 
+    if (command.kind === 'image') {
+      const fileName = command.fileName.trim().normalize('NFC').toLowerCase();
+      const existing = await this.attachmentRepo.findByNoteId(note.id);
+      if (
+        existing.some(
+          (attachment) =>
+            attachment.kind === 'image' &&
+            attachment.fileName.trim().normalize('NFC').toLowerCase() === fileName
+        )
+      ) {
+        throw new InvariantViolationError(
+          'Já existe uma imagem com este nome nesta nota.'
+        );
+      }
+    }
+
     const common = {
       noteId: note.id,
       chainId: chain.id,

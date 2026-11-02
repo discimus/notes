@@ -108,6 +108,8 @@ function renderImage(
 ): HTMLElement {
   const item = el('div', 'chain-attachment chain-attachment--image');
   item.dataset['attachmentId'] = attachment.id;
+  item.setAttribute('role', 'group');
+  item.setAttribute('aria-roledescription', 'imagem');
 
   const preview = el('button', 'chain-attachment__preview');
   preview.type = 'button';
@@ -144,6 +146,104 @@ function renderImage(
   return item;
 }
 
+function carouselButton(label: string, iconName: string): HTMLButtonElement {
+  const button = el('button', 'btn-icon chain-note__carousel-nav');
+  button.type = 'button';
+  button.setAttribute('aria-label', label);
+  button.title = label;
+  button.innerHTML = icon(iconName);
+  return button;
+}
+
+function mountImageCarousel(
+  grid: HTMLElement,
+  count: number,
+  describeImage: (index: number) => string
+): HTMLElement {
+  const controls = el('div', 'chain-note__carousel-controls');
+  const previous = carouselButton('Imagem anterior', 'chevron_left');
+  const next = carouselButton('Próxima imagem', 'chevron_right');
+  const dots = el('div', 'chain-note__carousel-dots');
+  dots.setAttribute('role', 'group');
+  dots.setAttribute('aria-label', 'Selecionar imagem');
+
+  const dotButtons = Array.from({ length: count }, (_, index) => {
+    const dot = el('button', 'chain-note__carousel-dot');
+    dot.type = 'button';
+    dot.setAttribute('aria-label', `Ir para imagem ${index + 1} de ${count}`);
+    dot.title = describeImage(index);
+    dot.addEventListener('click', () => scrollToIndex(index));
+    dots.appendChild(dot);
+    return dot;
+  });
+
+  let activeIndex = 0;
+  const setActive = (index: number): void => {
+    const nextIndex = Math.max(0, Math.min(count - 1, index));
+    if (nextIndex === activeIndex && dotButtons[activeIndex]?.hasAttribute('aria-current')) {
+      return;
+    }
+    activeIndex = nextIndex;
+    dotButtons.forEach((dot, dotIndex) => {
+      if (dotIndex === activeIndex) dot.setAttribute('aria-current', 'true');
+      else dot.removeAttribute('aria-current');
+    });
+    previous.disabled = activeIndex === 0;
+    next.disabled = activeIndex === count - 1;
+  };
+
+  const scrollToIndex = (index: number): void => {
+    const target = Math.max(0, Math.min(count - 1, index));
+    setActive(target);
+    const behavior =
+      typeof window.matchMedia === 'function' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches
+        ? 'auto'
+        : 'smooth';
+    const left = grid.clientWidth * target;
+    if (typeof grid.scrollTo === 'function') {
+      grid.scrollTo({ left, behavior });
+    } else {
+      grid.scrollLeft = left;
+    }
+  };
+
+  const currentIndex = (): number => {
+    const width = grid.clientWidth;
+    return width > 0 ? Math.round(grid.scrollLeft / width) : activeIndex;
+  };
+
+  const syncFromScroll = (): void => setActive(currentIndex());
+
+  grid.setAttribute('tabindex', '0');
+  grid.setAttribute('role', 'region');
+  grid.setAttribute('aria-roledescription', 'carrossel');
+  grid.setAttribute('aria-label', 'Imagens da nota');
+  grid.addEventListener('scroll', syncFromScroll, { passive: true });
+  grid.addEventListener('keydown', (event) => {
+    if (event.key === 'ArrowLeft') {
+      event.preventDefault();
+      scrollToIndex(currentIndex() - 1);
+    } else if (event.key === 'ArrowRight') {
+      event.preventDefault();
+      scrollToIndex(currentIndex() + 1);
+    } else if (event.key === 'Home') {
+      event.preventDefault();
+      scrollToIndex(0);
+    } else if (event.key === 'End') {
+      event.preventDefault();
+      scrollToIndex(count - 1);
+    }
+  });
+
+  previous.addEventListener('click', () => scrollToIndex(activeIndex - 1));
+  next.addEventListener('click', () => scrollToIndex(activeIndex + 1));
+
+  controls.append(previous, dots, next);
+  setActive(0);
+  return controls;
+}
+
 export function renderNoteAttachments(
   host: HTMLElement,
   attachments: AttachmentDTO[],
@@ -166,6 +266,10 @@ export function renderNoteAttachments(
 
   imageAttachments.forEach((attachment, index) => {
     const item = renderImage(images, attachment, handlers);
+    item.setAttribute(
+      'aria-label',
+      `Imagem ${index + 1} de ${imageAttachments.length}`
+    );
     if (index >= previewImageLimit) {
       item.classList.add('chain-attachment--preview-hidden');
     }
@@ -184,6 +288,14 @@ export function renderNoteAttachments(
     imageGroup.setAttribute('role', 'group');
     imageGroup.setAttribute('aria-label', 'Imagens da nota');
     imageGroup.appendChild(images);
+    if (imageAttachments.length > 1) {
+      imageGroup.appendChild(
+        mountImageCarousel(images, imageAttachments.length, (index) => {
+          const attachment = imageAttachments[index];
+          return attachment?.altText || attachment?.fileName || `Imagem ${index + 1}`;
+        })
+      );
+    }
 
     const hiddenCount = Math.max(0, imageAttachments.length - previewImageLimit);
     if (hiddenCount > 0) {

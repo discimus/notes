@@ -3221,20 +3221,46 @@
 .app-shell--compact .chain-note__attachment-more {
   display: none;
 }
-.app-shell--image-column .chain-note .chain-note__attachment-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: var(--spacing-3);
-  overflow: visible;
-  scroll-snap-type: none;
+.app-shell--image-column .chain-note .chain-note__attachment-grid,
+.app-shell--image-column.app-shell--full-note-content:not(
+    .app-shell--compact
+  )
+  .chain-note
+  .chain-note__attachment-grid {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-inline: contain;
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
+  scrollbar-width: none;
+  border-radius: var(--md-sys-shape-corner-medium);
+  background-color: var(--md-sys-color-surface-container-low);
+}
+.app-shell--image-column
+  .chain-note
+  .chain-note__attachment-grid::-webkit-scrollbar {
+  display: none;
 }
 .app-shell--image-column
   .chain-note
   .chain-note__attachment-grid
   .chain-attachment--image {
+  flex: 0 0 100%;
   width: 100%;
+  min-width: 100%;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
 }
 .app-shell--image-column
+  .chain-note
+  .chain-note__attachment-grid
+  .chain-attachment__image,
+.app-shell--image-column.app-shell--full-note-content:not(
+    .app-shell--compact
+  )
   .chain-note
   .chain-note__attachment-grid
   .chain-attachment__image {
@@ -3251,6 +3277,72 @@
 }
 .app-shell--image-column .chain-note__attachment-more {
   display: none;
+}
+.chain-note__carousel-controls {
+  display: none;
+}
+.app-shell--image-column .chain-note__carousel-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-1);
+  margin-top: var(--spacing-2);
+}
+.chain-note__carousel-controls[hidden] {
+  display: none;
+}
+.chain-note__carousel-nav {
+  flex-shrink: 0;
+}
+.chain-note__carousel-nav:disabled {
+  opacity: 0.38;
+  cursor: default;
+}
+.chain-note__carousel-dots {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.chain-note__carousel-dot {
+  position: relative;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--md-sys-shape-corner-full);
+  background: transparent;
+  cursor: pointer;
+}
+.chain-note__carousel-dot::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 6px;
+  height: 6px;
+  border-radius: var(--md-sys-shape-corner-full);
+  background-color: var(--md-sys-color-outline-variant);
+  transform: translate(-50%, -50%);
+  transition:
+    width var(--md-sys-motion-duration-short3),
+    background-color var(--md-sys-motion-duration-short3);
+}
+.chain-note__carousel-dot[aria-current='true']::before {
+  width: 18px;
+  background-color: var(--md-sys-color-primary);
+}
+.chain-note__carousel-dot:focus-visible {
+  outline: 2px solid var(--md-sys-color-primary);
+  outline-offset: 3px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .app-shell--image-column .chain-note .chain-note__attachment-grid {
+    scroll-behavior: auto;
+  }
+  .chain-note__carousel-dot {
+    transition: none;
+  }
 }
 .chain-note__audio-list {
   display: flex;
