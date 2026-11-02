@@ -51,6 +51,7 @@ const EXPAND_DELTA_MIN = 8;
 const COMPACT_DELAY_MS = 120;
 const EXPAND_DELAY_MS = 120;
 const SCROLL_IGNORE_MS = 100;
+const SCROLL_BOTTOM_TOLERANCE = 16;
 const PREVIEW_DOUBLE_CLICK_MS = 500;
 const PERIOD_FLASH_MS = 1200;
 const PERIOD_HIGHLIGHT_MS = 5000;
@@ -611,7 +612,13 @@ export function mountChainDocument(
     const space = Math.max(0, Math.ceil(rootRect.bottom - footerRect.top));
     if (space <= 0) return;
 
-    root.style.setProperty('--chain-actions-overlay-space', `${space}px`);
+    const value = `${space}px`;
+    if (
+      root.style.getPropertyValue('--chain-actions-overlay-space') === value
+    ) {
+      return;
+    }
+    root.style.setProperty('--chain-actions-overlay-space', value);
   };
 
   const onActionSpaceResize = (): void => syncActionOverlaySpace();
@@ -1183,10 +1190,10 @@ export function mountChainDocument(
 
   const syncHeaderVisibility = (): void => {
     const headerFocused = header.contains(document.activeElement);
-    root.classList.toggle(
-      'chain-document--header-hidden',
-      actionsCompact && !headerFocused
-    );
+    const shouldHide = actionsCompact && !headerFocused;
+    const hidden = root.classList.contains('chain-document--header-hidden');
+    if (hidden === shouldHide) return;
+    root.classList.toggle('chain-document--header-hidden', shouldHide);
   };
 
   const setActionsCompact = (value: boolean): void => {
@@ -1253,6 +1260,11 @@ export function mountChainDocument(
       const current = scroll.scrollTop;
       const delta = current - lastScrollTop;
       lastScrollTop = current;
+      const distanceToBottom =
+        scroll.scrollHeight - current - scroll.clientHeight;
+      const atBottom =
+        scroll.scrollHeight > scroll.clientHeight &&
+        distanceToBottom <= SCROLL_BOTTOM_TOLERANCE;
 
       if (current <= 8) {
         cancelCompact();
@@ -1270,11 +1282,11 @@ export function mountChainDocument(
         return;
       }
 
-      if (delta < 0) {
+      if (delta < 0 && !atBottom) {
         cancelCompact();
       }
 
-      if (delta < 0 && actionsCompact) {
+      if (delta < 0 && actionsCompact && !atBottom) {
         upwardDistance += Math.abs(delta);
         if (upwardDistance >= EXPAND_DELTA_MIN && expandTimer === null) {
           expandTimer = setTimeout(() => {
