@@ -42,7 +42,10 @@ export function notePeriodKey(date: Date): string {
   return `${date.getFullYear()}-${month}`;
 }
 
-export function buildNotePeriods(notes: NoteDTO[]): NotePeriodYear[] {
+export function buildNotePeriods(
+  notes: NoteDTO[],
+  order: 'asc' | 'desc' = 'desc'
+): NotePeriodYear[] {
   const sorted = [...notes].sort((a, b) => a.createdAt.localeCompare(b.createdAt));
   const years = new Map<
     number,
@@ -82,7 +85,7 @@ export function buildNotePeriods(notes: NoteDTO[]): NotePeriodYear[] {
   }
 
   return [...years.values()]
-    .sort((a, b) => b.year - a.year)
+    .sort((a, b) => (order === 'asc' ? a.year - b.year : b.year - a.year))
     .map((yearEntry) => ({
       year: yearEntry.year,
       count: yearEntry.count,

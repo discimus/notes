@@ -529,7 +529,10 @@ export function mountChainDocument(
   const periodMenu = mountPeriodMenu({
     onSelect: (month) => {
       activePeriodKey = month.key;
-      periodMenu.update(buildNotePeriods(currentTab.notes), activePeriodKey);
+      periodMenu.update(
+        buildNotePeriods(currentTab.notes, 'asc'),
+        activePeriodKey
+      );
       syncPeriodSelection(month.noteIds);
       flashPeriodNotes(month.noteIds);
       schedulePeriodFocus(month.noteIds);
@@ -751,7 +754,7 @@ export function mountChainDocument(
       activeEditNoteId ?? ''
     }`;
 
-    const periods = buildNotePeriods(currentTab.notes);
+    const periods = buildNotePeriods(currentTab.notes, 'asc');
     const activeMonth = findPeriodMonth(periods, activePeriodKey);
     periodMenu.update(periods, activePeriodKey);
 
