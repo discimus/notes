@@ -1313,6 +1313,29 @@
 .app-shell--compact .chain-note-empty {
   padding: var(--spacing-4);
 }
+.app-shell--compact .tags-page {
+  padding: var(--spacing-3) var(--spacing-3) var(--spacing-5);
+  gap: var(--spacing-3);
+}
+.app-shell--compact .tags-header {
+  gap: var(--spacing-1);
+}
+.app-shell--compact .tags-header__heading {
+  gap: 0;
+}
+.app-shell--compact .tag-row {
+  grid-template-columns: 20px minmax(0, 1fr) auto 36px;
+  gap: var(--spacing-2);
+  min-height: 44px;
+  padding: 0 0 0 var(--spacing-2);
+}
+.app-shell--compact .tag-row__icon {
+  font-size: 18px;
+}
+.app-shell--compact .tag-row__menu {
+  width: 36px;
+  height: 36px;
+}
 .timeline-filters {
   display: flex;
   flex-direction: column;
