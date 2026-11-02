@@ -2413,10 +2413,11 @@
 }
 .chain-note__tags {
   display: flex;
-  flex: 0 1 auto;
+  flex-wrap: wrap;
   align-items: center;
+  gap: 4px;
   min-width: 0;
-  margin: 0;
+  margin: 0 0 var(--spacing-2);
 }
 .chain-note__tags .tag-editor {
   flex-wrap: wrap;
@@ -2451,18 +2452,24 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 4px;
   flex-shrink: 0;
-  width: 28px;
-  height: 28px;
-  min-height: 28px;
-  padding: 0;
-  border: 0;
+  width: auto;
+  height: 24px;
+  min-height: 24px;
+  padding: 1px 10px 1px 8px;
+  border: 1px solid var(--md-sys-color-outline-variant);
   border-radius: var(--md-sys-shape-corner-full);
-  background-color: transparent;
+  background-color: var(--md-sys-color-surface-container-lowest);
   color: var(--md-sys-color-on-surface-variant);
+  font-size: var(--md-sys-typescale-label-small-size);
+  font-weight: var(--md-sys-typescale-label-small-weight);
+  line-height: 1;
+  white-space: nowrap;
   cursor: pointer;
   transition:
     background-color var(--md-sys-motion-duration-short3),
+    border-color var(--md-sys-motion-duration-short3),
     color var(--md-sys-motion-duration-short3);
   -webkit-tap-highlight-color: transparent;
 }
@@ -2473,19 +2480,24 @@
   border-radius: inherit;
 }
 .chain-note__tag-add:hover {
+  border-color: color-mix(
+    in srgb,
+    var(--md-sys-color-primary) 48%,
+    var(--md-sys-color-outline-variant)
+  );
   background-color: color-mix(
     in srgb,
-    var(--md-sys-color-on-surface-variant) 8%,
-    transparent
+    var(--md-sys-color-primary) 8%,
+    var(--md-sys-color-surface-container-lowest)
   );
-  color: var(--md-sys-color-on-surface);
+  color: var(--md-sys-color-primary);
 }
 .chain-note__tag-add:focus-visible {
   outline: 2px solid var(--md-sys-color-primary);
   outline-offset: 2px;
 }
 .chain-note__tag-add .material-symbols-rounded {
-  font-size: 18px;
+  font-size: 16px;
 }
 @media (pointer: coarse) {
   .chain-note__tags .chip--selected {
@@ -2493,9 +2505,10 @@
     padding: 3px 8px 3px 12px;
   }
   .chain-note__tag-add {
-    width: 36px;
-    height: 36px;
-    min-height: 36px;
+    width: auto;
+    height: 32px;
+    min-height: 32px;
+    padding: 3px 10px 3px 10px;
   }
 }
 .chain-note__body {

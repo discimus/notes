@@ -81,10 +81,11 @@ describe('Cabeçalho compacto da nota', () => {
 
     expect(article?.querySelector('.chain-note__time')).not.toBeNull();
     expect(article?.querySelectorAll('.chain-note__tags')).toHaveLength(1);
-    expect(tags?.parentElement).toBe(meta);
+    expect(tags?.parentElement).toBe(article);
+    expect(tags?.previousElementSibling).toBe(meta);
     expect(tags?.contains(add ?? null)).toBe(true);
     expect(article?.querySelector('.chain-note__body')).not.toBeNull();
-    expect(meta?.nextElementSibling?.classList.contains('chain-note__body')).toBe(
+    expect(tags?.nextElementSibling?.classList.contains('chain-note__body')).toBe(
       true
     );
   });
@@ -96,10 +97,10 @@ describe('Cabeçalho compacto da nota', () => {
       '.chain-note__tag-add'
     );
     const chip = view.element.querySelector<HTMLElement>(
-      '.chain-note__tags .chip'
+      '.chain-note__tags .chip--selected'
     );
 
-    expect(add?.textContent).not.toContain('Tag');
+    expect(add?.textContent).toContain('Nova tag');
     expect(add?.querySelectorAll('.material-symbols-rounded')).toHaveLength(1);
     expect(add?.getAttribute('aria-label')).toBe('Adicionar tag à nota');
     expect(add?.title).toBe('Adicionar tag');

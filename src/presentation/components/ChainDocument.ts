@@ -246,7 +246,6 @@ function renderNote(
     tagsRow.setAttribute('aria-label', 'Tags da nota');
     tagsRow.dataset['noteTagsHost'] = 'true';
     tagsRow.dataset['noteId'] = note.id;
-    meta.insertBefore(tagsRow, actions);
   }
 
   const text = el(
@@ -313,7 +312,9 @@ function renderNote(
       { previewImageLimit: 3 }
     );
   }
-  article.append(meta, body);
+  article.append(meta);
+  if (tagsRow) article.append(tagsRow);
+  article.append(body);
   return article;
 }
 
@@ -782,7 +783,7 @@ export function mountChainDocument(
             addButtonAriaLabel: 'Adicionar tag \u00e0 nota',
             addButtonTitle: 'Adicionar tag',
             addButtonHaspopup: 'dialog',
-            addButtonText: '',
+            addButtonText: 'Nova tag',
             removeAriaLabel: (tag) => `Remover tag ${tag.name} desta nota`,
           }
         );

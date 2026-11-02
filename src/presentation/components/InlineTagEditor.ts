@@ -199,6 +199,16 @@ export function mountInlineTagEditor(
       });
       chip.appendChild(remove);
 
+      chip.addEventListener('mousedown', (event) => {
+        if (event.button === 1) event.preventDefault();
+      });
+      chip.addEventListener('auxclick', (event) => {
+        if (event.button !== 1) return;
+        event.preventDefault();
+        event.stopPropagation();
+        handlers.onRemove(tag);
+      });
+
       chipsHost.appendChild(chip);
     });
   };
