@@ -1546,6 +1546,178 @@ export const AppController = {
     }
   },
 
+  enterChainsBulkMode(): void {
+    appState.set({ chainsBulkMode: true, chainsBulkSelection: [] });
+  },
+
+  exitChainsBulkMode(): void {
+    appState.set({ chainsBulkMode: false, chainsBulkSelection: [] });
+  },
+
+  toggleChainSelection(chainId: string): void {
+    const state = appState.get();
+    if (!state.chainsBulkMode) return;
+    const selected = state.chainsBulkSelection.includes(chainId);
+    appState.set({
+      chainsBulkSelection: selected
+        ? state.chainsBulkSelection.filter((id) => id !== chainId)
+        : [...state.chainsBulkSelection, chainId],
+    });
+  },
+
+  async archiveSelectedChains(): Promise<void> {
+    const state = appState.get();
+    const ids = [...new Set(state.chainsBulkSelection)];
+    if (ids.length === 0) return;
+
+    const confirmed = await showConfirmDialog({
+      title:
+        ids.length === 1
+          ? 'Arquivar coleção?'
+          : `Arquivar ${ids.length} coleções?`,
+      body:
+        ids.length === 1
+          ? 'A coleção será movida para o arquivo. Você pode restaurá-la a qualquer momento.'
+          : 'As coleções serão movidas para o arquivo. Você pode restaurá-las a qualquer momento.',
+      icon: 'archive',
+      confirmLabel: 'Arquivar',
+    });
+    if (!confirmed) return;
+
+    const archived: string[] = [];
+    let failures = 0;
+    for (const chainId of ids) {
+      try {
+        await archiveChain.execute(chainId);
+        editorStore.closeChainTabs(chainId);
+        archived.push(chainId);
+      } catch {
+        failures += 1;
+      }
+    }
+
+    const removedCurrent =
+      state.selectedChainId !== null && archived.includes(state.selectedChainId);
+    const nextView =
+      removedCurrent && state.view === 'chain-detail' ? 'chains' : state.view;
+    appState.set({
+      chainsBulkMode: false,
+      chainsBulkSelection: [],
+      ...(removedCurrent
+        ? { selectedChainId: null, currentChain: null, view: nextView }
+        : {}),
+    });
+    if (removedCurrent && nextView === 'chains') pushNavigation('chains');
+
+    if (archived.length > 0) {
+      snackbar.success(
+        `${archived.length} ${
+          archived.length === 1 ? 'coleção arquivada' : 'coleções arquivadas'
+        }.`,
+        {
+          label: 'Desfazer',
+          onClick: () => {
+            void (async () => {
+              for (const chainId of archived) {
+                try {
+                  await restoreChain.execute(chainId);
+                } catch {
+                  continue;
+                }
+              }
+              await loadChains();
+            })();
+          },
+        }
+      );
+    }
+    if (failures > 0) {
+      snackbar.error(
+        `${failures} ${failures === 1 ? 'coleção não pôde' : 'coleções não puderam'} ser arquivada${failures === 1 ? '' : 's'}.`
+      );
+    }
+    await loadChains();
+  },
+
+  async deleteSelectedChains(): Promise<void> {
+    const state = appState.get();
+    const ids = [...new Set(state.chainsBulkSelection)];
+    if (ids.length === 0) return;
+
+    if (getSettings().confirmBeforeTrash) {
+      const confirmed = await showConfirmDialog({
+        title:
+          ids.length === 1
+            ? 'Mover para a lixeira?'
+            : `Mover ${ids.length} coleções para a lixeira?`,
+        body:
+          ids.length === 1
+            ? 'A coleção será movida para a lixeira. Você pode restaurá-la ou excluí-la permanentemente.'
+            : 'As coleções serão movidas para a lixeira. Você pode restaurá-las ou excluí-las permanentemente.',
+        icon: 'delete',
+        confirmLabel: 'Mover para lixeira',
+        destructive: true,
+      });
+      if (!confirmed) return;
+    }
+
+    const deleted: string[] = [];
+    let failures = 0;
+    for (const chainId of ids) {
+      try {
+        await deleteChain.execute(chainId, false);
+        editorStore.closeChainTabs(chainId);
+        deleted.push(chainId);
+      } catch {
+        failures += 1;
+      }
+    }
+
+    const removedCurrent =
+      state.selectedChainId !== null && deleted.includes(state.selectedChainId);
+    const nextView =
+      removedCurrent && state.view === 'chain-detail' ? 'chains' : state.view;
+    appState.set({
+      chainsBulkMode: false,
+      chainsBulkSelection: [],
+      ...(removedCurrent
+        ? { selectedChainId: null, currentChain: null, view: nextView }
+        : {}),
+    });
+    if (removedCurrent && nextView === 'chains') pushNavigation('chains');
+
+    if (deleted.length > 0) {
+      snackbar.success(
+        `${deleted.length} ${
+          deleted.length === 1
+            ? 'coleção movida para a lixeira'
+            : 'coleções movidas para a lixeira'
+        }.`,
+        {
+          label: 'Desfazer',
+          onClick: () => {
+            void (async () => {
+              for (const chainId of deleted) {
+                try {
+                  await restoreFromTrash.execute(chainId);
+                } catch {
+                  continue;
+                }
+              }
+              await loadChains();
+            })();
+          },
+        }
+      );
+    }
+    if (failures > 0) {
+      snackbar.error(
+        `${failures} ${failures === 1 ? 'coleção não pôde' : 'coleções não puderam'} ser movida${failures === 1 ? '' : 's'} para a lixeira.`
+      );
+    }
+    await loadChains();
+  },
+
   async archiveChain(chainId: string): Promise<void> {
     const confirmed = await showConfirmDialog({
       title: 'Arquivar coleção?',
@@ -1883,6 +2055,8 @@ export const AppController = {
     appState.set({
       view,
       selectedChainId: chainId ?? null,
+      chainsBulkMode: false,
+      chainsBulkSelection: [],
       currentChain: null,
       chainFilterQuery: '',
     });

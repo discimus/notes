@@ -255,6 +255,16 @@ export function mountEditorView(
         item?.querySelector<HTMLButtonElement>('.chain-item__pin')?.focus();
       });
     },
+    onEnterBulkSelection: () => AppController.enterChainsBulkMode(),
+    onExitBulkSelection: () => AppController.exitChainsBulkMode(),
+    onToggleBulkSelection: (chainId) =>
+      AppController.toggleChainSelection(chainId),
+    onArchiveSelectedChains: () => {
+      void AppController.archiveSelectedChains();
+    },
+    onDeleteSelectedChains: () => {
+      void AppController.deleteSelectedChains();
+    },
     onImportFiles: (chainId, files) => {
       void importFilesToChain(chainId, files);
     },

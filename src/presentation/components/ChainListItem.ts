@@ -6,6 +6,9 @@ export interface ChainListItemOptions {
   isPinned?: boolean;
   onTogglePin?: () => void;
   onOpenPinned?: () => void;
+  selectionMode?: boolean;
+  selected?: boolean;
+  onToggleSelect?: () => void;
 }
 
 export function renderChainListItem(
@@ -14,7 +17,14 @@ export function renderChainListItem(
   onOpen: () => void,
   options: ChainListItemOptions = {}
 ): HTMLElement {
-  const item = el('div', `chain-item${isActive ? ' chain-item--active' : ''}`);
+  const selectionMode = options.selectionMode === true;
+  const selected = options.selected === true;
+  const item = el(
+    'div',
+    `chain-item${isActive ? ' chain-item--active' : ''}${
+      selectionMode ? ' chain-item--selection' : ''
+    }${selected ? ' chain-item--selected' : ''}`
+  );
   const pinned = options.isPinned ?? false;
   const pinnedLabel = pinned ? ' (fixada)' : '';
   const noteLabel = `${chain.noteCount} nota${chain.noteCount !== 1 ? 's' : ''}`;
@@ -22,12 +32,20 @@ export function renderChainListItem(
   item.dataset['chainId'] = chain.id;
   item.setAttribute('role', 'listitem');
   item.setAttribute('tabindex', '0');
-  item.setAttribute('aria-label', `Coleção: ${chain.displayTitle}${pinnedLabel}`);
+  item.setAttribute(
+    'aria-label',
+    selectionMode
+      ? `${selected ? 'Desmarcar' : 'Selecionar'} coleção: ${chain.displayTitle}`
+      : `Coleção: ${chain.displayTitle}${pinnedLabel}`
+  );
   item.setAttribute('aria-current', isActive ? 'true' : 'false');
-  item.title = options.onOpenPinned
-    ? `${chain.displayTitle} — clique duas vezes para manter a aba aberta`
-    : chain.displayTitle;
-  if (options.onOpenPinned) {
+  if (selectionMode) item.setAttribute('aria-selected', selected ? 'true' : 'false');
+  item.title = selectionMode
+    ? `${selected ? 'Desmarcar' : 'Selecionar'} ${chain.displayTitle}`
+    : options.onOpenPinned
+      ? `${chain.displayTitle} — clique duas vezes para manter a aba aberta`
+      : chain.displayTitle;
+  if (options.onOpenPinned && !selectionMode) {
     item.setAttribute(
       'aria-description',
       'Clique duas vezes ou pressione Ctrl+Enter para manter a aba aberta.'
@@ -42,7 +60,19 @@ export function renderChainListItem(
     </div>
   `;
 
-  if (options.onTogglePin) {
+  if (selectionMode) {
+    const check = el(
+      'span',
+      `chain-item__select material-symbols-rounded${
+        selected ? ' chain-item__select--checked' : ''
+      }`
+    );
+    check.setAttribute('aria-hidden', 'true');
+    check.textContent = selected ? 'check_box' : 'check_box_outline_blank';
+    item.insertBefore(check, item.firstChild);
+  }
+
+  if (options.onTogglePin && !selectionMode) {
     const pin = el('button', 'chain-item__pin');
     pin.type = 'button';
     pin.setAttribute('aria-pressed', pinned ? 'true' : 'false');
@@ -63,6 +93,11 @@ export function renderChainListItem(
   }
 
   item.addEventListener('click', (event) => {
+    if (selectionMode) {
+      event.preventDefault();
+      options.onToggleSelect?.();
+      return;
+    }
     if (event.detail >= 2 && options.onOpenPinned) {
       options.onOpenPinned();
       return;
@@ -72,6 +107,10 @@ export function renderChainListItem(
   item.addEventListener('keydown', (event) => {
     if (event.key !== 'Enter' && event.key !== ' ') return;
     event.preventDefault();
+    if (selectionMode) {
+      options.onToggleSelect?.();
+      return;
+    }
     if ((event.ctrlKey || event.metaKey) && options.onOpenPinned) {
       options.onOpenPinned();
       return;

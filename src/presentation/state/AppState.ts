@@ -29,6 +29,8 @@ export interface TimelineFilters {
 export interface AppState {
   view: AppView;
   selectedChainId: string | null;
+  chainsBulkMode: boolean;
+  chainsBulkSelection: string[];
   chainSummaries: ChainSummaryDTO[];
   currentChain: ChainDetailDTO | null;
   allTags: TagDTO[];
@@ -72,6 +74,8 @@ class AppStateStore {
   private state: AppState = {
     view: 'editor',
     selectedChainId: null,
+    chainsBulkMode: false,
+    chainsBulkSelection: [],
     chainSummaries: [],
     currentChain: null,
     allTags: [],

@@ -1931,6 +1931,34 @@
   gap: var(--spacing-2);
   min-height: 40px;
 }
+.editor-sidebar__title-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.editor-sidebar__select {
+  flex-shrink: 0;
+}
+.editor-sidebar__bulk {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+}
+.editor-sidebar__bulk[hidden] {
+  display: none;
+}
+.editor-sidebar__bulk-count {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: var(--md-sys-typescale-label-large-size);
+  font-weight: var(--md-sys-typescale-label-large-weight);
+}
 .editor-sidebar__title {
   font-size: var(--md-sys-typescale-label-large-size);
   font-weight: var(--md-sys-typescale-label-large-weight);

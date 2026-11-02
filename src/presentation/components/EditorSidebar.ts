@@ -11,6 +11,11 @@ export interface EditorSidebarHandlers {
   onFilter: (query: string) => void;
   onTogglePin: (chainId: string) => void;
   onImportFiles?: (chainId: string, files: File[]) => void;
+  onEnterBulkSelection?: () => void;
+  onExitBulkSelection?: () => void;
+  onToggleBulkSelection?: (chainId: string) => void;
+  onArchiveSelectedChains?: () => void;
+  onDeleteSelectedChains?: () => void;
 }
 
 export interface EditorSidebarView {
@@ -27,8 +32,22 @@ export function mountEditorSidebar(handlers: EditorSidebarHandlers): EditorSideb
   header.innerHTML = `
     <div class="editor-sidebar__title-row">
       <h2 class="editor-sidebar__title">Coleções</h2>
-      <button class="btn-icon btn-icon--primary" id="editor-new-chain" type="button" aria-label="Nova coleção (N)" title="Nova coleção (N)">
-        <span class="material-symbols-rounded" aria-hidden="true">add</span>
+      <div class="editor-sidebar__title-actions">
+        <button class="btn-icon editor-sidebar__select" id="editor-sidebar-select" type="button" aria-label="Selecionar coleções" title="Selecionar coleções" aria-pressed="false">
+          <span class="material-symbols-rounded" aria-hidden="true">checklist</span>
+        </button>
+        <button class="btn-icon btn-icon--primary" id="editor-new-chain" type="button" aria-label="Nova coleção (N)" title="Nova coleção (N)">
+          <span class="material-symbols-rounded" aria-hidden="true">add</span>
+        </button>
+      </div>
+    </div>
+    <div class="editor-sidebar__bulk" id="editor-sidebar-bulk" hidden>
+      <span class="editor-sidebar__bulk-count" id="editor-sidebar-bulk-count"></span>
+      <button class="btn-icon" id="editor-sidebar-bulk-archive" type="button" aria-label="Arquivar coleções selecionadas" title="Arquivar selecionadas">
+        <span class="material-symbols-rounded" aria-hidden="true">archive</span>
+      </button>
+      <button class="btn-icon" id="editor-sidebar-bulk-delete" type="button" aria-label="Excluir coleções selecionadas" title="Mover selecionadas para a lixeira">
+        <span class="material-symbols-rounded" aria-hidden="true">delete</span>
       </button>
     </div>
     <div class="search-bar editor-sidebar__search">
@@ -50,6 +69,26 @@ export function mountEditorSidebar(handlers: EditorSidebarHandlers): EditorSideb
 
   const search = header.querySelector<HTMLInputElement>('#editor-sidebar-search')!;
   const clear = header.querySelector<HTMLButtonElement>('#editor-sidebar-clear')!;
+  const selectButton = header.querySelector<HTMLButtonElement>(
+    '#editor-sidebar-select'
+  )!;
+  const selectIcon = selectButton.querySelector<HTMLElement>(
+    '.material-symbols-rounded'
+  )!;
+  const newButton = header.querySelector<HTMLButtonElement>(
+    '#editor-new-chain'
+  )!;
+  const bulkRow = header.querySelector<HTMLElement>('#editor-sidebar-bulk')!;
+  const bulkCount = header.querySelector<HTMLElement>(
+    '#editor-sidebar-bulk-count'
+  )!;
+  const bulkArchive = header.querySelector<HTMLButtonElement>(
+    '#editor-sidebar-bulk-archive'
+  )!;
+  const bulkDelete = header.querySelector<HTMLButtonElement>(
+    '#editor-sidebar-bulk-delete'
+  )!;
+  let bulkSelectionActive = false;
 
   search.addEventListener('input', () => handlers.onFilter(search.value));
   clear.addEventListener('click', () => {
@@ -57,9 +96,17 @@ export function mountEditorSidebar(handlers: EditorSidebarHandlers): EditorSideb
     handlers.onFilter('');
     search.focus();
   });
-  header
-    .querySelector<HTMLButtonElement>('#editor-new-chain')
-    ?.addEventListener('click', handlers.onNewChain);
+  newButton.addEventListener('click', handlers.onNewChain);
+  selectButton.addEventListener('click', () => {
+    if (bulkSelectionActive) handlers.onExitBulkSelection?.();
+    else handlers.onEnterBulkSelection?.();
+  });
+  bulkArchive.addEventListener('click', () =>
+    handlers.onArchiveSelectedChains?.()
+  );
+  bulkDelete.addEventListener('click', () =>
+    handlers.onDeleteSelectedChains?.()
+  );
 
   let dropTarget: HTMLElement | null = null;
 
@@ -120,6 +167,32 @@ export function mountEditorSidebar(handlers: EditorSidebarHandlers): EditorSideb
     }
     clear.hidden = !state.chainFilterQuery.trim();
 
+    const bulkMode = state.chainsBulkMode;
+    const canSelect = Boolean(handlers.onEnterBulkSelection);
+    bulkSelectionActive = bulkMode;
+    selectButton.hidden = !canSelect;
+    selectButton.classList.toggle('btn-icon--active', bulkMode);
+    selectButton.setAttribute('aria-pressed', bulkMode ? 'true' : 'false');
+    selectButton.setAttribute(
+      'aria-label',
+      bulkMode ? 'Cancelar seleção de coleções' : 'Selecionar coleções'
+    );
+    selectButton.title = bulkMode
+      ? 'Cancelar seleção de coleções'
+      : 'Selecionar coleções';
+    selectIcon.textContent = bulkMode ? 'close' : 'checklist';
+    newButton.hidden = bulkMode;
+    bulkRow.hidden = !bulkMode;
+    if (bulkMode) {
+      const count = state.chainsBulkSelection.length;
+      bulkCount.textContent =
+        count === 0
+          ? 'Selecionar coleções'
+          : `${count} ${count === 1 ? 'selecionada' : 'selecionadas'}`;
+      bulkArchive.disabled = count === 0;
+      bulkDelete.disabled = count === 0;
+    }
+
     clearDropTarget();
     list.innerHTML = '';
 
@@ -155,6 +228,8 @@ export function mountEditorSidebar(handlers: EditorSidebarHandlers): EditorSideb
       return;
     }
 
+    const selectionMode = bulkMode && Boolean(handlers.onToggleBulkSelection);
+
     chains.forEach((chain) => {
       list.appendChild(
         renderChainListItem(
@@ -162,11 +237,23 @@ export function mountEditorSidebar(handlers: EditorSidebarHandlers): EditorSideb
           chain.id === activeChainId,
           () => handlers.onOpenChain(chain.id),
           {
-            isPinned: state.pinnedChainIds.includes(chain.id),
-            onTogglePin: () => handlers.onTogglePin(chain.id),
-            ...(handlers.onOpenChainPinned
-              ? { onOpenPinned: () => handlers.onOpenChainPinned?.(chain.id) }
-              : {}),
+            ...(selectionMode
+              ? {
+                  selectionMode: true,
+                  selected: state.chainsBulkSelection.includes(chain.id),
+                  onToggleSelect: () =>
+                    handlers.onToggleBulkSelection?.(chain.id),
+                }
+              : {
+                  isPinned: state.pinnedChainIds.includes(chain.id),
+                  onTogglePin: () => handlers.onTogglePin(chain.id),
+                  ...(handlers.onOpenChainPinned
+                    ? {
+                        onOpenPinned: () =>
+                          handlers.onOpenChainPinned?.(chain.id),
+                      }
+                    : {}),
+                }),
           }
         )
       );

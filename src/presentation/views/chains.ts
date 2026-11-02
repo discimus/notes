@@ -16,6 +16,87 @@ import {
 import { showChainMenu, showComposerModal } from './menus.js';
 import { renderNavToggle } from '../components/NavToggle.js';
 
+function canBulkSelect(view: AppState['view']): boolean {
+  return view === 'chains' || view === 'chain-detail';
+}
+
+function renderChainsToolbar(state: AppState): HTMLElement {
+  const toolbar = el('div', 'chains-panel__toolbar');
+  toolbar.setAttribute('id', 'chains-panel-toolbar');
+
+  const title = el('span', 'chains-panel__title');
+  const selectable = canBulkSelect(state.view);
+
+  if (state.chainsBulkMode && selectable) {
+    const count = state.chainsBulkSelection.length;
+    title.textContent =
+      count === 0
+        ? 'Selecionar coleções'
+        : `${count} ${count === 1 ? 'selecionada' : 'selecionadas'}`;
+    toolbar.appendChild(title);
+
+    const cancel = el('button', 'btn-icon btn-icon--active');
+    cancel.type = 'button';
+    cancel.setAttribute('aria-label', 'Cancelar seleção de coleções');
+    cancel.setAttribute('aria-pressed', 'true');
+    cancel.title = 'Cancelar seleção de coleções';
+    cancel.innerHTML =
+      '<span class="material-symbols-rounded" aria-hidden="true">close</span>';
+    cancel.addEventListener('click', () => AppController.exitChainsBulkMode());
+    toolbar.appendChild(cancel);
+
+    const archive = el('button', 'btn-icon');
+    archive.type = 'button';
+    archive.disabled = count === 0;
+    archive.setAttribute('aria-label', 'Arquivar coleções selecionadas');
+    archive.title = 'Arquivar selecionadas';
+    archive.innerHTML =
+      '<span class="material-symbols-rounded" aria-hidden="true">archive</span>';
+    archive.addEventListener('click', () => {
+      void AppController.archiveSelectedChains();
+    });
+    toolbar.appendChild(archive);
+
+    const remove = el('button', 'btn-icon');
+    remove.type = 'button';
+    remove.disabled = count === 0;
+    remove.setAttribute('aria-label', 'Excluir coleções selecionadas');
+    remove.title = 'Mover selecionadas para a lixeira';
+    remove.innerHTML =
+      '<span class="material-symbols-rounded" aria-hidden="true">delete</span>';
+    remove.addEventListener('click', () => {
+      void AppController.deleteSelectedChains();
+    });
+    toolbar.appendChild(remove);
+    return toolbar;
+  }
+
+  title.textContent = getViewLabel(state.view);
+  toolbar.appendChild(title);
+
+  if (selectable) {
+    const select = el('button', 'btn-icon chains-panel__select');
+    select.type = 'button';
+    select.setAttribute('aria-label', 'Selecionar coleções');
+    select.title = 'Selecionar coleções';
+    select.setAttribute('aria-pressed', 'false');
+    select.innerHTML =
+      '<span class="material-symbols-rounded" aria-hidden="true">checklist</span>';
+    select.addEventListener('click', () => AppController.enterChainsBulkMode());
+    toolbar.appendChild(select);
+
+    const newBtn = el('button', 'btn-icon btn-icon--primary');
+    newBtn.setAttribute('aria-label', 'Nova coleção (N)');
+    newBtn.setAttribute('title', 'Nova coleção (N)');
+    newBtn.innerHTML =
+      '<span class="material-symbols-rounded" aria-hidden="true">add</span>';
+    newBtn.addEventListener('click', () => showComposerModal());
+    toolbar.appendChild(newBtn);
+  }
+
+  return toolbar;
+}
+
 export function renderChainsLayout(state: AppState): HTMLElement {
   const layout = el('div', 'chains-layout');
 
@@ -29,7 +110,7 @@ export function renderChainsLayout(state: AppState): HTMLElement {
   searchBar.innerHTML = `
     <span class="search-bar__icon material-symbols-rounded" aria-hidden="true">search</span>
     <input type="search" class="search-bar__input" id="chains-search-input"
-      placeholder="Filtrar coleçõesâ€¦" aria-label="Filtrar coleções" autocomplete="off"
+      placeholder="Filtrar coleções…" aria-label="Filtrar coleções" autocomplete="off"
       value="${escapeHtml(state.chainFilterQuery)}" />
     <button class="btn-icon search-bar__clear" id="chains-filter-clear"
       aria-label="Limpar filtro" ${state.chainFilterQuery ? '' : 'hidden'}>
@@ -38,20 +119,7 @@ export function renderChainsLayout(state: AppState): HTMLElement {
   `;
   panelHeader.appendChild(searchBar);
 
-  const toolbar = el('div', 'chains-panel__toolbar');
-  const titleSpan = el('span', 'chains-panel__title');
-  titleSpan.textContent = getViewLabel(state.view);
-  toolbar.appendChild(titleSpan);
-
-  if (state.view === 'chains' || state.view === 'chain-detail') {
-    const newBtn = el('button', 'btn-icon btn-icon--primary');
-    newBtn.setAttribute('aria-label', 'Nova coleção (N)');
-    newBtn.setAttribute('title', 'Nova coleção (N)');
-    newBtn.innerHTML = '<span class="material-symbols-rounded" aria-hidden="true">add</span>';
-    newBtn.addEventListener('click', () => showComposerModal());
-    toolbar.appendChild(newBtn);
-  }
-  panelHeader.appendChild(toolbar);
+  panelHeader.appendChild(renderChainsToolbar(state));
   panel.appendChild(panelHeader);
 
   const list = el('div', 'chains-panel__list');
@@ -94,6 +162,9 @@ export function updateChainsLayout(content: HTMLElement, state: AppState): void 
   const clearFilter = content.querySelector<HTMLButtonElement>('#chains-filter-clear');
   if (clearFilter) clearFilter.hidden = !state.chainFilterQuery.trim();
 
+  const toolbar = content.querySelector<HTMLElement>('#chains-panel-toolbar');
+  if (toolbar) toolbar.replaceWith(renderChainsToolbar(state));
+
   const list = content.querySelector('#chains-list');
   const detail = content.querySelector('#detail-panel');
   if (list) renderChainsList(list as HTMLElement, state);
@@ -135,8 +206,16 @@ function renderChainsList(container: HTMLElement, state: AppState): void {
     return;
   }
 
+  const selectionMode = state.chainsBulkMode && canBulkSelect(state.view);
+
   filtered.forEach((chain) => {
-    const item = renderChainItem(chain, state.selectedChainId === chain.id, state.view);
+    const item = renderChainItem(
+      chain,
+      state.selectedChainId === chain.id,
+      state.view,
+      selectionMode,
+      state.chainsBulkSelection.includes(chain.id)
+    );
     container.appendChild(item);
   });
 }
@@ -144,15 +223,26 @@ function renderChainsList(container: HTMLElement, state: AppState): void {
 function renderChainItem(
   chain: ChainSummaryDTO,
   isActive: boolean,
-  view: string
+  view: AppState['view'],
+  selectionMode: boolean,
+  selected: boolean
 ): HTMLElement {
-  return renderChainListItem(chain, isActive, () => {
-    if (view === 'archived' || view === 'trash') {
-      void AppController.openChain(chain.id);
-    } else {
-      void AppController.openChainInEditor(chain.id);
+  return renderChainListItem(
+    chain,
+    isActive,
+    () => {
+      if (view === 'archived' || view === 'trash') {
+        void AppController.openChain(chain.id);
+      } else {
+        void AppController.openChainInEditor(chain.id);
+      }
+    },
+    {
+      selectionMode,
+      selected,
+      onToggleSelect: () => AppController.toggleChainSelection(chain.id),
     }
-  });
+  );
 }
 
 function renderDetailPanel(container: HTMLElement, state: AppState): void {
