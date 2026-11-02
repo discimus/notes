@@ -20,6 +20,7 @@ import {
 import {
   buildNotePeriods,
   groupNotesByDate,
+  notePeriodKey,
   type NotePeriodMonth,
   type NotePeriodYear,
 } from '../app/editorGrouping.js';
@@ -49,7 +50,6 @@ import {
 import { snackbar } from './Snackbar.js';
 import type { AudioRecorderController, RecordedAudio } from './audioRecorder.js';
 import { pickImagesWithClipboardFallback } from './imageAttachmentInput.js';
-import { dropHasDirectory } from '../app/textFolderImport.js';
 import { el } from '../dom.js';
 import {
   findMatchRange,
@@ -67,9 +67,6 @@ const SCROLL_BOTTOM_TOLERANCE = 16;
 const PERIOD_FLASH_MS = 1200;
 const PERIOD_HIGHLIGHT_MS = 5000;
 const PERIOD_HIGHLIGHT_FADE_MS = 300;
-const HISTORY_INITIAL_PAGE = 80;
-const HISTORY_PAGE_SIZE = 80;
-const HISTORY_MAX_WINDOW = 240;
 const HISTORY_SCROLL_SUPPRESS_MS = 400;
 
 export interface ChainDocumentHandlers {
@@ -113,7 +110,6 @@ export interface ChainDocumentHandlers {
   onRenameNote?: (noteTabId: string, fileName: string) => void;
   onNewDocument?: () => void;
   onImportFiles?: (files: File[]) => void;
-  onImportFolderDrop?: (dataTransfer: DataTransfer) => void;
   onRename?: () => void;
 }
 
@@ -478,7 +474,7 @@ export function mountChainDocument(
 
     <div class="chain-document__drop-overlay" id="chain-drop-overlay" hidden aria-hidden="true">
       <span class="material-symbols-rounded chain-document__drop-icon" aria-hidden="true">upload_file</span>
-      <span class="chain-document__drop-text">Solte para importar</span>
+      <span class="chain-document__drop-text">Solte para importar nesta coleção</span>
     </div>
   `;
 
@@ -541,6 +537,10 @@ export function mountChainDocument(
   let autoEditAttempted = false;
   let autoEditFrame: number | null = null;
   let activePeriodKey: string | null = null;
+  let currentMonthKey: string | null = null;
+  let monthPageExplicit = false;
+  let pendingScrollTop: number | null = null;
+  let pendingScrollToBottom = false;
   const flashTimers = new Map<string, ReturnType<typeof setTimeout>>();
   let periodHighlightTimer: ReturnType<typeof setTimeout> | null = null;
   let periodHighlightFadeTimer: ReturnType<typeof setTimeout> | null = null;
@@ -556,6 +556,19 @@ export function mountChainDocument(
       if (month) return month;
     }
     return null;
+  };
+
+  const latestPeriodMonth = (
+    periods: NotePeriodYear[]
+  ): NotePeriodMonth | null => {
+    const lastYear = periods[periods.length - 1];
+    return lastYear?.months[lastYear.months.length - 1] ?? null;
+  };
+
+  const noteMonthKey = (note: NoteDTO): string | null => {
+    const date = new Date(note.createdAt);
+    if (Number.isNaN(date.getTime())) return null;
+    return notePeriodKey(date);
   };
 
   const clearPeriodHighlightTimers = (): void => {
@@ -630,14 +643,17 @@ export function mountChainDocument(
   const flashPeriodNotes = (noteIds: string[]): void =>
     flashNotes(noteIds, 'chain-note--period-flash');
 
-  const focusFirstNoteOfPeriod = (noteIds: string[]): void => {
+  const focusFirstNoteOfPeriod = (
+    noteIds: string[],
+    scrollToNote = true
+  ): void => {
     const selected = new Set(noteIds);
     let target =
       [...history.querySelectorAll<HTMLElement>('.chain-note')].find((note) =>
         selected.has(note.dataset['noteId'] ?? '')
       ) ?? null;
     if (!target && noteIds[0]) {
-      ensureHistoryWindowForNote(noteIds[0]);
+      ensureMonthForNote(noteIds[0]);
       target =
         [...history.querySelectorAll<HTMLElement>('.chain-note')].find((note) =>
           selected.has(note.dataset['noteId'] ?? '')
@@ -646,6 +662,7 @@ export function mountChainDocument(
     if (!target) return;
 
     target.focus({ preventScroll: true });
+    if (!scrollToNote) return;
 
     const group = target.closest('.chain-date-group');
     const heading = group?.querySelector<HTMLElement>(
@@ -664,20 +681,23 @@ export function mountChainDocument(
   };
 
   const schedulePeriodFocus = (noteIds: string[]): void => {
+    focusFirstNoteOfPeriod(noteIds);
     if (periodFocusFrame !== null) cancelAnimationFrame(periodFocusFrame);
     periodFocusFrame = requestAnimationFrame(() => {
       periodFocusFrame = null;
-      focusFirstNoteOfPeriod(noteIds);
+      focusFirstNoteOfPeriod(noteIds, false);
     });
   };
 
   const periodMenu = mountPeriodMenu({
     onSelect: (month) => {
       activePeriodKey = month.key;
-      periodMenu.update(
-        buildNotePeriods(currentTab.notes, 'asc'),
-        activePeriodKey
-      );
+      currentMonthKey = month.key;
+      monthPageExplicit = true;
+      pendingScrollTop = 0;
+      pendingScrollToBottom = false;
+      suppressCompactDuringHistoryChange();
+      renderNotes();
       syncPeriodSelection(month.noteIds);
       flashPeriodNotes(month.noteIds);
       schedulePeriodFocus(month.noteIds);
@@ -932,9 +952,6 @@ export function mountChainDocument(
   let savingState = false;
   let actionsCompact = false;
   let footerCompact = false;
-  let historyWindowStart = Math.max(0, tab.notes.length - HISTORY_INITIAL_PAGE);
-  let historyWindowEnd = tab.notes.length;
-  let historySentinelObserver: IntersectionObserver | null = null;
 
   const syncActionFooter = (): void => {
     root.classList.toggle(
@@ -1179,135 +1196,54 @@ export function mountChainDocument(
     });
   };
 
-  const disconnectHistorySentinelObserver = (): void => {
-    historySentinelObserver?.disconnect();
-    historySentinelObserver = null;
-  };
-
-  const resetHistoryWindow = (): void => {
-    const count = currentTab.notes.length;
-    historyWindowStart = Math.max(0, count - HISTORY_INITIAL_PAGE);
-    historyWindowEnd = count;
-  };
-
-  const clampHistoryWindow = (): void => {
-    const count = currentTab.notes.length;
-    if (count === 0) {
-      historyWindowStart = 0;
-      historyWindowEnd = 0;
-      return;
-    }
-    if (historyWindowEnd <= 0 || historyWindowEnd > count) {
-      historyWindowEnd = count;
-    }
-    historyWindowStart = Math.max(
-      0,
-      Math.min(historyWindowStart, count - 1)
-    );
-    if (historyWindowEnd <= historyWindowStart) {
-      historyWindowEnd = Math.min(
-        count,
-        historyWindowStart + HISTORY_INITIAL_PAGE
-      );
-    }
-    if (historyWindowEnd - historyWindowStart > HISTORY_MAX_WINDOW) {
-      historyWindowStart = historyWindowEnd - HISTORY_MAX_WINDOW;
-    }
-  };
-
-  const captureHistoryAnchor = (
-    prefer: 'first' | 'last'
-  ): { id: string; top: number } | null => {
-    const cards = history.querySelectorAll<HTMLElement>('.chain-note');
-    const element =
-      prefer === 'last' ? cards[cards.length - 1] : cards[0];
-    const id = element?.dataset['noteId'];
-    if (!element || !id) return null;
-    return {
-      id,
-      top: element.getBoundingClientRect().top - scroll.getBoundingClientRect().top,
-    };
-  };
-
   const suppressCompactDuringHistoryChange = (): void => {
     ignoreCompactUntil = Date.now() + HISTORY_SCROLL_SUPPRESS_MS;
   };
 
-  const restoreHistoryAnchor = (
-    anchor: { id: string; top: number } | null
-  ): void => {
-    suppressCompactDuringHistoryChange();
-    if (!anchor) {
-      lastScrollTop = scroll.scrollTop;
-      return;
+  const resolvePageMonth = (
+    periods: NotePeriodYear[]
+  ): NotePeriodMonth | null => {
+    if (currentMonthKey !== null) {
+      const month = findPeriodMonth(periods, currentMonthKey);
+      if (month) return month;
     }
-    const target = history.querySelector<HTMLElement>(
-      `.chain-note[data-note-id="${anchor.id}"]`
-    );
-    if (!target) {
-      lastScrollTop = scroll.scrollTop;
-      return;
-    }
-    const top =
-      target.getBoundingClientRect().top - scroll.getBoundingClientRect().top;
-    scroll.scrollTop += top - anchor.top;
-    lastScrollTop = scroll.scrollTop;
+    const latest = latestPeriodMonth(periods);
+    currentMonthKey = latest?.key ?? null;
+    return latest;
   };
 
-  function loadOlderNotes(): void {
-    if (historyWindowStart <= 0) return;
-    const anchor = captureHistoryAnchor('first');
+  const goToMonthPage = (
+    month: NotePeriodMonth,
+    direction: 'older' | 'newer'
+  ): void => {
+    currentMonthKey = month.key;
+    monthPageExplicit = true;
+    pendingScrollToBottom = direction === 'newer';
+    pendingScrollTop = direction === 'newer' ? null : 0;
     cancelCompact();
     cancelExpand();
     upwardDistance = 0;
     setActionsCompact(false);
     suppressCompactDuringHistoryChange();
-    historyWindowStart = Math.max(0, historyWindowStart - HISTORY_PAGE_SIZE);
-    if (historyWindowEnd - historyWindowStart > HISTORY_MAX_WINDOW) {
-      historyWindowEnd = historyWindowStart + HISTORY_MAX_WINDOW;
-    }
     renderNotes();
-    restoreHistoryAnchor(anchor);
-    requestAnimationFrame(() => restoreHistoryAnchor(anchor));
-  }
+  };
 
-  function loadNewerNotes(): void {
-    if (historyWindowEnd >= currentTab.notes.length) return;
-    const anchor = captureHistoryAnchor('last');
-    cancelCompact();
-    cancelExpand();
-    upwardDistance = 0;
-    suppressCompactDuringHistoryChange();
-    historyWindowEnd = Math.min(
-      currentTab.notes.length,
-      historyWindowEnd + HISTORY_PAGE_SIZE
-    );
-    if (historyWindowEnd - historyWindowStart > HISTORY_MAX_WINDOW) {
-      historyWindowStart = historyWindowEnd - HISTORY_MAX_WINDOW;
-    }
-    renderNotes();
-    restoreHistoryAnchor(anchor);
-    requestAnimationFrame(() => restoreHistoryAnchor(anchor));
-  }
-
-  function ensureHistoryWindowForNote(noteId: string): boolean {
+  function ensureMonthForNote(noteId: string): boolean {
     const existing = history.querySelector<HTMLElement>(
       `.chain-note[data-note-id="${noteId}"]`
     );
     if (existing) return true;
 
-    const index = currentTab.notes.findIndex((note) => note.id === noteId);
-    if (index < 0) return false;
+    const note = currentTab.notes.find((item) => item.id === noteId);
+    if (!note) return false;
 
-    const count = currentTab.notes.length;
-    historyWindowStart = Math.max(
-      0,
-      Math.min(index - Math.floor(HISTORY_MAX_WINDOW / 2), count - HISTORY_MAX_WINDOW)
-    );
-    historyWindowEnd = Math.min(
-      count,
-      historyWindowStart + HISTORY_MAX_WINDOW
-    );
+    const key = noteMonthKey(note);
+    if (key === null) return false;
+
+    currentMonthKey = key;
+    monthPageExplicit = true;
+    pendingScrollTop = 0;
+    pendingScrollToBottom = false;
     suppressCompactDuringHistoryChange();
     renderNotes();
     lastScrollTop = scroll.scrollTop;
@@ -1318,47 +1254,28 @@ export function mountChainDocument(
     );
   }
 
-  const renderHistorySentinel = (
+  const renderMonthNav = (
+    month: NotePeriodMonth,
     direction: 'older' | 'newer'
   ): HTMLElement => {
     const wrapper = el('div', 'chain-history-sentinel');
     wrapper.dataset['historySentinel'] = direction;
     const button = el('button', 'btn btn-text chain-history-sentinel__button');
     button.type = 'button';
+    const label = `${month.monthLabel} de ${month.year}`;
     button.textContent =
       direction === 'older'
-        ? 'Carregar notas anteriores'
-        : 'Carregar notas posteriores';
-    button.addEventListener('click', () => {
-      if (direction === 'older') loadOlderNotes();
-      else loadNewerNotes();
-    });
+        ? `Mês anterior: ${label}`
+        : `Próximo mês: ${label}`;
+    button.setAttribute(
+      'aria-label',
+      direction === 'older'
+        ? `Ir para o mês anterior, ${label}`
+        : `Ir para o próximo mês, ${label}`
+    );
+    button.addEventListener('click', () => goToMonthPage(month, direction));
     wrapper.appendChild(button);
     return wrapper;
-  };
-
-  const observeHistorySentinels = (): void => {
-    disconnectHistorySentinelObserver();
-    if (typeof IntersectionObserver === 'undefined') return;
-    const sentinels = [
-      ...history.querySelectorAll<HTMLElement>('[data-history-sentinel]'),
-    ];
-    if (sentinels.length === 0) return;
-
-    historySentinelObserver = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (!entry.isIntersecting) return;
-          const direction = (entry.target as HTMLElement).dataset[
-            'historySentinel'
-          ];
-          if (direction === 'older') loadOlderNotes();
-          else if (direction === 'newer') loadNewerNotes();
-        });
-      },
-      { root: scroll, rootMargin: '600px 0px' }
-    );
-    sentinels.forEach((sentinel) => historySentinelObserver?.observe(sentinel));
   };
 
   const renderNotes = (): void => {
@@ -1370,16 +1287,31 @@ export function mountChainDocument(
     const activeEditNoteId =
       currentTab.noteTabs.find((noteTab) => noteTab.id === currentTab.activeNoteTabId)
         ?.editingNoteId ?? null;
-    clampHistoryWindow();
-    const windowNotes = currentTab.notes.slice(
-      historyWindowStart,
-      historyWindowEnd
-    );
+    const periods = buildNotePeriods(currentTab.notes, 'asc');
+    const pageMonth = resolvePageMonth(periods);
+    const activeMonth = findPeriodMonth(periods, activePeriodKey);
+    periodMenu.update(periods, activePeriodKey);
+
+    const pageNoteIds = new Set(pageMonth?.noteIds ?? []);
+    const windowNotes = pageMonth
+      ? currentTab.notes.filter((note) => pageNoteIds.has(note.id))
+      : currentTab.notes;
     const noteGroups = groupNotesByDate(windowNotes);
+
+    const flatMonths = periods.flatMap((year) => year.months);
+    const pageMonthIndex = pageMonth
+      ? flatMonths.findIndex((month) => month.key === pageMonth.key)
+      : -1;
+    const previousMonth =
+      pageMonthIndex > 0 ? flatMonths[pageMonthIndex - 1] ?? null : null;
+    const nextMonth =
+      pageMonthIndex >= 0 && pageMonthIndex < flatMonths.length - 1
+        ? flatMonths[pageMonthIndex + 1] ?? null
+        : null;
+
     const notesSignature = [
       currentTab.notes.length,
-      historyWindowStart,
-      historyWindowEnd,
+      pageMonth?.key ?? '',
       ...windowNotes.map(
         (note) =>
           `${note.id}:${note.updatedAt}:${(note.attachments ?? [])
@@ -1388,10 +1320,6 @@ export function mountChainDocument(
       ),
     ].join('|');
     const signature = notesSignature;
-
-    const periods = buildNotePeriods(currentTab.notes, 'asc');
-    const activeMonth = findPeriodMonth(periods, activePeriodKey);
-    periodMenu.update(periods, activePeriodKey);
 
     const initialEditorMode = handlers.initialEditorMode ?? 'latest';
     const hasPendingDraft = currentTab.noteTabs.some(
@@ -1471,6 +1399,8 @@ export function mountChainDocument(
     }
 
     if (signature === renderedNotesSignature && currentTab.status === previousStatus) {
+      pendingScrollTop = null;
+      pendingScrollToBottom = false;
       syncNoteEditingState(editingNoteIds, activeEditNoteId);
       syncNoteTagEditors();
       return;
@@ -1489,8 +1419,8 @@ export function mountChainDocument(
         )
       );
     } else {
-      if (historyWindowStart > 0) {
-        history.appendChild(renderHistorySentinel('older'));
+      if (previousMonth) {
+        history.appendChild(renderMonthNav(previousMonth, 'older'));
       }
 
       noteGroups.forEach((group) => {
@@ -1555,16 +1485,20 @@ export function mountChainDocument(
         history.appendChild(section);
       });
 
-      if (historyWindowEnd < currentTab.notes.length) {
-        history.appendChild(renderHistorySentinel('newer'));
+      if (nextMonth) {
+        history.appendChild(renderMonthNav(nextMonth, 'newer'));
       }
     }
 
-    observeHistorySentinels();
     mountNoteTagEditors();
     syncPeriodSelection(activeMonth?.noteIds ?? []);
     renderedNotesSignature = signature;
-    scroll.scrollTop = previousScroll;
+    const nextScroll = pendingScrollToBottom
+      ? scroll.scrollHeight
+      : pendingScrollTop ?? previousScroll;
+    pendingScrollTop = null;
+    pendingScrollToBottom = false;
+    scroll.scrollTop = nextScroll;
   };
 
   const activeNoteTab = (): ChainNoteTab | null =>
@@ -1968,7 +1902,7 @@ export function mountChainDocument(
       `.chain-note[data-note-id="${noteId}"]`
     );
     if (!target) {
-      if (!ensureHistoryWindowForNote(noteId)) return;
+      if (!ensureMonthForNote(noteId)) return;
       target = history.querySelector<HTMLElement>(
         `.chain-note[data-note-id="${noteId}"]`
       );
@@ -2046,28 +1980,20 @@ export function mountChainDocument(
   const update = (tabValue: ChainTab): void => {
     const justLoaded =
       previousStatus === 'loading' && tabValue.status === 'loaded';
-    const previousChainId = currentTab.chainId;
-    const previousCount = currentTab.notes.length;
-    if (tabValue.chainId !== currentTab.chainId) {
+    const chainChanged = tabValue.chainId !== currentTab.chainId;
+    const notesChanged = tabValue.notes.length !== currentTab.notes.length;
+    if (chainChanged) {
       clearPeriodHighlightTimers();
       clearPeriodHighlightClasses();
       activePeriodKey = null;
+      currentMonthKey = null;
+      monthPageExplicit = false;
       periodStatus.textContent = '';
       if (selectionMode) setSelectionMode(false);
+    } else if (notesChanged && !monthPageExplicit) {
+      currentMonthKey = null;
     }
     currentTab = tabValue;
-    if (tabValue.chainId !== previousChainId) {
-      resetHistoryWindow();
-    } else if (tabValue.notes.length !== previousCount) {
-      if (previousCount === 0 && tabValue.notes.length > 0) {
-        resetHistoryWindow();
-      } else {
-        if (historyWindowEnd === previousCount) {
-          historyWindowEnd = tabValue.notes.length;
-        }
-        clampHistoryWindow();
-      }
-    }
     root.setAttribute('aria-label', `Coleção ${tabValue.title}`);
     root.dataset['chainId'] = tabValue.chainId;
 
@@ -2140,15 +2066,7 @@ export function mountChainDocument(
     if (fileDragDepth === 0) setDropActive(false);
   });
   root.addEventListener('drop', (event) => {
-    if (!hasFilePayload(event)) return;
-    if (handlers.onImportFolderDrop && dropHasDirectory(event.dataTransfer)) {
-      event.preventDefault();
-      event.stopPropagation();
-      resetFileDrag();
-      if (event.dataTransfer) handlers.onImportFolderDrop(event.dataTransfer);
-      return;
-    }
-    if (!handlers.onImportFiles) return;
+    if (!handlers.onImportFiles || !hasFilePayload(event)) return;
     event.preventDefault();
     event.stopPropagation();
     resetFileDrag();
@@ -2193,7 +2111,6 @@ export function mountChainDocument(
     activeLine.destroy();
     tagEditor.destroy();
     destroyNoteTagEditors();
-    disconnectHistorySentinelObserver();
   };
 
   update(tab);
@@ -2235,7 +2152,7 @@ export function mountChainDocument(
           .querySelectorAll('.chain-note--search-target')
           .forEach((note) => note.classList.remove('chain-note--search-target'));
 
-        ensureHistoryWindowForNote(editingNoteId);
+        ensureMonthForNote(editingNoteId);
         const target = history.querySelector<HTMLElement>(
           `.chain-note[data-note-id="${editingNoteId}"]`
         );
@@ -2265,7 +2182,7 @@ export function mountChainDocument(
       activeLine.refresh();
     },
     previewNote: (noteId, query = '') => {
-      ensureHistoryWindowForNote(noteId);
+      ensureMonthForNote(noteId);
       openPreview(noteId, query);
       scrollToSearchTarget(noteId);
       requestAnimationFrame(() => {

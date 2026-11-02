@@ -3,25 +3,37 @@ import type { NoteDTO } from '@application/dto/index.js';
 import type { ChainTab } from '@presentation/state/EditorStore.js';
 import { mountChainDocument } from '@presentation/components/ChainDocument.js';
 
-function note(index: number): NoteDTO {
+function localIso(year: number, monthIndex: number, day: number): string {
+  return new Date(year, monthIndex, day, 12).toISOString();
+}
+
+function note(id: string, createdAt: string): NoteDTO {
   return {
-    id: `note-${index}`,
-    content: `Nota ${index}`,
+    id,
+    content: id,
     chainId: 'chain-1',
-    position: index,
+    position: 0,
     role: 'tail',
-    createdAt: '2026-01-02T10:00:00.000Z',
-    updatedAt: '2026-01-02T10:00:00.000Z',
+    createdAt,
+    updatedAt: createdAt,
   };
 }
 
-function makeTab(count: number): ChainTab {
+function makeTab(): ChainTab {
   return {
     kind: 'chain',
     id: 'tab-chain',
     chainId: 'chain-1',
     title: 'Projeto',
-    notes: Array.from({ length: count }, (_, index) => note(index)),
+    notes: [
+      note('jan-1', localIso(2026, 0, 2)),
+      note('jan-2', localIso(2026, 0, 10)),
+      note('feb-1', localIso(2026, 1, 3)),
+      note('feb-2', localIso(2026, 1, 18)),
+      note('mar-1', localIso(2026, 2, 1)),
+      note('mar-2', localIso(2026, 2, 8)),
+      note('mar-3', localIso(2026, 2, 20)),
+    ],
     noteTabs: [],
     activeNoteTabId: null,
     composerCollapsed: true,
@@ -40,7 +52,15 @@ function makeHandlers() {
   };
 }
 
-describe('Histórico incremental da coleção', () => {
+function renderedNoteIds(
+  view: ReturnType<typeof mountChainDocument>
+): string[] {
+  return [
+    ...view.element.querySelectorAll<HTMLElement>('.chain-note'),
+  ].map((element) => element.dataset['noteId'] ?? '');
+}
+
+describe('Histórico paginado por mês', () => {
   beforeEach(() => {
     document.body.innerHTML = '';
   });
@@ -50,43 +70,39 @@ describe('Histórico incremental da coleção', () => {
     document.body.innerHTML = '';
   });
 
-  it('renderiza a página mais recente e carrega anteriores sob demanda', () => {
-    const view = mountChainDocument(makeTab(200), makeHandlers());
+  it('renderiza apenas o mês mais recente e navega entre os meses', () => {
+    const view = mountChainDocument(makeTab(), makeHandlers());
     document.body.appendChild(view.element);
 
-    expect(view.element.querySelectorAll('.chain-note')).toHaveLength(80);
-    expect(
-      view.element.querySelector('.chain-note')?.getAttribute('data-note-id')
-    ).toBe('note-120');
+    expect(renderedNoteIds(view)).toEqual(['mar-1', 'mar-2', 'mar-3']);
 
     const older = view.element.querySelector<HTMLButtonElement>(
       '[data-history-sentinel="older"] button'
     );
     expect(older).not.toBeNull();
+    expect(older?.textContent).toContain('Fevereiro de 2026');
     expect(
       view.element.querySelector('[data-history-sentinel="newer"]')
     ).toBeNull();
 
-    view.element.classList.add('chain-document--header-hidden');
     older?.click();
 
-    expect(
-      view.element.classList.contains('chain-document--header-hidden')
-    ).toBe(false);
+    expect(renderedNoteIds(view)).toEqual(['feb-1', 'feb-2']);
+    const olderFromFebruary = view.element.querySelector<HTMLButtonElement>(
+      '[data-history-sentinel="older"] button'
+    );
+    expect(olderFromFebruary?.textContent).toContain('Janeiro de 2026');
 
-    expect(view.element.querySelectorAll('.chain-note')).toHaveLength(160);
-    expect(
-      view.element.querySelector('.chain-note')?.getAttribute('data-note-id')
-    ).toBe('note-40');
+    olderFromFebruary?.click();
 
-    view.element
-      .querySelector<HTMLButtonElement>('[data-history-sentinel="older"] button')
-      ?.click();
-
-    expect(view.element.querySelectorAll('.chain-note')).toHaveLength(200);
+    expect(renderedNoteIds(view)).toEqual(['jan-1', 'jan-2']);
     expect(
       view.element.querySelector('[data-history-sentinel="older"]')
     ).toBeNull();
+    expect(
+      view.element.querySelector('[data-history-sentinel="newer"] button')
+        ?.textContent
+    ).toContain('Fevereiro de 2026');
 
     view.destroy();
   });

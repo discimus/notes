@@ -55,6 +55,14 @@ function makeHandlers() {
   };
 }
 
+function renderedNoteIds(
+  view: ReturnType<typeof mountChainDocument>
+): string[] {
+  return [
+    ...view.element.querySelectorAll<HTMLElement>('.chain-note'),
+  ].map((element) => element.dataset['noteId'] ?? '');
+}
+
 function openMenu(view: ReturnType<typeof mountChainDocument>): HTMLButtonElement {
   const button = view.element.querySelector<HTMLButtonElement>(
     '.chain-date-group__label'
@@ -106,21 +114,21 @@ describe('ChainDocument — destaque por período', () => {
     document.body.innerHTML = '';
   });
 
-  it('restaura o badge sticky como botão de período', () => {
+  it('restaura o badge sticky como botão de período no mês renderizado', () => {
     view = mountChainDocument(makeTab(), makeHandlers());
     document.body.appendChild(view.element);
 
     const buttons = view.element.querySelectorAll<HTMLButtonElement>(
       '.chain-date-group__label'
     );
-    expect(buttons).toHaveLength(3);
+    expect(buttons).toHaveLength(1);
     expect(buttons[0]?.closest('.chain-date-group__heading')).not.toBeNull();
     expect(buttons[0]?.type).toBe('button');
     expect(buttons[0]?.getAttribute('aria-haspopup')).toBe('menu');
     expect(buttons[0]?.getAttribute('aria-expanded')).toBe('false');
   });
 
-  it('realça, pisca e navega para a primeira nota do período sem filtrar', () => {
+  it('realça, pisca e navega para a primeira nota do período', () => {
     const handlers = makeHandlers();
     view = mountChainDocument(makeTab(), handlers);
     document.body.appendChild(view.element);
@@ -132,18 +140,14 @@ describe('ChainDocument — destaque por período', () => {
       '[data-note-id="feb-1"]'
     );
 
-    expect(view.element.querySelectorAll('.chain-note')).toHaveLength(3);
+    expect(renderedNoteIds(view)).toEqual(['feb-1']);
     expect(
       view.element.querySelector('#chain-note-count')?.textContent
     ).toBe('3 notas');
     expect(
       firstFebruaryNote?.classList.contains('chain-note--period-flash')
     ).toBe(true);
-    expect(
-      view.element
-        .querySelector('[data-note-id="jan-1"]')
-        ?.classList.contains('chain-note--period-flash')
-    ).toBe(false);
+    expect(view.element.querySelector('[data-note-id="jan-1"]')).toBeNull();
     expect(document.activeElement).toBe(firstFebruaryNote);
     expect(document.querySelector('[role="menu"]')).toBeNull();
 
@@ -160,6 +164,7 @@ describe('ChainDocument — destaque por período', () => {
 
     openMenu(view);
     selectPeriod('2026-01');
+    expect(renderedNoteIds(view)).toEqual(['jan-1', 'jan-2']);
     expect(
       view.element
         .querySelector('[data-note-id="jan-1"]')
@@ -169,11 +174,8 @@ describe('ChainDocument — destaque por período', () => {
     openMenu(view);
     selectPeriod('2026-02');
 
-    expect(
-      view.element
-        .querySelector('[data-note-id="jan-1"]')
-        ?.classList.contains('chain-note--period-flash')
-    ).toBe(false);
+    expect(renderedNoteIds(view)).toEqual(['feb-1']);
+    expect(view.element.querySelector('[data-note-id="jan-1"]')).toBeNull();
     expect(
       view.element
         .querySelector('[data-note-id="feb-1"]')
