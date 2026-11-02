@@ -119,6 +119,68 @@ describe('Carrossel de imagens na largura da nota', () => {
     view.destroy();
   });
 
+  it('permite arrastar horizontalmente com o mouse', () => {
+    const images = [1, 2, 3].map(attachment);
+    const view = mountChainDocument(makeTab(images), makeHandlers());
+    const wrapper = document.createElement('div');
+    wrapper.className = 'app-shell--image-column';
+    wrapper.appendChild(view.element);
+    document.body.appendChild(wrapper);
+
+    const grid = view.element.querySelector<HTMLElement>(
+      '.chain-note__attachment-grid'
+    )!;
+    Object.defineProperty(grid, 'clientWidth', {
+      value: 300,
+      configurable: true,
+    });
+    Object.defineProperty(grid, 'clientHeight', {
+      value: 200,
+      configurable: true,
+    });
+    Object.defineProperty(grid, 'scrollWidth', {
+      value: 900,
+      configurable: true,
+    });
+    const scrollTo = vi.fn();
+    Object.defineProperty(grid, 'scrollTo', {
+      value: scrollTo,
+      configurable: true,
+    });
+
+    const pointer = (type: string, clientX: number): MouseEvent => {
+      const event = new MouseEvent(type, {
+        bubbles: true,
+        cancelable: true,
+        clientX,
+        clientY: 20,
+        button: 0,
+      });
+      Object.defineProperty(event, 'pointerId', { value: 1 });
+      Object.defineProperty(event, 'pointerType', { value: 'mouse' });
+      return event;
+    };
+
+    grid.dispatchEvent(pointer('pointerdown', 200));
+    window.dispatchEvent(pointer('pointermove', -200));
+
+    expect(grid.scrollLeft).toBe(400);
+    expect(
+      grid.classList.contains('chain-note__carousel--dragging')
+    ).toBe(true);
+
+    window.dispatchEvent(pointer('pointerup', -200));
+    expect(scrollTo).toHaveBeenCalledWith({
+      left: 300,
+      behavior: 'smooth',
+    });
+    expect(
+      grid.classList.contains('chain-note__carousel--dragging')
+    ).toBe(false);
+
+    view.destroy();
+  });
+
   it('não cria controles quando há apenas uma imagem', () => {
     const view = mountChainDocument(
       makeTab([attachment(1)]),

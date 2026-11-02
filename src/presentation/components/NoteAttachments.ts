@@ -118,6 +118,7 @@ function renderImage(
   const image = el('img', 'chain-attachment__image') as HTMLImageElement;
   image.alt = attachment.altText || attachment.fileName;
   image.loading = 'lazy';
+  image.draggable = false;
   if (attachment.width && attachment.height) {
     image.style.aspectRatio = `${attachment.width} / ${attachment.height}`;
   }
@@ -238,6 +239,122 @@ function mountImageCarousel(
 
   previous.addEventListener('click', () => scrollToIndex(activeIndex - 1));
   next.addEventListener('click', () => scrollToIndex(activeIndex + 1));
+
+  type DragState = {
+    pointerId: number;
+    startX: number;
+    startY: number;
+    startScrollLeft: number;
+    lastX: number;
+    lastTime: number;
+    velocity: number;
+    axis: 'x' | 'y' | null;
+    moved: boolean;
+  };
+
+  let drag: DragState | null = null;
+  let suppressClick = false;
+
+  const endDrag = (snap: boolean): void => {
+    if (!drag) return;
+    const state = drag;
+    drag = null;
+    grid.classList.remove('chain-note__carousel--dragging');
+    window.removeEventListener('pointermove', onPointerMove);
+    window.removeEventListener('pointerup', onPointerUp);
+    window.removeEventListener('pointercancel', onPointerUp);
+    if (state.moved) {
+      suppressClick = true;
+      window.setTimeout(() => {
+        suppressClick = false;
+      }, 0);
+      if (snap) {
+        const width = Math.max(1, grid.clientWidth);
+        const momentum = Math.max(
+          -width * 0.9,
+          Math.min(width * 0.9, state.velocity * 120)
+        );
+        scrollToIndex(Math.round((grid.scrollLeft - momentum) / width));
+      }
+    }
+  };
+
+  const onPointerMove = (event: PointerEvent): void => {
+    if (!drag || event.pointerId !== drag.pointerId) return;
+    const dx = event.clientX - drag.startX;
+    const dy = event.clientY - drag.startY;
+    const now = performance.now();
+
+    if (drag.axis === null) {
+      if (Math.abs(dx) < 5 && Math.abs(dy) < 5) return;
+      if (Math.abs(dy) > Math.abs(dx)) {
+        drag.axis = 'y';
+        endDrag(false);
+        return;
+      }
+      drag.axis = 'x';
+      drag.lastX = event.clientX;
+      drag.lastTime = now;
+      drag.velocity = 0;
+      grid.classList.add('chain-note__carousel--dragging');
+    } else {
+      const elapsed = Math.max(1, now - drag.lastTime);
+      drag.velocity = (event.clientX - drag.lastX) / elapsed;
+      drag.lastX = event.clientX;
+      drag.lastTime = now;
+    }
+
+    event.preventDefault();
+    drag.moved = true;
+    grid.scrollLeft = drag.startScrollLeft - dx;
+  };
+
+  const onPointerUp = (): void => {
+    endDrag(true);
+  };
+
+  const onPointerDown = (event: PointerEvent): void => {
+    if (
+      drag ||
+      event.button !== 0 ||
+      event.pointerType === 'touch' ||
+      !grid.closest('.app-shell--image-column') ||
+      grid.scrollWidth <= grid.clientWidth + 1
+    ) {
+      return;
+    }
+    const target = event.target;
+    if (target instanceof Element && target.closest('.chain-attachment__actions')) {
+      return;
+    }
+
+    drag = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      startScrollLeft: grid.scrollLeft,
+      lastX: event.clientX,
+      lastTime: performance.now(),
+      velocity: 0,
+      axis: null,
+      moved: false,
+    };
+    window.addEventListener('pointermove', onPointerMove);
+    window.addEventListener('pointerup', onPointerUp);
+    window.addEventListener('pointercancel', onPointerUp);
+  };
+
+  grid.addEventListener('pointerdown', onPointerDown);
+  grid.addEventListener('dragstart', (event) => event.preventDefault());
+  grid.addEventListener(
+    'click',
+    (event) => {
+      if (!suppressClick) return;
+      event.preventDefault();
+      event.stopPropagation();
+    },
+    true
+  );
 
   controls.append(previous, dots, next);
   setActive(0);
