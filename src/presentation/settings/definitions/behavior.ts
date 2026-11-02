@@ -1,4 +1,8 @@
 import { getSettings, setSettings } from '../../app/settings.js';
+import {
+  getAutoImportFiles,
+  setAutoImportFiles,
+} from '../../app/autoImportFiles.js';
 import type { SettingDefinition, SettingsSection } from '../types.js';
 
 export const behaviorSection: SettingsSection = {
@@ -23,5 +27,18 @@ export const behaviorSettings: readonly SettingDefinition[] = [
     defaultValue: true,
     get: () => getSettings().confirmBeforeTrash,
     set: (value) => setSettings({ confirmBeforeTrash: value }),
+  },
+  {
+    id: 'behavior.auto-import-files',
+    section: 'behavior',
+    control: 'toggle',
+    controlId: 'settings-auto-import-files',
+    label: 'Importar arquivos automaticamente',
+    description:
+      'Importa os arquivos assim que forem soltos, sem abrir a confirmação. Arquivos duplicados continuam sendo ignorados.',
+    keywords: ['importar', 'arquivo', 'confirmação', 'automático', 'lote'],
+    defaultValue: false,
+    get: getAutoImportFiles,
+    set: setAutoImportFiles,
   },
 ];

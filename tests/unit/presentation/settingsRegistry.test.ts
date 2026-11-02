@@ -49,6 +49,9 @@ describe('registry de configurações', () => {
       'notes.image-layout',
       'notes.auto-open-blank-editor',
     ]);
-    expect(settingsForSection('behavior')).toHaveLength(1);
+    expect(settingsForSection('behavior').map((setting) => setting.id)).toEqual([
+      'behavior.confirm-before-trash',
+      'behavior.auto-import-files',
+    ]);
   });
 });

@@ -882,16 +882,32 @@ export const AppController = {
     }
 
     if (result.succeeded > 0) {
+      const ignored =
+        result.duplicates > 0
+          ? ` ${result.duplicates} ${
+              result.duplicates === 1
+                ? 'documento ignorado por duplicidade'
+                : 'documentos ignorados por duplicidade'
+            }.`
+          : '';
       snackbar.success(
         `${result.succeeded} ${
           result.succeeded === 1 ? 'documento importado' : 'documentos importados'
-        }.`,
+        }.${ignored}`,
         {
           label: 'Abrir coleção',
           onClick: () => {
             void AppController.openChainInEditor(chainId);
           },
         }
+      );
+    } else if (result.duplicates > 0) {
+      snackbar.success(
+        `${result.duplicates} ${
+          result.duplicates === 1
+            ? 'documento ignorado por conteúdo duplicado'
+            : 'documentos ignorados por conteúdo duplicado'
+        }.`
       );
     }
 

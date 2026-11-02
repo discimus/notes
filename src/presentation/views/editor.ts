@@ -40,6 +40,7 @@ import { showConfirmDialog } from '../components/Dialog.js';
 import { renderNavToggle } from '../components/NavToggle.js';
 import { togglePinnedChain } from '../app/pinnedChains.js';
 import { getAutoOpenBlankEditor } from '../app/autoOpenBlankEditor.js';
+import { getAutoImportFiles } from '../app/autoImportFiles.js';
 import { el } from '../dom.js';
 import { showComposerModal } from './menus.js';
 import type { AttachmentDTO } from '@application/dto/index.js';
@@ -120,6 +121,22 @@ export function mountEditorView(
           return;
         }
 
+        if (getAutoImportFiles()) {
+          const result = await AppController.importTextNote(
+            chainId,
+            prepared.data.content,
+            prepared.data.sourceModifiedAt,
+            {
+              ...(prepared.data.contentHash
+                ? { contentHash: prepared.data.contentHash }
+                : {}),
+              sourceFileName: prepared.data.fileName,
+            }
+          );
+          if (!result.ok) snackbar.error(result.error);
+          return;
+        }
+
         await showImportTextDialog({
           chainTitle,
           fileName: prepared.data.fileName,
@@ -163,6 +180,11 @@ export function mountEditorView(
 
       const items = prepared.data.items;
       if (items) {
+        if (getAutoImportFiles()) {
+          await AppController.importTextFileQueue(chainId, items, true);
+          return;
+        }
+
         await showImportTextQueueDialog({
           chainTitle,
           items,
@@ -174,6 +196,16 @@ export function mountEditorView(
               onProgress
             ),
         });
+        return;
+      }
+
+      if (getAutoImportFiles()) {
+        const result = await AppController.importTextNotes(
+          chainId,
+          prepared.data.valid,
+          true
+        );
+        if (!result.ok) snackbar.error(result.error);
         return;
       }
 
