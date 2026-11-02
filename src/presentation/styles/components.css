@@ -2938,6 +2938,7 @@
   position: absolute;
   top: var(--spacing-1);
   right: var(--spacing-1);
+  gap: 2px;
   padding: 2px;
   border-radius: var(--md-sys-shape-corner-full);
   background-color: color-mix(
@@ -2953,12 +2954,24 @@
   opacity: 1;
 }
 .chain-attachment__action {
-  width: 36px;
-  height: 36px;
+  width: 28px;
+  height: 28px;
   flex-shrink: 0;
+}
+.chain-attachment__action .material-symbols-rounded {
+  font-size: 16px;
 }
 .chain-attachment__action--delete {
   color: var(--md-sys-color-error);
+}
+@media (pointer: coarse) {
+  .chain-attachment__action {
+    width: 32px;
+    height: 32px;
+  }
+  .chain-attachment__action .material-symbols-rounded {
+    font-size: 18px;
+  }
 }
 .chain-note__attachment-images {
   position: relative;
