@@ -184,13 +184,30 @@ export class InMemoryChainRepository
           }))
       )
       .sort((a, b) => {
+        if (query.sort === 'relevance' && normalizedText) {
+          const score = (entry: (typeof a)): number => {
+            const title = normalizeText(entry.note.title ?? '');
+            const content = normalizeText(entry.note.content);
+            const chain = normalizeText(entry.chainTitle);
+            let value = 0;
+            if (title === normalizedText) value += 24;
+            else if (title.includes(normalizedText)) value += 14;
+            if (chain === normalizedText) value += 10;
+            else if (chain.includes(normalizedText)) value += 5;
+            if (content === normalizedText) value += 20;
+            value += (content.split(normalizedText).length - 1) * 2;
+            return value;
+          };
+          const scoreDiff = score(b) - score(a);
+          if (scoreDiff !== 0) return scoreDiff;
+        }
         const dateDiff = a.note.createdAt.localeCompare(b.note.createdAt);
         if (dateDiff !== 0) {
-          return query.sort === 'newest' ? -dateDiff : dateDiff;
+          return query.sort === 'oldest' ? dateDiff : -dateDiff;
         }
-        return query.sort === 'newest'
-          ? b.note.id.localeCompare(a.note.id)
-          : a.note.id.localeCompare(b.note.id);
+        return query.sort === 'oldest'
+          ? a.note.id.localeCompare(b.note.id)
+          : b.note.id.localeCompare(a.note.id);
       });
 
     return {

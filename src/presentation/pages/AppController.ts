@@ -305,7 +305,10 @@ function timelineToDate(value: string): string | undefined {
   return Number.isNaN(date.getTime()) ? undefined : date.toISOString();
 }
 
-async function loadTimelinePage(offset: number, mode: 'replace' | 'append'): Promise<void> {
+async function loadTimelinePage(
+  offset: number,
+  mode: 'replace' | 'append' | 'prepend'
+): Promise<void> {
   const state = appState.get();
   const requestId = ++timelineRequestId;
   const chainIds =
@@ -321,16 +324,24 @@ async function loadTimelinePage(offset: number, mode: 'replace' | 'append'): Pro
       timelineLoadedOffset: 0,
       timelinePageIndex: 0,
       timelineIsLoadingMore: false,
+      timelineIsLoadingPrevious: false,
       isLoading: false,
     });
     return;
   }
 
-  appState.set(
-    mode === 'append'
-      ? { timelineIsLoadingMore: true }
-      : { isLoading: true, error: null, timelineIsLoadingMore: false }
-  );
+  if (mode === 'append') {
+    appState.set({ timelineIsLoadingMore: true });
+  } else if (mode === 'prepend') {
+    appState.set({ timelineIsLoadingPrevious: true });
+  } else {
+    appState.set({
+      isLoading: true,
+      error: null,
+      timelineIsLoadingMore: false,
+      timelineIsLoadingPrevious: false,
+    });
+  }
 
   try {
     const page = await getTimelinePage.execute({
@@ -366,6 +377,28 @@ async function loadTimelinePage(offset: number, mode: 'replace' | 'append'): Pro
         timelineLoadedOffset: loadedOffset,
         timelinePageIndex: Math.floor(loadedOffset / state.timelinePageSize),
         timelineIsLoadingMore: false,
+        timelineIsLoadingPrevious: false,
+        isLoading: false,
+      });
+      return;
+    }
+
+    if (mode === 'prepend') {
+      let entries = [
+        ...page.entries,
+        ...appState.get().timelineEntries,
+      ];
+      if (entries.length > TIMELINE_WINDOW_MAX) {
+        entries = entries.slice(0, TIMELINE_WINDOW_MAX);
+      }
+
+      appState.set({
+        timelineEntries: entries,
+        timelineTotal: page.total,
+        timelineLoadedOffset: offset,
+        timelinePageIndex: Math.floor(offset / state.timelinePageSize),
+        timelineIsLoadingMore: false,
+        timelineIsLoadingPrevious: false,
         isLoading: false,
       });
       return;
@@ -377,11 +410,16 @@ async function loadTimelinePage(offset: number, mode: 'replace' | 'append'): Pro
       timelineLoadedOffset: offset,
       timelinePageIndex: Math.floor(offset / state.timelinePageSize),
       timelineIsLoadingMore: false,
+      timelineIsLoadingPrevious: false,
       isLoading: false,
     });
   } catch (error: unknown) {
     if (requestId !== timelineRequestId) return;
-    appState.set({ isLoading: false, timelineIsLoadingMore: false });
+    appState.set({
+      isLoading: false,
+      timelineIsLoadingMore: false,
+      timelineIsLoadingPrevious: false,
+    });
     snackbar.error(error instanceof Error ? error.message : 'Não foi possível carregar a timeline.');
   }
 }
@@ -1461,6 +1499,19 @@ export const AppController = {
     await loadTimelinePage(0, 'replace');
   },
 
+  async applyTimelineSearch(
+    filters: TimelineFilters,
+    chainIds: string[]
+  ): Promise<void> {
+    appState.set({
+      timelineFilters: filters,
+      timelineSelectedChainIds: [...new Set(chainIds)],
+      timelinePageIndex: 0,
+      timelinePreviewNoteId: null,
+    });
+    await loadTimelinePage(0, 'replace');
+  },
+
   async updateTimelineFilters(patch: Partial<TimelineFilters>): Promise<void> {
     appState.set({
       timelineFilters: { ...appState.get().timelineFilters, ...patch },
@@ -1489,10 +1540,30 @@ export const AppController = {
 
   async loadMoreTimeline(): Promise<void> {
     const state = appState.get();
-    if (state.timelineIsLoadingMore || state.isLoading) return;
+    if (
+      state.timelineIsLoadingMore ||
+      state.timelineIsLoadingPrevious ||
+      state.isLoading
+    ) {
+      return;
+    }
     const loaded = state.timelineLoadedOffset + state.timelineEntries.length;
     if (loaded >= state.timelineTotal) return;
     await loadTimelinePage(loaded, 'append');
+  },
+
+  async loadPreviousTimeline(): Promise<void> {
+    const state = appState.get();
+    if (
+      state.timelineIsLoadingPrevious ||
+      state.timelineIsLoadingMore ||
+      state.isLoading
+    ) {
+      return;
+    }
+    if (state.timelineLoadedOffset <= 0) return;
+    const offset = Math.max(0, state.timelineLoadedOffset - state.timelinePageSize);
+    await loadTimelinePage(offset, 'prepend');
   },
 
   async seekTimelinePage(pageIndex: number): Promise<void> {

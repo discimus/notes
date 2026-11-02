@@ -22,7 +22,7 @@ export interface TimelineFilters {
   tagIds: string[];
   contentTypes?: NoteContentType[] | undefined;
   tagMode?: 'any' | 'all' | undefined;
-  sort?: 'newest' | 'oldest' | undefined;
+  sort?: 'newest' | 'oldest' | 'relevance' | undefined;
 }
 
 export interface AppState {
@@ -48,6 +48,7 @@ export interface AppState {
   timelinePageIndex: number;
   timelineFilters: TimelineFilters;
   timelineIsLoadingMore: boolean;
+  timelineIsLoadingPrevious: boolean;
   timelineSelectedChainIds: string[];
   timelinePreviewNoteId: string | null;
   isLoading: boolean;
@@ -95,6 +96,7 @@ class AppStateStore {
       sort: 'newest',
     },
     timelineIsLoadingMore: false,
+    timelineIsLoadingPrevious: false,
     timelineSelectedChainIds: [],
     timelinePreviewNoteId: null,
     isLoading: false,

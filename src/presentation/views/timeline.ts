@@ -17,6 +17,15 @@ import { renderNotePreview } from '../components/NotePreview.js';
 import { renderEmptyDetail, renderLoadingState } from '../components/states.js';
 import { renderNavToggle } from '../components/NavToggle.js';
 import { getTimelineChainColors } from '../app/timelineColors.js';
+import {
+  deleteTimelineSearch,
+  getSavedTimelineSearches,
+  saveTimelineSearch,
+  type SavedTimelineSearch,
+} from '../app/timelineSavedSearches.js';
+import { showInputDialog } from '../components/Dialog.js';
+import { snackbar } from '../components/Snackbar.js';
+import { enableMagneticDragScroll } from '../components/dragScroll.js';
 
 let queryTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -61,6 +70,28 @@ function contentTypeLabel(value: NoteContentType): string {
   return CONTENT_TYPES.find((item) => item.value === value)?.label ?? value;
 }
 
+function matchedField(
+  note: TimelineEntryDTO['note'],
+  chainTitle: string,
+  query: string
+): 'Título' | 'Conteúdo' | 'Coleção' | 'Tag' | null {
+  const normalized = normalizeText(query);
+  if (!normalized) return null;
+  if (note.title && normalizeText(note.title).includes(normalized)) {
+    return 'Título';
+  }
+  if (
+    (note.tags ?? []).some((tag) =>
+      normalizeText(tag.name).includes(normalized)
+    )
+  ) {
+    return 'Tag';
+  }
+  if (normalizeText(chainTitle).includes(normalized)) return 'Coleção';
+  if (normalizeText(note.content).includes(normalized)) return 'Conteúdo';
+  return null;
+}
+
 function formatFilterDate(value: string): string {
   if (!value) return '';
   const [year, month, day] = value.split('-');
@@ -85,6 +116,10 @@ export function renderTimelineLayout(state: AppState): HTMLElement {
         <input type="search" class="search-bar__input" id="timeline-query"
           placeholder="Buscar notas..." aria-label="Buscar nas notas" autocomplete="off" />
       </div>
+      <button class="btn-icon timeline-saved-search" id="timeline-saved-search" type="button"
+        aria-label="Buscas salvas" title="Buscas salvas" aria-haspopup="menu" aria-expanded="false">
+        <span class="material-symbols-rounded" aria-hidden="true">bookmarks</span>
+      </button>
       <button class="btn-icon timeline-clear-filters" id="timeline-clear-filters" type="button"
         aria-label="Limpar filtros" title="Limpar filtros">
         <span class="material-symbols-rounded" aria-hidden="true">filter_alt_off</span>
@@ -97,61 +132,89 @@ export function renderTimelineLayout(state: AppState): HTMLElement {
         <span class="timeline-advanced__label">Filtros</span>
         <span class="timeline-filter-count" id="timeline-filter-count" hidden></span>
       </summary>
-      <div class="timeline-filters">
-        <section class="timeline-filter-section">
-          <h3 class="timeline-filter-section__title">Período</h3>
-          <div class="timeline-chip-group" id="timeline-date-presets"
-            aria-label="Filtrar por período"></div>
-          <div class="timeline-filters__row">
-            <label class="timeline-filter-date">
-              <span>De</span>
-              <input type="date" id="timeline-from" aria-label="Data inicial" />
-            </label>
-            <label class="timeline-filter-date">
-              <span>Até</span>
-              <input type="date" id="timeline-to" aria-label="Data final" />
-            </label>
+      <div class="timeline-filters" role="region" aria-labelledby="timeline-filters-title">
+        <header class="timeline-filters__header">
+          <div class="timeline-filters__heading">
+            <h2 class="timeline-filters__title" id="timeline-filters-title">Filtros</h2>
+            <p class="timeline-filters__subtitle">
+              Combine período, conteúdo, tags e coleções para refinar a busca.
+            </p>
           </div>
-        </section>
+          <button class="btn-icon timeline-filters__close" id="timeline-filters-close"
+            type="button" aria-label="Fechar filtros" title="Fechar filtros">
+            <span class="material-symbols-rounded" aria-hidden="true">close</span>
+          </button>
+        </header>
 
-        <section class="timeline-filter-section">
-          <h3 class="timeline-filter-section__title">Conteúdo</h3>
-          <div class="timeline-chip-group" id="timeline-type-filter"
-            aria-label="Filtrar por tipo de conteúdo"></div>
-          <div class="timeline-inline-filter">
-            <span class="timeline-filter-label">Tags</span>
-            <div class="timeline-chip-group" id="timeline-tag-mode"
-              aria-label="Combinação de tags"></div>
-            <div class="timeline-tag-search">
-              <input type="search" id="timeline-tag-search"
-                aria-label="Buscar tags" placeholder="Buscar tag" autocomplete="off" />
+        <div class="timeline-filters__body">
+          <section class="timeline-filter-section timeline-filter-section--period">
+            <h3 class="timeline-filter-section__title">Período</h3>
+            <div class="timeline-chip-group" id="timeline-date-presets"
+              aria-label="Filtrar por período"></div>
+            <div class="timeline-filters__row">
+              <label class="timeline-filter-date">
+                <span>De</span>
+                <input type="date" id="timeline-from" aria-label="Data inicial" />
+              </label>
+              <label class="timeline-filter-date">
+                <span>Até</span>
+                <input type="date" id="timeline-to" aria-label="Data final" />
+              </label>
+            </div>
+          </section>
+
+          <section class="timeline-filter-section timeline-filter-section--content">
+            <h3 class="timeline-filter-section__title">Conteúdo</h3>
+            <div class="timeline-chip-group" id="timeline-type-filter"
+              aria-label="Filtrar por tipo de conteúdo"></div>
+          </section>
+
+          <section class="timeline-filter-section timeline-filter-section--sort">
+            <h3 class="timeline-filter-section__title">Ordenação</h3>
+            <div class="timeline-chip-group" id="timeline-sort"
+              aria-label="Ordenar resultados"></div>
+          </section>
+
+          <section class="timeline-filter-section timeline-filter-section--tags">
+            <h3 class="timeline-filter-section__title">Tags</h3>
+            <div class="timeline-tag-controls">
+              <span class="timeline-filter-label">Combinação</span>
+              <div class="timeline-chip-group" id="timeline-tag-mode"
+                aria-label="Combinação de tags"></div>
+              <div class="timeline-tag-search">
+                <input type="search" id="timeline-tag-search"
+                  aria-label="Buscar tags" placeholder="Buscar tag" autocomplete="off" />
+              </div>
             </div>
             <div class="timeline-tag-filter" id="timeline-tag-filter"
               aria-label="Filtrar por tags"></div>
-          </div>
-        </section>
+          </section>
 
-        <section class="timeline-filter-section">
-          <h3 class="timeline-filter-section__title">Coleções</h3>
-          <div class="timeline-chain-selector">
-            <div class="timeline-chain-selector__toolbar">
-              <div class="timeline-chain-search">
-                <input type="search" id="timeline-chain-search"
-                  aria-label="Buscar coleções" placeholder="Buscar coleção" autocomplete="off" />
+          <section class="timeline-filter-section timeline-filter-section--chains">
+            <h3 class="timeline-filter-section__title">Coleções</h3>
+            <div class="timeline-chain-selector">
+              <div class="timeline-chain-selector__toolbar">
+                <div class="timeline-chain-search">
+                  <input type="search" id="timeline-chain-search"
+                    aria-label="Buscar coleções" placeholder="Buscar coleção" autocomplete="off" />
+                </div>
+                <button class="chip timeline-chain-all" id="timeline-chain-all"
+                  type="button" aria-pressed="true">Todas</button>
               </div>
-              <button class="chip timeline-chain-all" id="timeline-chain-all"
-                type="button" aria-pressed="true">Todas</button>
+              <div class="chain-selector__list" id="timeline-chain-selector"
+                aria-label="Coleções para timeline"></div>
             </div>
-            <div class="chain-selector__list" id="timeline-chain-selector"
-              aria-label="Coleções para timeline"></div>
-          </div>
-        </section>
+          </section>
+        </div>
 
-        <section class="timeline-filter-section">
-          <h3 class="timeline-filter-section__title">Ordenação</h3>
-          <div class="timeline-chip-group" id="timeline-sort"
-            aria-label="Ordenar resultados"></div>
-        </section>
+        <footer class="timeline-filters__footer">
+          <button class="btn btn-text" id="timeline-filters-clear" type="button">
+            Limpar filtros
+          </button>
+          <button class="btn btn-tonal" id="timeline-filters-done" type="button">
+            Concluir
+          </button>
+        </footer>
       </div>
     </details>
 
@@ -205,14 +268,164 @@ export function renderTimelineLayout(state: AppState): HTMLElement {
   const clear = header.querySelector<HTMLButtonElement>('#timeline-clear-filters')!;
   const tagFilter = header.querySelector<HTMLElement>('#timeline-tag-filter')!;
   const tagSearch = header.querySelector<HTMLInputElement>('#timeline-tag-search')!;
+  enableMagneticDragScroll(tagFilter, {
+    draggingClass: 'timeline-tag-filter--dragging',
+    snapSelector: '.timeline-tag-filter__chip',
+  });
   const filtersDetails = header.querySelector<HTMLDetailsElement>(
     '#timeline-filters-details'
+  )!;
+  const filtersClose = header.querySelector<HTMLButtonElement>(
+    '#timeline-filters-close'
+  )!;
+  const filtersDone = header.querySelector<HTMLButtonElement>(
+    '#timeline-filters-done'
+  )!;
+  const filtersClear = header.querySelector<HTMLButtonElement>(
+    '#timeline-filters-clear'
   )!;
   const chainSelector = header.querySelector<HTMLElement>('#timeline-chain-selector')!;
   const chainSearch = header.querySelector<HTMLInputElement>('#timeline-chain-search')!;
   const chainAll = header.querySelector<HTMLButtonElement>('#timeline-chain-all')!;
   const slider = header.querySelector<HTMLInputElement>('#timeline-slider')!;
   const pageLabel = header.querySelector<HTMLElement>('#timeline-page-label')!;
+  const savedButton = header.querySelector<HTMLButtonElement>(
+    '#timeline-saved-search'
+  )!;
+  const savedMenu = el('div', 'timeline-saved-menu');
+  savedMenu.hidden = true;
+  savedMenu.setAttribute('role', 'menu');
+  savedMenu.setAttribute('aria-label', 'Buscas salvas');
+  header.appendChild(savedMenu);
+
+  const closeSavedMenu = (restoreFocus = false): void => {
+    savedMenu.hidden = true;
+    savedButton.setAttribute('aria-expanded', 'false');
+    document.removeEventListener('pointerdown', onSavedMenuPointerDown, true);
+    if (restoreFocus) savedButton.focus();
+  };
+
+  const onSavedMenuPointerDown = (event: PointerEvent): void => {
+    if (!savedMenu.isConnected) {
+      document.removeEventListener('pointerdown', onSavedMenuPointerDown, true);
+      return;
+    }
+    if (savedMenu.hidden) return;
+    if (event.target instanceof Node && savedMenu.contains(event.target)) return;
+    if (event.target === savedButton) return;
+    closeSavedMenu();
+  };
+
+  const saveCurrentSearch = async (): Promise<void> => {
+    const name = await showInputDialog({
+      title: 'Salvar busca',
+      label: 'Nome da busca',
+      placeholder: 'Ex.: Código recente com bug',
+      confirmLabel: 'Salvar',
+    });
+    if (!name?.trim()) return;
+    const stateNow = appState.get();
+    const saved = saveTimelineSearch(
+      name,
+      stateNow.timelineFilters,
+      stateNow.timelineSelectedChainIds
+    );
+    if (!saved) {
+      snackbar.error('Não foi possível salvar a busca.');
+      return;
+    }
+    snackbar.success('Busca salva.');
+    renderSavedMenu();
+    savedButton.focus();
+  };
+
+  const applySavedSearch = async (
+    saved: SavedTimelineSearch
+  ): Promise<void> => {
+    closeSavedMenu();
+    filtersDetails.open = false;
+    await AppController.applyTimelineSearch(saved.filters, saved.chainIds);
+  };
+
+  function renderSavedMenu(): void {
+    const savedSearches = getSavedTimelineSearches();
+    const saveAction = el('button', 'timeline-saved-menu__save');
+    saveAction.type = 'button';
+    saveAction.setAttribute('role', 'menuitem');
+    saveAction.innerHTML =
+      '<span class="material-symbols-rounded" aria-hidden="true">bookmark_add</span><span>Salvar busca atual</span>';
+    saveAction.addEventListener('click', () => void saveCurrentSearch());
+
+    if (savedSearches.length === 0) {
+      const empty = el('p', 'timeline-saved-menu__empty');
+      empty.textContent = 'Nenhuma busca salva.';
+      savedMenu.replaceChildren(saveAction, empty);
+      return;
+    }
+
+    const items = savedSearches.map((saved) => {
+      const row = el('div', 'timeline-saved-menu__item');
+      const apply = el('button', 'timeline-saved-menu__apply');
+      apply.type = 'button';
+      apply.setAttribute('role', 'menuitem');
+      apply.innerHTML =
+        '<span class="material-symbols-rounded" aria-hidden="true">search</span>';
+      const label = el('span', 'timeline-saved-menu__label');
+      label.textContent = saved.name;
+      apply.appendChild(label);
+      apply.addEventListener('click', () => void applySavedSearch(saved));
+
+      const remove = el('button', 'btn-icon timeline-saved-menu__remove');
+      remove.type = 'button';
+      remove.setAttribute('aria-label', `Excluir busca ${saved.name}`);
+      remove.title = 'Excluir busca';
+      remove.innerHTML =
+        '<span class="material-symbols-rounded" aria-hidden="true">delete</span>';
+      remove.addEventListener('click', () => {
+        deleteTimelineSearch(saved.id);
+        renderSavedMenu();
+        savedButton.focus();
+      });
+
+      row.append(apply, remove);
+      return row;
+    });
+
+    savedMenu.replaceChildren(saveAction, ...items);
+  }
+
+  const openSavedMenu = (): void => {
+    renderSavedMenu();
+    savedMenu.hidden = false;
+    savedButton.setAttribute('aria-expanded', 'true');
+    document.addEventListener('pointerdown', onSavedMenuPointerDown, true);
+    savedMenu.querySelector<HTMLElement>('button')?.focus();
+  };
+
+  savedButton.addEventListener('click', () => {
+    if (savedMenu.hidden) openSavedMenu();
+    else closeSavedMenu(true);
+  });
+
+  savedMenu.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      closeSavedMenu(true);
+      return;
+    }
+    if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return;
+    const items = [
+      ...savedMenu.querySelectorAll<HTMLElement>('button'),
+    ];
+    const index = items.indexOf(document.activeElement as HTMLElement);
+    if (index < 0) return;
+    event.preventDefault();
+    const nextIndex =
+      event.key === 'ArrowDown'
+        ? Math.min(items.length - 1, index + 1)
+        : Math.max(0, index - 1);
+    items[nextIndex]?.focus();
+  });
 
   query.addEventListener('input', () => {
     if (queryTimer) clearTimeout(queryTimer);
@@ -229,6 +442,23 @@ export function renderTimelineLayout(state: AppState): HTMLElement {
     void AppController.updateTimelineFilters({ to: to.value });
   });
   clear.addEventListener('click', () => {
+    query.value = '';
+    from.value = '';
+    to.value = '';
+    tagSearch.value = '';
+    void AppController.clearTimelineFilters();
+  });
+
+  const closeFilters = (): void => {
+    filtersDetails.open = false;
+    filtersDetails
+      .querySelector<HTMLElement>('summary')
+      ?.focus();
+  };
+
+  filtersClose.addEventListener('click', closeFilters);
+  filtersDone.addEventListener('click', closeFilters);
+  filtersClear.addEventListener('click', () => {
     query.value = '';
     from.value = '';
     to.value = '';
@@ -408,21 +638,86 @@ export function renderTimelineLayout(state: AppState): HTMLElement {
     item.click();
   });
 
-  slider.addEventListener('input', () => {
-    const stateNow = appState.get();
-    const totalPages = Math.max(
-      1,
-      Math.ceil(stateNow.timelineTotal / stateNow.timelinePageSize)
+  let sliderSeekTimer: ReturnType<typeof setTimeout> | null = null;
+  const setSliderAdjusting = (active: boolean): void => {
+    if (active) slider.dataset['adjusting'] = 'true';
+    else delete slider.dataset['adjusting'];
+  };
+  const seekSliderPage = (immediate: boolean): void => {
+    const totalPages = Math.max(1, Number(slider.max) + 1);
+    const page = Math.max(
+      0,
+      Math.min(totalPages - 1, Math.round(Number(slider.value)))
     );
-    pageLabel.textContent = `Página ${Number(slider.value) + 1} de ${totalPages}`;
+    setTimelineSliderLabel(slider, pageLabel, page, totalPages);
+    if (sliderSeekTimer !== null) {
+      clearTimeout(sliderSeekTimer);
+      sliderSeekTimer = null;
+    }
+    const commit = (): void => {
+      setSliderAdjusting(false);
+      list.scrollTop = 0;
+      void AppController.seekTimelinePage(page);
+    };
+    if (immediate) {
+      commit();
+      return;
+    }
+    sliderSeekTimer = setTimeout(() => {
+      sliderSeekTimer = null;
+      commit();
+    }, 120);
+  };
+
+  slider.addEventListener('pointerdown', () => setSliderAdjusting(true));
+  slider.addEventListener('input', () => {
+    setSliderAdjusting(true);
+    seekSliderPage(false);
   });
-  slider.addEventListener('change', () => {
-    void AppController.seekTimelinePage(Number(slider.value));
-  });
+  slider.addEventListener('change', () => seekSliderPage(true));
+  slider.addEventListener('blur', () => setSliderAdjusting(false));
 
   list.addEventListener('scroll', () => {
+    syncTimelineSliderFromScroll(
+      list,
+      slider,
+      pageLabel,
+      appState.get()
+    );
+    if (list.scrollTop < 120) {
+      void AppController.loadPreviousTimeline();
+    }
     if (list.scrollTop + list.clientHeight < list.scrollHeight - 120) return;
     void AppController.loadMoreTimeline();
+  });
+
+  list.addEventListener('keydown', (event) => {
+    if (
+      event.key !== 'ArrowDown' &&
+      event.key !== 'ArrowUp' &&
+      event.key !== 'Home' &&
+      event.key !== 'End'
+    ) {
+      return;
+    }
+    const row = (event.target as HTMLElement).closest<HTMLElement>(
+      '.timeline-entry'
+    );
+    if (!row) return;
+    event.preventDefault();
+    const rows = [
+      ...list.querySelectorAll<HTMLElement>('.timeline-entry'),
+    ];
+    const current = rows.indexOf(row);
+    const next =
+      event.key === 'Home'
+        ? 0
+        : event.key === 'End'
+          ? rows.length - 1
+          : event.key === 'ArrowDown'
+            ? Math.min(rows.length - 1, current + 1)
+            : Math.max(0, current - 1);
+    rows[next]?.focus();
   });
 
   renderTimelineFilters(header, state);
@@ -430,6 +725,7 @@ export function renderTimelineLayout(state: AppState): HTMLElement {
   updateTimelineEntries(list, state);
   updateTimelineSummary(header, state);
   updateTimelineSlider(slider, pageLabel, state);
+  syncTimelineSliderFromScroll(list, slider, pageLabel, state);
   renderTimelinePreview(preview, state);
   return layout;
 }
@@ -447,11 +743,12 @@ export function updateTimelineLayout(content: HTMLElement, state: AppState): voi
   }
   updateTimelineEntries(list, state);
   updateTimelineSummary(header, state);
-  updateTimelineSlider(
-    qs<HTMLInputElement>('#timeline-slider', header)!,
-    qs<HTMLElement>('#timeline-page-label', header)!,
-    state
-  );
+  const slider = qs<HTMLInputElement>('#timeline-slider', header);
+  const pageLabel = qs<HTMLElement>('#timeline-page-label', header);
+  if (slider && pageLabel) {
+    updateTimelineSlider(slider, pageLabel, state);
+    syncTimelineSliderFromScroll(list, slider, pageLabel, state);
+  }
   const preview = qs<HTMLElement>('#timeline-preview', content);
   if (preview) renderTimelinePreview(preview, state);
 }
@@ -529,6 +826,7 @@ function renderTimelineFilters(header: HTMLElement, state: AppState): void {
         [
           ['newest', 'Mais recentes'],
           ['oldest', 'Mais antigas'],
+          ['relevance', 'Relevância'],
         ] as const
       ).map(([value, label]) => {
         const active = activeSort === value;
@@ -539,6 +837,10 @@ function renderTimelineFilters(header: HTMLElement, state: AppState): void {
         button.type = 'button';
         button.dataset['sort'] = value;
         button.setAttribute('aria-pressed', active ? 'true' : 'false');
+        if (value === 'relevance' && !filters.query.trim()) {
+          button.disabled = true;
+          button.title = 'Digite um termo para ordenar por relevância';
+        }
         button.textContent = label;
         return button;
       })
@@ -657,13 +959,24 @@ function renderActiveFilters(header: HTMLElement, state: AppState): void {
     if (chain) add('chain', chain.id, chain.displayTitle);
   });
 
+  const activeCount = chips.length;
+  if (activeCount > 0) {
+    const clearAll = el('button', 'chip timeline-active-filter__clear');
+    clearAll.type = 'button';
+    clearAll.textContent = 'Limpar tudo';
+    clearAll.addEventListener('click', () => {
+      void AppController.clearTimelineFilters();
+    });
+    chips.push(clearAll);
+  }
+
   host.replaceChildren(...chips);
   host.hidden = chips.length === 0;
 
   const count = qs<HTMLElement>('#timeline-filter-count', header);
   if (count) {
-    count.textContent = String(chips.length);
-    count.hidden = chips.length === 0;
+    count.textContent = String(activeCount);
+    count.hidden = activeCount === 0;
   }
 }
 
@@ -826,6 +1139,29 @@ function renderTimelinePreview(host: HTMLElement, state: AppState): void {
   });
 }
 
+function updateTimelineSliderProgress(slider: HTMLInputElement): void {
+  const max = Number(slider.max) || 0;
+  const value = Number(slider.value) || 0;
+  const progress =
+    max > 0 ? Math.max(0, Math.min(100, (value / max) * 100)) : 0;
+  slider.style.setProperty('--timeline-slider-progress', `${progress}%`);
+}
+
+function setTimelineSliderLabel(
+  slider: HTMLInputElement,
+  label: HTMLElement,
+  pageIndex: number,
+  totalPages: number,
+  period = ''
+): void {
+  label.textContent = `Página ${pageIndex + 1} de ${totalPages}${
+    period ? ` · ${period}` : ''
+  }`;
+  slider.setAttribute('aria-valuetext', label.textContent);
+  slider.title = label.textContent;
+  updateTimelineSliderProgress(slider);
+}
+
 function updateTimelineSlider(
   slider: HTMLInputElement,
   label: HTMLElement,
@@ -835,13 +1171,19 @@ function updateTimelineSlider(
     1,
     Math.ceil(state.timelineTotal / state.timelinePageSize)
   );
-  const disabled = state.timelineTotal === 0 || totalPages <= 1;
+  const hidden = state.timelineTotal === 0;
+  const disabled = hidden || totalPages <= 1;
 
   slider.max = String(Math.max(0, totalPages - 1));
-  slider.value = String(state.timelinePageIndex);
+  slider.step = '1';
+  if (slider.dataset['adjusting'] !== 'true') {
+    slider.value = String(
+      Math.min(Math.max(0, state.timelinePageIndex), totalPages - 1)
+    );
+  }
   slider.disabled = disabled;
   const row = slider.closest<HTMLElement>('.timeline-slider-row');
-  if (row) row.hidden = disabled;
+  if (row) row.hidden = hidden;
 
   if (state.chainSummaries.length === 0) {
     label.textContent = 'Nenhuma coleção cadastrada';
@@ -851,6 +1193,7 @@ function updateTimelineSlider(
     label.textContent = 'Nenhuma nota encontrada';
     return;
   }
+  if (slider.dataset['adjusting'] === 'true') return;
 
   const first = state.timelineEntries[0];
   const last = state.timelineEntries[state.timelineEntries.length - 1];
@@ -861,16 +1204,82 @@ function updateTimelineSlider(
         )}`
       : '';
 
-  label.textContent = `Página ${state.timelinePageIndex + 1} de ${totalPages}${range}`;
+  setTimelineSliderLabel(
+    slider,
+    label,
+    state.timelinePageIndex,
+    totalPages,
+    range
+  );
+}
+
+function syncTimelineSliderFromScroll(
+  container: HTMLElement,
+  slider: HTMLInputElement,
+  label: HTMLElement,
+  state: AppState
+): void {
+  if (
+    !state.timelineTotal ||
+    state.timelineEntries.length === 0 ||
+    slider.dataset['adjusting'] === 'true'
+  ) {
+    return;
+  }
+
+  const totalPages = Math.max(
+    1,
+    Math.ceil(state.timelineTotal / state.timelinePageSize)
+  );
+  const scrollable = Math.max(
+    0,
+    container.scrollHeight - container.clientHeight
+  );
+  const ratio =
+    scrollable > 0
+      ? Math.max(0, Math.min(1, container.scrollTop / scrollable))
+      : 0;
+  const localIndex = Math.min(
+    state.timelineEntries.length - 1,
+    Math.max(0, Math.round(ratio * (state.timelineEntries.length - 1)))
+  );
+  const absoluteIndex = state.timelineLoadedOffset + localIndex;
+  const pageSize = Math.max(1, state.timelinePageSize);
+  const pageIndex = Math.min(
+    totalPages - 1,
+    Math.floor(absoluteIndex / pageSize)
+  );
+  const entry = state.timelineEntries[localIndex];
+
+  slider.value = String(pageIndex);
+  setTimelineSliderLabel(
+    slider,
+    label,
+    pageIndex,
+    totalPages,
+    entry ? formatDateCompact(entry.note.createdAt) : ''
+  );
 }
 
 function updateTimelineEntries(container: HTMLElement, state: AppState): void {
   const previousScroll = container.scrollTop;
+  const previousHeight = container.scrollHeight;
   const previousOffset = Number(
     container.dataset['loadedOffset'] ?? state.timelineLoadedOffset
   );
   const wasNearBottom =
     container.scrollTop + container.clientHeight >= container.scrollHeight - 120;
+  const isPrepending = state.timelineLoadedOffset < previousOffset;
+  const containerTop = container.getBoundingClientRect().top;
+  const anchor = isPrepending
+    ? Array.from(
+        container.querySelectorAll<HTMLElement>('.timeline-entry')
+      ).find((row) => row.getBoundingClientRect().bottom > containerTop)
+    : undefined;
+  const anchorId = anchor?.dataset['noteId'];
+  const anchorOffset = anchor
+    ? anchor.getBoundingClientRect().top - containerTop
+    : 0;
 
   container.innerHTML = '';
   container.dataset['loadedOffset'] = String(state.timelineLoadedOffset);
@@ -927,6 +1336,27 @@ function updateTimelineEntries(container: HTMLElement, state: AppState): void {
     container.appendChild(hint);
   }
 
+  if (isPrepending) {
+    const nextAnchor = anchorId
+      ? Array.from(
+          container.querySelectorAll<HTMLElement>('.timeline-entry')
+        ).find((row) => row.dataset['noteId'] === anchorId)
+      : undefined;
+    if (nextAnchor) {
+      const nextOffset =
+        nextAnchor.getBoundingClientRect().top -
+        container.getBoundingClientRect().top;
+      container.scrollTop = Math.max(
+        0,
+        previousScroll + nextOffset - anchorOffset
+      );
+    } else {
+      container.scrollTop =
+        previousScroll + Math.max(0, container.scrollHeight - previousHeight);
+    }
+    return;
+  }
+
   if (state.timelineLoadedOffset > previousOffset && wasNearBottom) {
     container.scrollTop = container.scrollHeight;
   } else {
@@ -942,11 +1372,13 @@ function renderEntries(
   previewNoteId: string | null
 ): void {
   let lastDate = '';
+  let group: HTMLElement | null = null;
 
   entries.forEach((entry) => {
     const dateStr = new Date(entry.note.createdAt).toLocaleDateString('pt-BR');
-    if (dateStr !== lastDate) {
+    if (dateStr !== lastDate || !group) {
       lastDate = dateStr;
+      group = el('section', 'timeline-date-group');
       const dateSep = el('div', 'timeline-date');
       dateSep.textContent = new Date(entry.note.createdAt).toLocaleDateString(
         'pt-BR',
@@ -957,7 +1389,10 @@ function renderEntries(
           day: 'numeric',
         }
       );
-      container.appendChild(dateSep);
+      const dateRow = el('div', 'timeline-date-row');
+      dateRow.appendChild(dateSep);
+      group.appendChild(dateRow);
+      container.appendChild(group);
     }
 
     const row = el('div', 'timeline-entry');
@@ -1029,6 +1464,12 @@ function renderEntries(
     content.appendChild(textEl);
 
     const meta = el('div', 'timeline-entry__meta');
+    const match = matchedField(entry.note, entry.chainTitle, query);
+    if (match) {
+      const matchBadge = el('span', 'timeline-entry__match');
+      matchBadge.textContent = `Match em ${match}`;
+      meta.appendChild(matchBadge);
+    }
     if (type !== 'text') {
       const typeBadge = el('span', 'timeline-entry__type');
       typeBadge.textContent = contentTypeLabel(type);
@@ -1069,6 +1510,6 @@ function renderEntries(
 
     body.append(top, content, meta);
     row.appendChild(body);
-    container.appendChild(row);
+    group?.appendChild(row);
   });
 }

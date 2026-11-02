@@ -240,7 +240,7 @@ export interface GetTimelinePageCommand {
   tagIds?: UUID[] | undefined;
   tagMode?: 'any' | 'all' | undefined;
   contentTypes?: NoteContentType[] | undefined;
-  sort?: 'newest' | 'oldest' | undefined;
+  sort?: 'newest' | 'oldest' | 'relevance' | undefined;
   offset: number;
   limit: number;
 }

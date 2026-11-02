@@ -2,7 +2,7 @@
 import type { NotesDB } from '../persistence/schema.js';
 import { getDatabase } from '../persistence/schema.js';
 import { Chain, Note } from '@domain/entities/index.js';
-import type { TimelineEntry } from '@domain/entities/index.js';
+import type { NoteData, TimelineEntry } from '@domain/entities/index.js';
 import type {
   IChainRepository,
   ChainSortOrder,
@@ -248,10 +248,28 @@ export class IdbChainRepository
     const offset = Math.max(0, query.offset);
     const limit = Math.max(1, query.limit);
     const entries: TimelineEntry[] = [];
+    const scored: Array<{ entry: TimelineEntry; score: number }> = [];
+    const relevance = query.sort === 'relevance' && normalizedText.length > 0;
     let total = 0;
 
+    const scoreMatch = (note: NoteData, chainTitle: string): number => {
+      const title = normalizeText(note.title ?? '');
+      const chain = normalizeText(chainTitle);
+      const content = normalizeText(note.content);
+      let score = 0;
+      if (title === normalizedText) score += 24;
+      else if (title.includes(normalizedText)) score += 14;
+      if (chain === normalizedText) score += 10;
+      else if (chain.includes(normalizedText)) score += 5;
+      if (content === normalizedText) score += 20;
+      const occurrences = content.split(normalizedText).length - 1;
+      score += occurrences * 2;
+      return score;
+    };
+
     const tx = db.transaction('notes');
-    const direction: IDBCursorDirection = query.sort === 'newest' ? 'prev' : 'next';
+    const direction: IDBCursorDirection =
+      query.sort === 'oldest' ? 'next' : 'prev';
     let cursor = await tx.store.index('by-createdAt').openCursor(null, direction);
 
     while (cursor) {
@@ -280,13 +298,16 @@ export class IdbChainRepository
           contentTypes.has(note.contentType ?? 'text');
 
         if (inRange && matchesText && matchesTag && matchesType) {
-          if (total >= offset && entries.length < limit) {
-            entries.push({
-              note,
-              chainId: note.chainId,
-              chainTitle,
-              tiebreaker: `${note.chainId}:${note.id}`,
-            });
+          const entry: TimelineEntry = {
+            note,
+            chainId: note.chainId,
+            chainTitle,
+            tiebreaker: `${note.chainId}:${note.id}`,
+          };
+          if (relevance) {
+            scored.push({ entry, score: scoreMatch(note, chainTitle) });
+          } else if (total >= offset && entries.length < limit) {
+            entries.push(entry);
           }
           total += 1;
         }
@@ -296,6 +317,24 @@ export class IdbChainRepository
     }
 
     await tx.done;
+
+    if (relevance) {
+      scored.sort((a, b) => {
+        if (b.score !== a.score) return b.score - a.score;
+        const dateDiff = b.entry.note.createdAt.localeCompare(
+          a.entry.note.createdAt
+        );
+        return dateDiff !== 0
+          ? dateDiff
+          : a.entry.tiebreaker.localeCompare(b.entry.tiebreaker);
+      });
+      entries.push(
+        ...scored
+          .slice(offset, offset + limit)
+          .map((item) => item.entry)
+      );
+    }
+
     return { entries, total };
   }
 
