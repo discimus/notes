@@ -166,6 +166,12 @@ export interface DeleteNoteCommand {
   noteId: UUID;
 }
 
+export interface MoveNotesCommand {
+  sourceChainId: UUID;
+  targetChainId: UUID;
+  noteIds: UUID[];
+}
+
 export interface ImportTextNoteCommand {
   chainId: UUID;
   content: string;

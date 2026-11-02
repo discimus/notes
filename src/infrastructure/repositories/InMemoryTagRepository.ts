@@ -91,6 +91,15 @@ export class InMemoryTagRepository implements ITagRepository {
     );
   }
 
+  async moveNoteTags(noteIds: UUID[], chainId: UUID): Promise<void> {
+    const ids = new Set(noteIds);
+    this.noteTags = this.noteTags.map((noteTag) =>
+      ids.has(noteTag.noteId)
+        ? NoteTag.reconstitute({ ...noteTag.toData(), chainId })
+        : noteTag
+    );
+  }
+
   async countChainsForTag(tagId: UUID): Promise<number> {
     const chainIds = new Set(
       this.chainTags.filter((ct) => ct.tagId === tagId).map((ct) => ct.chainId)

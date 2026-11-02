@@ -18,5 +18,6 @@ export interface ITagRepository {
   removeFromChain(chainId: UUID, tagId: UUID): Promise<void>;
   assignToNote(noteTag: NoteTag): Promise<void>;
   removeFromNote(noteId: UUID, tagId: UUID): Promise<void>;
+  moveNoteTags(noteIds: UUID[], chainId: UUID): Promise<void>;
   countChainsForTag(tagId: UUID): Promise<number>;
 }

@@ -155,6 +155,33 @@ export class Chain {
     return this.appendNoteInternal(content, 'text', createdAt, metadata);
   }
 
+  addExistingNote(note: Note): Note {
+    if (this.isArchived()) {
+      throw new InvariantViolationError('Não é possível adicionar notas a uma coleção arquivada.');
+    }
+    if (this.isDeleted()) {
+      throw new InvariantViolationError('Não é possível adicionar notas a uma coleção excluída.');
+    }
+    if (this._notes.some((item) => item.id === note.id)) {
+      throw new InvariantViolationError('A nota já pertence a esta coleção.');
+    }
+
+    const nextPosition = this._headerNoteId
+      ? this._notes.length
+      : this._notes.length + 1;
+    const moved = note.moveTo(this._id, nextPosition, 'tail');
+    const fileNames = new Set(
+      this._notes
+        .map((item) => item.sourceFileName)
+        .filter((name): name is string => Boolean(name))
+    );
+    moved.ensureUniqueSourceFileName(fileNames);
+
+    this._notes.push(moved);
+    this._updatedAt = now();
+    return moved;
+  }
+
   private appendNoteInternal(
     content: string,
     contentType?: NoteContentType,

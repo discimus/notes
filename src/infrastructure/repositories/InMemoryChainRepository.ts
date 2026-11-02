@@ -89,6 +89,29 @@ export class InMemoryChainRepository
     }
   }
 
+  async moveNotes(
+    sourceChain: Chain,
+    targetChain: Chain,
+    notes: Note[]
+  ): Promise<void> {
+    const sourceNotes = [...sourceChain.notes];
+    const targetNotes = [...targetChain.notes];
+    this.chains.set(sourceChain.id, {
+      chain: Chain.reconstitute(sourceChain.toData(), sourceNotes),
+      notes: sourceNotes.map((note) => Note.reconstitute(note.toData())),
+    });
+    this.chains.set(targetChain.id, {
+      chain: Chain.reconstitute(targetChain.toData(), targetNotes),
+      notes: targetNotes.map((note) => Note.reconstitute(note.toData())),
+    });
+    for (const note of notes) {
+      const entry = this.chains.get(note.chainId);
+      if (!entry) continue;
+      const index = entry.notes.findIndex((item) => item.id === note.id);
+      if (index >= 0) entry.notes[index] = Note.reconstitute(note.toData());
+    }
+  }
+
   async deleteNoteFromChain(chain: Chain, _noteId: UUID): Promise<void> {
     const notes = chain.notes.map((note) =>
       Note.reconstitute(note.toData())

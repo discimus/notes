@@ -2463,6 +2463,7 @@
 .chain-note__preview,
 .chain-note__edit,
 .chain-note__attach,
+.chain-note__more,
 .chain-note__delete {
   width: 40px;
   height: 40px;
@@ -2477,6 +2478,7 @@
 .chain-note__preview::after,
 .chain-note__edit::after,
 .chain-note__attach::after,
+.chain-note__more::after,
 .chain-note__delete::after {
   content: '';
   position: absolute;
@@ -2486,16 +2488,19 @@
 .chain-note:hover .chain-note__preview,
 .chain-note:hover .chain-note__edit,
 .chain-note:hover .chain-note__attach,
+.chain-note:hover .chain-note__more,
 .chain-note:hover .chain-note__delete,
 .chain-note:focus-within .chain-note__preview,
 .chain-note:focus-within .chain-note__edit,
 .chain-note:focus-within .chain-note__attach,
+.chain-note:focus-within .chain-note__more,
 .chain-note:focus-within .chain-note__delete {
   opacity: 1;
 }
 .chain-note__preview .material-symbols-rounded,
 .chain-note__edit .material-symbols-rounded,
 .chain-note__attach .material-symbols-rounded,
+.chain-note__more .material-symbols-rounded,
 .chain-note__delete .material-symbols-rounded {
   font-size: 18px;
 }

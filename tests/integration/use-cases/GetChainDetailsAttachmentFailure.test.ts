@@ -15,6 +15,7 @@ const failingRepository: IAttachmentRepository = {
   async save() {},
   async delete() {},
   async deleteByChain() {},
+  async moveNoteAttachments() {},
   async getBlob() {
     return null;
   },

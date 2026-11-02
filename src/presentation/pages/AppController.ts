@@ -50,6 +50,7 @@ import {
   AppendNoteToChain,
   UpdateNoteContent,
   DeleteNote,
+  MoveNotesToChain,
   UpdateChainTitle,
   AssignTagToChain,
   RemoveTagFromChain,
@@ -88,6 +89,7 @@ const createChainWithNoteUseCase = new CreateChainWithNote(chainRepo);
 const appendNote = new AppendNoteToChain(chainRepo);
 const updateNote = new UpdateNoteContent(chainRepo, tagRepo);
 const deleteNoteUseCase = new DeleteNote(chainRepo, tagRepo, attachmentRepo);
+const moveNotesUseCase = new MoveNotesToChain(chainRepo, tagRepo, attachmentRepo);
 const updateTitle = new UpdateChainTitle(chainRepo);
 const assignTag = new AssignTagToChain(chainRepo, tagRepo);
 const removeTag = new RemoveTagFromChain(chainRepo, tagRepo);
@@ -624,6 +626,50 @@ export const AppController = {
       await openChain(chainId, false);
     }
     return true;
+  },
+
+  async moveNotesToChain(
+    sourceChainId: string,
+    targetChainId: string,
+    noteIds: string[]
+  ): Promise<boolean> {
+    try {
+      const moved = await moveNotesUseCase.execute({
+        sourceChainId,
+        targetChainId,
+        noteIds,
+      });
+      if (moved.length === 0) return false;
+
+      for (const note of moved) {
+        editorStore.removeNoteFromChainTabs(sourceChainId, note.id);
+      }
+      const movedIds = new Set(moved.map((note) => note.id));
+      const previewId = appState.get().timelinePreviewNoteId;
+      if (previewId !== null && movedIds.has(previewId)) {
+        appState.set({ timelinePreviewNoteId: null });
+      }
+
+      snackbar.success(
+        moved.length === 1 ? 'Nota movida.' : `${moved.length} notas movidas.`
+      );
+
+      await Promise.allSettled([loadChains(), loadTags()]);
+      if (appState.get().view === 'editor') {
+        await Promise.all([
+          refreshEditorChainTab(sourceChainId),
+          refreshEditorChainTab(targetChainId),
+        ]);
+      } else if (appState.get().view === 'timeline') {
+        await AppController.reloadTimeline();
+      } else if (appState.get().view === 'chain-detail') {
+        await openChain(sourceChainId, false);
+      }
+      return true;
+    } catch (e: unknown) {
+      snackbar.error((e as Error).message);
+      return false;
+    }
   },
 
   async deleteNote(chainId: string, noteId: string): Promise<boolean> {

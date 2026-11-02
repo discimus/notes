@@ -7,5 +7,6 @@ export interface IAttachmentRepository {
   save(attachment: Attachment, blob: Blob): Promise<void>;
   delete(id: UUID): Promise<void>;
   deleteByChain(chainId: UUID): Promise<void>;
+  moveNoteAttachments(noteIds: UUID[], chainId: UUID): Promise<void>;
   getBlob(id: UUID): Promise<Blob | null>;
 }

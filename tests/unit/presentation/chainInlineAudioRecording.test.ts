@@ -123,7 +123,7 @@ describe('Gravação de áudio inline', () => {
         ?.disabled
     ).toBe(true);
     expect(
-      view.element.querySelector<HTMLButtonElement>('.chain-note__delete')
+      view.element.querySelector<HTMLButtonElement>('.chain-note__more')
         ?.disabled
     ).toBe(true);
 

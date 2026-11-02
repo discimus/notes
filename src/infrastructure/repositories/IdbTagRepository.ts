@@ -128,6 +128,21 @@ export class IdbTagRepository implements ITagRepository {
     });
   }
 
+  async moveNoteTags(noteIds: UUID[], chainId: UUID): Promise<void> {
+    if (noteIds.length === 0) return;
+    await runPendingOperation(async () => {
+      const db = await this.db();
+      const tx = db.transaction('noteTags', 'readwrite');
+      for (const noteId of noteIds) {
+        const rows = await tx.store.index('by-noteId').getAll(noteId);
+        for (const row of rows) {
+          await tx.store.put({ ...row, chainId });
+        }
+      }
+      await tx.done;
+    });
+  }
+
   async countChainsForTag(tagId: UUID): Promise<number> {
     const db = await this.db();
     const chainIds = new Set<string>();

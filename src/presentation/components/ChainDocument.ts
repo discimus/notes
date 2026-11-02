@@ -23,7 +23,7 @@ import {
   type NotePeriodYear,
 } from '../app/editorGrouping.js';
 import { renderEmptyDetail, renderLoadingState } from './states.js';
-import { showChainMenu } from '../views/menus.js';
+import { showChainMenu, showNoteMenu } from '../views/menus.js';
 import { renderTabList } from './EditorTabs.js';
 import { mountActiveLineHighlight } from './ActiveLineHighlight.js';
 import { mountInlineTagEditor } from './InlineTagEditor.js';
@@ -86,7 +86,9 @@ export interface ChainDocumentHandlers {
   onPasteText?: () => void;
   onDeleteNoteAttachment?: (noteId: string, attachment: AttachmentDTO) => void;
   onDeleteNote?: (noteId: string) => void;
+  onMoveNote?: (noteId: string) => Promise<boolean>;
   onDeleteSelected?: (noteIds: string[]) => Promise<boolean>;
+  onMoveSelected?: (noteIds: string[]) => Promise<boolean>;
   onAddNoteTag?: (noteId: string, tagName: string) => Promise<boolean>;
   onRemoveNoteTag?: (noteId: string, tag: TagDTO) => void;
   onCreateNote: () => void;
@@ -119,6 +121,7 @@ interface NoteRenderHandlers {
   onEdit?: (noteId: string, options?: { focus?: boolean; preview?: boolean }) => void;
   onAddImages?: (noteId: string, files: File[]) => void;
   onToggleAudio?: (noteId: string) => void;
+  onMove?: (noteId: string) => void;
   onDelete?: (noteId: string) => void;
   onDeleteAttachment?: (noteId: string, attachment: AttachmentDTO) => void;
   showTags?: boolean;
@@ -252,14 +255,21 @@ function renderNote(
   `;
   addAudio.addEventListener('click', () => handlers.onToggleAudio?.(note.id));
 
-  const remove = el('button', 'btn-icon chain-note__delete');
-  remove.type = 'button';
-  remove.setAttribute('aria-label', 'Excluir nota');
-  remove.title = 'Excluir nota';
-  remove.innerHTML = '<span class="material-symbols-rounded" aria-hidden="true">delete</span>';
-  remove.addEventListener('click', () => handlers.onDelete?.(note.id));
+  const moreOptions = el('button', 'btn-icon chain-note__more');
+  moreOptions.type = 'button';
+  moreOptions.setAttribute('aria-label', 'Opções da nota');
+  moreOptions.title = 'Opções da nota';
+  moreOptions.setAttribute('aria-haspopup', 'menu');
+  moreOptions.innerHTML =
+    '<span class="material-symbols-rounded" aria-hidden="true">more_vert</span>';
+  moreOptions.addEventListener('click', (event) => {
+    showNoteMenu(event, {
+      onMove: () => handlers.onMove?.(note.id),
+      onDelete: () => handlers.onDelete?.(note.id),
+    });
+  });
 
-  actions.append(preview, edit, addImage, addAudio, remove);
+  actions.append(preview, edit, addImage, addAudio, moreOptions);
   meta.appendChild(actions);
 
   const noteTags = note.tags ?? [];
@@ -897,10 +907,20 @@ export function mountChainDocument(
   more.addEventListener('click', (event) => {
     const selectedIds = selectionMode ? [...selectedNoteIds] : [];
     const deleteSelected = handlers.onDeleteSelected;
+    const moveSelected = handlers.onMoveSelected;
     const selectionOptions =
       selectedIds.length > 0
         ? {
             selectedNoteCount: selectedIds.length,
+            ...(moveSelected
+              ? {
+                  onMoveSelected: () => {
+                    void moveSelected(selectedIds).then((moved) => {
+                      if (moved) setSelectionMode(false);
+                    });
+                  },
+                }
+              : {}),
             ...(deleteSelected
               ? {
                   onDeleteSelected: () => {
@@ -1178,6 +1198,13 @@ export function mountChainDocument(
                           (recorded) =>
                             handlers.onSaveNoteAudio!(noteId, recorded)
                         );
+                      },
+                    }
+                  : {}),
+                ...(handlers.onMoveNote
+                  ? {
+                      onMove: (noteId: string) => {
+                        void handlers.onMoveNote?.(noteId);
                       },
                     }
                   : {}),

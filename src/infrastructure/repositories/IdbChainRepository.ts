@@ -138,6 +138,26 @@ export class IdbChainRepository
     });
   }
 
+  async moveNotes(
+    sourceChain: Chain,
+    targetChain: Chain,
+    notes: Note[]
+  ): Promise<void> {
+    await runPendingOperation(async () => {
+      const db = await this.db();
+      const tx = db.transaction(['chains', 'notes'], 'readwrite');
+      await tx.objectStore('chains').put(sourceChain.toData());
+      await tx.objectStore('chains').put(targetChain.toData());
+      for (const noteId of notes.map((note) => note.id)) {
+        await tx.objectStore('notes').delete(noteId);
+      }
+      for (const note of notes) {
+        await tx.objectStore('notes').put(note.toData());
+      }
+      await tx.done;
+    });
+  }
+
   async deleteNoteFromChain(chain: Chain, noteId: UUID): Promise<void> {
     await runPendingOperation(async () => {
       const db = await this.db();

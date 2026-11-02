@@ -65,6 +65,21 @@ export class IdbAttachmentRepository implements IAttachmentRepository {
     });
   }
 
+  async moveNoteAttachments(noteIds: UUID[], chainId: UUID): Promise<void> {
+    if (noteIds.length === 0) return;
+    await runPendingOperation(async () => {
+      const db = await this.db();
+      const tx = db.transaction('attachments', 'readwrite');
+      for (const noteId of noteIds) {
+        const rows = await tx.store.index('by-noteId').getAll(noteId);
+        for (const row of rows) {
+          await tx.store.put({ ...row, chainId });
+        }
+      }
+      await tx.done;
+    });
+  }
+
   async getBlob(id: UUID): Promise<Blob | null> {
     const db = await this.db();
     const record = await db.get('attachmentBlobs', id);

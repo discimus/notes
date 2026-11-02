@@ -346,6 +346,28 @@ export function mountEditorView(
     });
   };
 
+  const moveSelectedNotes = async (
+    sourceChainId: string,
+    noteIds: string[]
+  ): Promise<boolean> => {
+    const targets = appState
+      .get()
+      .chainSummaries.filter((chain) => chain.id !== sourceChainId);
+    const choice = await showAppendToChainDialog({
+      chains: targets,
+      allowCreate: false,
+      title: 'Mover notas',
+      description: 'Escolha a coleção de destino das notas selecionadas.',
+      confirmLabel: 'Mover',
+    });
+    if (!choice || choice.chainId === null) return false;
+    return AppController.moveNotesToChain(
+      sourceChainId,
+      choice.chainId,
+      noteIds
+    );
+  };
+
   const createDocument = (tab: EditorTab): void => {
     destroyDocument();
 
@@ -405,6 +427,9 @@ export function mountEditorView(
         },
         onDeleteSelected: (noteIds) =>
           AppController.deleteNotes(tab.chainId, noteIds),
+        onMoveSelected: (noteIds) =>
+          moveSelectedNotes(tab.chainId, noteIds),
+        onMoveNote: (noteId) => moveSelectedNotes(tab.chainId, [noteId]),
         onAddChainImages: (files) => {
           if (files.length > 0) {
             void addChainEndImages(tab.chainId, files);

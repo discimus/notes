@@ -36,6 +36,17 @@ export class InMemoryAttachmentRepository implements IAttachmentRepository {
     }
   }
 
+  async moveNoteAttachments(noteIds: UUID[], chainId: UUID): Promise<void> {
+    const ids = new Set(noteIds);
+    for (const [id, attachment] of this.attachments.entries()) {
+      if (!ids.has(attachment.noteId)) continue;
+      this.attachments.set(
+        id,
+        Attachment.reconstitute({ ...attachment.toData(), chainId })
+      );
+    }
+  }
+
   async getBlob(id: UUID): Promise<Blob | null> {
     return this.blobs.get(id) ?? null;
   }

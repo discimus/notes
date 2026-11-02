@@ -6,6 +6,7 @@ import { escapeHtml } from '@shared/utilities/index.js';
 export interface ChainMenuOptions {
   onRename?: () => void;
   selectedNoteCount?: number;
+  onMoveSelected?: () => void;
   onDeleteSelected?: () => void;
 }
 
@@ -46,12 +47,19 @@ export function showChainMenu(
   );
 
   if (selectedNoteCount > 0) {
-    items.push({
-      icon: 'delete',
-      label: 'Excluir selecionadas',
-      action: options.onDeleteSelected,
-      danger: true,
-    });
+    items.push(
+      {
+        icon: 'drive_file_move',
+        label: 'Mover selecionadas',
+        action: options.onMoveSelected,
+      },
+      {
+        icon: 'delete',
+        label: 'Excluir selecionadas',
+        action: options.onDeleteSelected,
+        danger: true,
+      }
+    );
   } else {
     if (options.onRename) {
       items.push({
@@ -128,6 +136,83 @@ export function showChainMenu(
 
   document.body.appendChild(menu);
   menuItems[0]?.focus();
+
+  setTimeout(() => {
+    document.addEventListener('click', close, { once: true });
+  }, 0);
+}
+
+export interface NoteMenuOptions {
+  onMove: () => void;
+  onDelete: () => void;
+}
+
+export function showNoteMenu(e: MouseEvent, options: NoteMenuOptions): void {
+  const existing = qs('#note-menu');
+  existing?.remove();
+
+  const menu = el('div', 'chain-menu');
+  menu.id = 'note-menu';
+  menu.setAttribute('role', 'menu');
+  menu.setAttribute('aria-label', 'Ações da nota');
+
+  const btn = e.currentTarget as HTMLElement;
+  const rect = btn.getBoundingClientRect();
+  menu.style.top = `${rect.bottom + 4}px`;
+  menu.style.right = `${window.innerWidth - rect.right}px`;
+
+  const items: ChainMenuItem[] = [
+    {
+      icon: 'drive_file_move',
+      label: 'Mover para outra coleção',
+      action: options.onMove,
+    },
+    {
+      icon: 'delete',
+      label: 'Excluir nota',
+      action: options.onDelete,
+      danger: true,
+    },
+  ];
+
+  const close = (): void => menu.remove();
+  const buttons: HTMLButtonElement[] = [];
+
+  for (const { icon, label, action, danger } of items) {
+    const button = el(
+      'button',
+      `chain-menu__item${danger ? ' chain-menu__item--danger' : ''}`
+    );
+    button.type = 'button';
+    button.setAttribute('role', 'menuitem');
+    button.innerHTML = `<span class="material-symbols-rounded icon-lg" aria-hidden="true">${escapeHtml(icon)}</span>${escapeHtml(label)}`;
+    button.addEventListener('click', () => {
+      close();
+      action?.();
+    });
+    menu.appendChild(button);
+    buttons.push(button);
+  }
+
+  menu.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      close();
+      btn.focus();
+      return;
+    }
+    const index = buttons.indexOf(document.activeElement as HTMLButtonElement);
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+      event.preventDefault();
+      const direction = event.key === 'ArrowDown' ? 1 : -1;
+      const next =
+        index < 0 ? 0 : (index + direction + buttons.length) % buttons.length;
+      buttons[next]?.focus();
+    }
+  });
+
+  document.body.appendChild(menu);
+  buttons[0]?.focus();
 
   setTimeout(() => {
     document.addEventListener('click', close, { once: true });

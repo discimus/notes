@@ -46,6 +46,7 @@ function makeHandlers() {
     onCloseNote: vi.fn(),
     onNewDocument: vi.fn(),
     onRename: vi.fn(),
+    onMoveSelected: vi.fn().mockResolvedValue(true),
     onDeleteSelected: vi.fn().mockResolvedValue(true),
   };
 }
@@ -86,20 +87,40 @@ describe('Menu contextual de notas selecionadas', () => {
     view.element
       .querySelector<HTMLButtonElement>('#chain-more')
       ?.click();
-    return [...document.querySelectorAll<HTMLButtonElement>('#chain-menu [role="menuitem"]')];
+    return [
+      ...document.querySelectorAll<HTMLButtonElement>(
+        '#chain-menu [role="menuitem"]'
+      ),
+    ];
   }
 
-  it('mostra apenas excluir selecionadas quando há notas marcadas', () => {
+  it('mostra mover e excluir selecionadas quando há notas marcadas', () => {
     const view = mountChainDocument(makeTab(), makeHandlers());
     const items = openSelectionMenu(view);
 
     expect(items.map((item) => item.textContent?.trim())).toEqual([
+      'drive_file_moveMover selecionadas',
       'deleteExcluir selecionadas',
     ]);
-    expect(items[0]?.classList.contains('chain-menu__item--danger')).toBe(true);
+    expect(items[1]?.classList.contains('chain-menu__item--danger')).toBe(true);
     expect(document.body.textContent).not.toContain('Renomear');
     expect(document.body.textContent).not.toContain('Arquivar selecionadas');
     expect(document.activeElement).toBe(items[0]);
+  });
+
+  it('move os IDs selecionados e encerra o modo de seleção', async () => {
+    const handlers = makeHandlers();
+    const view = mountChainDocument(makeTab(), handlers);
+    const items = openSelectionMenu(view);
+
+    items[0]?.click();
+
+    await vi.waitFor(() => {
+      expect(handlers.onMoveSelected).toHaveBeenCalledWith(['note-1']);
+      expect(
+        view.element.classList.contains('chain-document--selection')
+      ).toBe(false);
+    });
   });
 
   it('exclui os IDs selecionados e encerra o modo de seleção', async () => {
@@ -107,7 +128,7 @@ describe('Menu contextual de notas selecionadas', () => {
     const view = mountChainDocument(makeTab(), handlers);
     const items = openSelectionMenu(view);
 
-    items[0]?.click();
+    items[1]?.click();
 
     await vi.waitFor(() => {
       expect(handlers.onDeleteSelected).toHaveBeenCalledWith(['note-1']);
@@ -123,7 +144,7 @@ describe('Menu contextual de notas selecionadas', () => {
     const view = mountChainDocument(makeTab(), handlers);
     const items = openSelectionMenu(view);
 
-    items[0]?.click();
+    items[1]?.click();
 
     await vi.waitFor(() => {
       expect(handlers.onDeleteSelected).toHaveBeenCalledWith(['note-1']);

@@ -146,6 +146,19 @@ export class Note {
     return Note.reconstitute({ ...this.toData(), position });
   }
 
+  moveTo(chainId: UUID, position: number, role: NoteRole = 'tail'): Note {
+    if (position <= 0) {
+      throw new ValidationError('A posição de uma nota movida deve ser maior que 0.');
+    }
+    return Note.reconstitute({
+      ...this.toData(),
+      chainId,
+      position,
+      role,
+      updatedAt: now(),
+    });
+  }
+
   get id(): UUID { return this._id; }
   get content(): string { return this._content; }
   get chainId(): UUID { return this._chainId; }

@@ -21,6 +21,10 @@ export type AppendToChainChoice =
 
 export interface AppendToChainDialogOptions {
   chains: ChainSummaryDTO[];
+  title?: string;
+  description?: string;
+  confirmLabel?: string;
+  allowCreate?: boolean;
 }
 
 let dialogSequence = 0;
@@ -51,9 +55,14 @@ export function showAppendToChainDialog(
     dialog.innerHTML = `
       <div class="dialog__header">
         <div>
-          <h2 id="${titleId}" class="dialog__title dialog__title--left">Adicionar à coleção</h2>
+          <h2 id="${titleId}" class="dialog__title dialog__title--left">${escapeHtml(
+            options.title ?? 'Adicionar à coleção'
+          )}</h2>
           <p id="${descriptionId}" class="dialog__body dialog__body--left">
-            Escolha uma coleção existente ou crie uma nova com o título digitado.
+            ${escapeHtml(
+              options.description ??
+                'Escolha uma coleção existente ou crie uma nova com o título digitado.'
+            )}
           </p>
         </div>
         <button class="btn-icon" id="append-chain-close-${uid}" type="button" aria-label="Fechar" title="Fechar">
@@ -73,7 +82,9 @@ export function showAppendToChainDialog(
 
       <div class="dialog__actions">
         <button class="btn btn-text" id="append-chain-cancel-${uid}" type="button">Cancelar</button>
-        <button class="btn btn-filled" id="append-chain-confirm-${uid}" type="button" disabled>Adicionar</button>
+        <button class="btn btn-filled" id="append-chain-confirm-${uid}" type="button" disabled>${escapeHtml(
+          options.confirmLabel ?? 'Adicionar'
+        )}</button>
       </div>
     `;
 
@@ -124,7 +135,7 @@ export function showAppendToChainDialog(
 
     const renderCreateAction = (): void => {
       createSlot.innerHTML = '';
-      if (!creatableTitle) return;
+      if (options.allowCreate === false || !creatableTitle) return;
 
       const title = creatableTitle;
       const button = el('button', 'save-chain-create');
@@ -150,7 +161,12 @@ export function showAppendToChainDialog(
       const exact = query
         ? options.chains.find((chain) => normalizeText(chain.displayTitle) === query)
         : undefined;
-      creatableTitle = search.value.trim() && !exact ? search.value.trim() : null;
+      creatableTitle =
+        options.allowCreate === false
+          ? null
+          : search.value.trim() && !exact
+            ? search.value.trim()
+            : null;
 
       if (selectedChainId && !chains.some((chain) => chain.id === selectedChainId)) {
         selectedChainId = null;
