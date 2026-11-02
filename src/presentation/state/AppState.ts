@@ -54,6 +54,8 @@ export interface AppState {
   timelineIsLoadingPrevious: boolean;
   timelineSelectedChainIds: string[];
   timelinePreviewNoteId: string | null;
+  timelineNoteSelectionMode: boolean;
+  timelineSelectedNoteIds: string[];
   isLoading: boolean;
   error: string | null;
   theme: 'light' | 'dark' | 'system';
@@ -107,6 +109,8 @@ class AppStateStore {
     timelineIsLoadingPrevious: false,
     timelineSelectedChainIds: [],
     timelinePreviewNoteId: null,
+    timelineNoteSelectionMode: false,
+    timelineSelectedNoteIds: [],
     isLoading: false,
     error: null,
     theme: 'system',

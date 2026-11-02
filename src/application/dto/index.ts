@@ -255,6 +255,21 @@ export interface AssignNoteTagCommand {
   tagName: string;
 }
 
+export interface NoteTagTarget {
+  chainId: UUID;
+  noteId: UUID;
+}
+
+export interface AssignTagToNotesCommand {
+  notes: NoteTagTarget[];
+  tagName: string;
+}
+
+export interface AssignTagToNotesResult {
+  tag: TagDTO;
+  assigned: number;
+}
+
 export interface RemoveNoteTagCommand {
   chainId: UUID;
   noteId: UUID;

@@ -17,6 +17,7 @@ export interface InlineTagEditorOptions {
   addButtonTitle?: string;
   addButtonHaspopup?: 'dialog' | 'listbox' | 'menu' | 'tree' | 'grid';
   addButtonText?: string;
+  inputPlaceholder?: string;
   removeAriaLabel?: (tag: TagDTO) => string;
 }
 
@@ -412,7 +413,7 @@ export function mountInlineTagEditor(
     input.type = 'text';
     input.className = 'tag-add__input';
     if (options.inputClassName) input.classList.add(options.inputClassName);
-    input.placeholder = 'Nova tag';
+    input.placeholder = options.inputPlaceholder ?? 'Nova tag';
     input.setAttribute('role', 'combobox');
     input.setAttribute('aria-label', 'Nova tag');
     input.setAttribute('aria-describedby', errorId);

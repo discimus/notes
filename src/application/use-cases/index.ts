@@ -10,6 +10,7 @@ export { UpdateChainTitle } from './UpdateChainTitle.js';
 export { AssignTagToChain } from './AssignTagToChain.js';
 export { RemoveTagFromChain } from './RemoveTagFromChain.js';
 export { AssignTagToNote } from './AssignTagToNote.js';
+export { AssignTagToNotes } from './AssignTagToNotes.js';
 export { RemoveTagFromNote } from './RemoveTagFromNote.js';
 export { GetChainDetails } from './GetChainDetails.js';
 export { SearchNotes } from './SearchNotes.js';

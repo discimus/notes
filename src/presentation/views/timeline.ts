@@ -23,11 +23,14 @@ import {
   type SavedTimelineSearch,
 } from '../app/timelineSavedSearches.js';
 import { showInputDialog } from '../components/Dialog.js';
+import { mountInlineTagEditor } from '../components/InlineTagEditor.js';
+import type { InlineTagEditorView } from '../components/InlineTagEditor.js';
 import { snackbar } from '../components/Snackbar.js';
 import { enableMagneticDragScroll } from '../components/dragScroll.js';
 
 let queryTimer: ReturnType<typeof setTimeout> | null = null;
 let timelineOutsideClickCleanup: (() => void) | null = null;
+let activeTimelineTagEditor: InlineTagEditorView | null = null;
 const timelineScrollIgnoreUntil = new WeakMap<HTMLElement, number>();
 
 function markTimelineProgrammaticScroll(container: HTMLElement): void {
@@ -108,6 +111,8 @@ export function renderTimelineLayout(state: AppState): HTMLElement {
     clearTimeout(queryTimer);
     queryTimer = null;
   }
+  activeTimelineTagEditor?.destroy();
+  activeTimelineTagEditor = null;
 
   const layout = el('div', 'timeline-panel');
   layout.setAttribute('id', 'timeline-layout');
@@ -247,12 +252,26 @@ export function renderTimelineLayout(state: AppState): HTMLElement {
 
     <div class="timeline-summary-row">
       <span class="timeline-result-count" id="timeline-result-count" aria-live="polite"></span>
+      <button class="btn-icon timeline-note-select-toggle" id="timeline-note-select-toggle"
+        type="button" aria-label="Selecionar notas" title="Selecionar notas" aria-pressed="false">
+        <span class="material-symbols-rounded" aria-hidden="true">checklist</span>
+      </button>
       <div class="timeline-chain-legend" id="timeline-chain-legend"
         aria-label="Coleções nos resultados"></div>
     </div>
 
     <div class="timeline-active-filters" id="timeline-active-filters"
       aria-label="Filtros ativos"></div>
+
+    <div class="timeline-selection-bar" id="timeline-selection-bar" hidden>
+      <label class="timeline-selection-all">
+        <input type="checkbox" id="timeline-select-all" />
+        <span>Todas</span>
+      </label>
+      <span class="timeline-selection-count" id="timeline-selection-count" aria-live="polite"></span>
+      <div class="timeline-selection-tags" id="timeline-selection-tags"></div>
+      <button class="btn btn-text" id="timeline-selection-cancel" type="button">Cancelar</button>
+    </div>
   `;
 
   const searchRow = header.querySelector<HTMLElement>('.timeline-search-row')!;
@@ -266,6 +285,50 @@ export function renderTimelineLayout(state: AppState): HTMLElement {
   const activeFilters = header.querySelector<HTMLElement>('#timeline-active-filters')!;
   const chainLegend = header.querySelector<HTMLElement>('#timeline-chain-legend')!;
   summaryRow.insertBefore(activeFilters, chainLegend);
+  const noteSelectToggle = header.querySelector<HTMLButtonElement>(
+    '#timeline-note-select-toggle'
+  )!;
+  const selectAll = header.querySelector<HTMLInputElement>(
+    '#timeline-select-all'
+  )!;
+  const tagEditorHost = header.querySelector<HTMLElement>(
+    '#timeline-selection-tags'
+  )!;
+  const cancelSelection = header.querySelector<HTMLButtonElement>(
+    '#timeline-selection-cancel'
+  )!;
+
+  noteSelectToggle.addEventListener('click', () => {
+    if (appState.get().timelineNoteSelectionMode) {
+      AppController.exitTimelineNoteSelection();
+    } else {
+      AppController.enterTimelineNoteSelection();
+    }
+  });
+  cancelSelection.addEventListener('click', () => {
+    AppController.exitTimelineNoteSelection();
+  });
+  selectAll.addEventListener('change', () => {
+    const stateNow = appState.get();
+    const ids = stateNow.timelineEntries.map((entry) => entry.note.id);
+    AppController.setTimelineNoteSelection(selectAll.checked ? ids : []);
+  });
+
+  activeTimelineTagEditor = mountInlineTagEditor(
+    tagEditorHost,
+    {
+      onAdd: (name) => AppController.assignTagToTimelineSelection(name),
+      onRemove: () => {},
+    },
+    {
+      addButtonText: 'Atribuir tag',
+      addButtonAriaLabel: 'Atribuir tag às notas selecionadas',
+      addButtonTitle: 'Atribuir tag às notas selecionadas',
+      inputClassName: 'timeline-selection-tag-input',
+      inputPlaceholder: 'Nova tag',
+    }
+  );
+  activeTimelineTagEditor.update([], appState.get().allTags);
 
   header.prepend(renderNavToggle());
   layout.appendChild(header);
@@ -809,10 +872,26 @@ export function renderTimelineLayout(state: AppState): HTMLElement {
     rows[next]?.focus();
   });
 
+  layout.addEventListener('keydown', (event) => {
+    if (event.key !== 'Escape' || !appState.get().timelineNoteSelectionMode) {
+      return;
+    }
+    const target = event.target as Element | null;
+    if (
+      target?.closest('#timeline-filters-details, .dialog-backdrop, .timeline-saved-menu')
+    ) {
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    AppController.exitTimelineNoteSelection();
+  });
+
   renderTimelineFilters(header, state);
   renderChainSelector(chainSelector, state, '');
   updateTimelineEntries(list, state);
   updateTimelineSummary(header, state);
+  updateTimelineSelectionUi(header, state);
   updateTimelineSlider(slider, pageLabel, state);
   syncTimelineSliderFromScroll(list, slider, pageLabel, state);
   renderTimelinePreview(preview, state);
@@ -827,8 +906,16 @@ export function updateTimelineLayout(content: HTMLElement, state: AppState): voi
   const preview = qs<HTMLElement>('#timeline-preview', content);
   const previewChanged =
     timelinePreviewId(list) !== state.timelinePreviewNoteId;
-  if (preview && previewChanged && timelineEntriesMatch(list, state)) {
+  const selectionModeMatches =
+    list.dataset['selectionMode'] === String(state.timelineNoteSelectionMode);
+  if (
+    preview &&
+    previewChanged &&
+    selectionModeMatches &&
+    timelineEntriesMatch(list, state)
+  ) {
     updateTimelineEntrySelection(list, state.timelinePreviewNoteId);
+    updateTimelineSelectionUi(header, state);
     renderTimelinePreview(preview, state);
     return;
   }
@@ -843,6 +930,7 @@ export function updateTimelineLayout(content: HTMLElement, state: AppState): voi
   if (preview) renderTimelinePreview(preview, state);
   updateTimelineEntries(list, state, previewAnchor);
   updateTimelineSummary(header, state);
+  updateTimelineSelectionUi(header, state);
   const slider = qs<HTMLInputElement>('#timeline-slider', content);
   const pageLabel = qs<HTMLElement>('#timeline-page-label', content);
   if (slider && pageLabel) {
@@ -1163,6 +1251,39 @@ function renderChainSelectorItem(
 
   item.append(swatch, check, title, count);
   return item;
+}
+
+function updateTimelineSelectionUi(header: HTMLElement, state: AppState): void {
+  const toggle = qs<HTMLButtonElement>('#timeline-note-select-toggle', header);
+  const bar = qs<HTMLElement>('#timeline-selection-bar', header);
+  const selectAll = qs<HTMLInputElement>('#timeline-select-all', header);
+  const count = qs<HTMLElement>('#timeline-selection-count', header);
+  const tagHost = qs<HTMLElement>('#timeline-selection-tags', header);
+  if (!toggle || !bar || !selectAll || !count || !tagHost) return;
+
+  const loadedIds = state.timelineEntries.map((entry) => entry.note.id);
+  const selected = new Set(state.timelineSelectedNoteIds);
+  const loadedSelected = loadedIds.filter((id) => selected.has(id)).length;
+  const active = state.timelineNoteSelectionMode;
+
+  toggle.setAttribute('aria-pressed', active ? 'true' : 'false');
+  toggle.setAttribute(
+    'aria-label',
+    active ? 'Cancelar seleção de notas' : 'Selecionar notas'
+  );
+  toggle.title = active ? 'Cancelar seleção de notas' : 'Selecionar notas';
+  toggle.classList.toggle('btn-icon--active', active);
+  header.classList.toggle('timeline-panel--selection', active);
+  bar.hidden = !active;
+
+  selectAll.checked = loadedIds.length > 0 && loadedSelected === loadedIds.length;
+  selectAll.indeterminate =
+    loadedSelected > 0 && loadedSelected < loadedIds.length;
+  count.textContent = `${loadedSelected} de ${loadedIds.length} ${
+    loadedIds.length === 1 ? 'nota selecionada' : 'notas selecionadas'
+  }`;
+  tagHost.hidden = loadedSelected === 0;
+  activeTimelineTagEditor?.update([], state.allTags);
 }
 
 function updateTimelineSummary(header: HTMLElement, state: AppState): void {
@@ -1522,6 +1643,7 @@ function updateTimelineEntries(
   container.innerHTML = '';
   container.dataset['loadedOffset'] = String(state.timelineLoadedOffset);
   container.dataset['filterSignature'] = timelineFilterSignature(state);
+  container.dataset['selectionMode'] = String(state.timelineNoteSelectionMode);
 
   if (state.isLoading && state.timelineEntries.length === 0) {
     container.appendChild(renderLoadingState());
@@ -1558,7 +1680,9 @@ function updateTimelineEntries(
     state.timelineEntries,
     colors,
     state.timelineFilters.query,
-    state.timelinePreviewNoteId
+    state.timelinePreviewNoteId,
+    state.timelineNoteSelectionMode,
+    new Set(state.timelineSelectedNoteIds)
   );
 
   if (state.timelineIsLoadingMore) {
@@ -1625,7 +1749,9 @@ function renderEntries(
   entries: TimelineEntryDTO[],
   colors: Map<string, string>,
   query: string,
-  previewNoteId: string | null
+  previewNoteId: string | null,
+  selectionMode: boolean,
+  selectedNoteIds: ReadonlySet<string>
 ): void {
   let lastDate = '';
   let group: HTMLElement | null = null;
@@ -1653,23 +1779,36 @@ function renderEntries(
 
     const row = el('div', 'timeline-entry');
     const selected = previewNoteId === entry.note.id;
+    const marked = selectedNoteIds.has(entry.note.id);
     const accent =
       colors.get(entry.chainId) ?? 'var(--md-sys-color-outline-variant)';
     row.setAttribute('role', 'article');
     row.tabIndex = 0;
     row.dataset['noteId'] = entry.note.id;
     row.classList.toggle('timeline-entry--selected', selected);
+    row.classList.toggle('timeline-entry--marked', marked);
+    row.classList.toggle('timeline-entry--selectable', selectionMode);
     row.setAttribute('aria-current', selected ? 'true' : 'false');
     row.setAttribute(
       'aria-label',
-      `Abrir prAcvia da nota de ${formatDateFull(entry.note.createdAt)}`
+      selectionMode
+        ? `Selecionar nota de ${formatDateFull(entry.note.createdAt)}`
+        : `Abrir prévia da nota de ${formatDateFull(entry.note.createdAt)}`
     );
     row.style.setProperty('--timeline-chain-accent', accent);
     const openPreview = (): void => {
       appState.set({ timelinePreviewNoteId: entry.note.id });
     };
+    const toggleSelection = (): void => {
+      AppController.toggleTimelineNoteSelection(entry.note.id);
+    };
     row.addEventListener('click', (event) => {
       const target = event.target as Element | null;
+      if (selectionMode) {
+        if (target?.closest('a, button, input, label')) return;
+        toggleSelection();
+        return;
+      }
       if (target?.closest('a, button')) return;
       openPreview();
     });
@@ -1677,7 +1816,8 @@ function renderEntries(
       if (event.target !== row) return;
       if (event.key !== 'Enter' && event.key !== ' ') return;
       event.preventDefault();
-      openPreview();
+      if (selectionMode) toggleSelection();
+      else openPreview();
     });
 
     const timeEl = el('time', 'timeline-entry__time');
@@ -1702,7 +1842,30 @@ function renderEntries(
       event.stopPropagation();
       void AppController.navigateTo('editor', entry.chainId);
     });
-    top.append(chainLink, timeEl);
+
+    const topChildren: HTMLElement[] = [];
+    if (selectionMode) {
+      const selectLabel = el('label', 'timeline-entry__select');
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.className = 'timeline-entry__select-input';
+      checkbox.checked = marked;
+      checkbox.dataset['timelineSelect'] = entry.note.id;
+      checkbox.setAttribute(
+        'aria-label',
+        `Selecionar nota de ${formatDateFull(entry.note.createdAt)}`
+      );
+      selectLabel.appendChild(checkbox);
+      selectLabel.addEventListener('click', (event) => {
+        event.stopPropagation();
+      });
+      checkbox.addEventListener('change', () => {
+        AppController.toggleTimelineNoteSelection(entry.note.id);
+      });
+      topChildren.push(selectLabel);
+    }
+    topChildren.push(chainLink, timeEl);
+    top.append(...topChildren);
 
     const type = entry.note.contentType ?? 'text';
     const isCode = type === 'code';

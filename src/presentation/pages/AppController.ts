@@ -61,6 +61,7 @@ import {
   AssignTagToChain,
   RemoveTagFromChain,
   AssignTagToNote,
+  AssignTagToNotes,
   RemoveTagFromNote,
   GetChainDetails,
   SearchNotesPage,
@@ -105,6 +106,7 @@ const updateTitle = new UpdateChainTitle(chainRepo);
 const assignTag = new AssignTagToChain(chainRepo, tagRepo);
 const removeTag = new RemoveTagFromChain(chainRepo, tagRepo);
 const assignNoteTag = new AssignTagToNote(chainRepo, tagRepo);
+const assignNotesTag = new AssignTagToNotes(chainRepo, tagRepo);
 const removeNoteTag = new RemoveTagFromNote(chainRepo, tagRepo);
 const getChainDetails = new GetChainDetails(chainRepo, tagRepo, attachmentRepo);
 const searchNotesPage = new SearchNotesPage(chainRepo, tagRepo);
@@ -2019,6 +2021,8 @@ export const AppController = {
       timelineSelectedChainIds: [...new Set(chainIds)],
       timelinePageIndex: 0,
       timelinePreviewNoteId: null,
+      timelineNoteSelectionMode: false,
+      timelineSelectedNoteIds: [],
     });
     await loadTimelinePage(0, 'replace');
   },
@@ -2032,6 +2036,8 @@ export const AppController = {
       timelineSelectedChainIds: [...new Set(chainIds)],
       timelinePageIndex: 0,
       timelinePreviewNoteId: null,
+      timelineNoteSelectionMode: false,
+      timelineSelectedNoteIds: [],
     });
     await loadTimelinePage(0, 'replace');
   },
@@ -2041,6 +2047,8 @@ export const AppController = {
       timelineFilters: { ...appState.get().timelineFilters, ...patch },
       timelinePageIndex: 0,
       timelinePreviewNoteId: null,
+      timelineNoteSelectionMode: false,
+      timelineSelectedNoteIds: [],
     });
     await loadTimelinePage(0, 'replace');
   },
@@ -2058,6 +2066,8 @@ export const AppController = {
       },
       timelinePageIndex: 0,
       timelinePreviewNoteId: null,
+      timelineNoteSelectionMode: false,
+      timelineSelectedNoteIds: [],
     });
     await loadTimelinePage(0, 'replace');
   },
@@ -2094,8 +2104,87 @@ export const AppController = {
     const state = appState.get();
     const totalPages = Math.max(1, Math.ceil(state.timelineTotal / state.timelinePageSize));
     const page = Math.min(Math.max(0, pageIndex), totalPages - 1);
-    appState.set({ timelinePreviewNoteId: null });
+    appState.set({
+      timelinePreviewNoteId: null,
+      timelineNoteSelectionMode: false,
+      timelineSelectedNoteIds: [],
+    });
     await loadTimelinePage(page * state.timelinePageSize, 'replace');
+  },
+
+  enterTimelineNoteSelection(): void {
+    appState.set({
+      timelineNoteSelectionMode: true,
+      timelineSelectedNoteIds: [],
+      timelinePreviewNoteId: null,
+    });
+  },
+
+  exitTimelineNoteSelection(): void {
+    appState.set({
+      timelineNoteSelectionMode: false,
+      timelineSelectedNoteIds: [],
+    });
+  },
+
+  toggleTimelineNoteSelection(noteId: string): void {
+    const state = appState.get();
+    if (!state.timelineNoteSelectionMode) return;
+    const selected = new Set(state.timelineSelectedNoteIds);
+    if (selected.has(noteId)) selected.delete(noteId);
+    else selected.add(noteId);
+    appState.set({ timelineSelectedNoteIds: [...selected] });
+  },
+
+  setTimelineNoteSelection(noteIds: string[]): void {
+    appState.set({ timelineSelectedNoteIds: [...new Set(noteIds)] });
+  },
+
+  async assignTagToTimelineSelection(tagName: string): Promise<boolean> {
+    const state = appState.get();
+    if (!state.timelineNoteSelectionMode) return false;
+    const selected = new Set(state.timelineSelectedNoteIds);
+    const targets = state.timelineEntries
+      .filter((entry) => selected.has(entry.note.id))
+      .map((entry) => ({
+        chainId: entry.note.chainId,
+        noteId: entry.note.id,
+      }));
+    if (targets.length === 0) {
+      snackbar.error('Selecione pelo menos uma nota.');
+      return false;
+    }
+
+    try {
+      const result = await assignNotesTag.execute({
+        notes: targets,
+        tagName,
+      });
+      const chainIds = [...new Set(targets.map((target) => target.chainId))];
+      await Promise.allSettled([
+        loadTags(),
+        loadChains(),
+        ...chainIds.map((chainId) => refreshEditorChainTab(chainId)),
+      ]);
+      await AppController.reloadTimeline();
+      const loaded = new Set(
+        appState.get().timelineEntries.map((entry) => entry.note.id)
+      );
+      appState.set({
+        timelineSelectedNoteIds: targets
+          .filter((target) => loaded.has(target.noteId))
+          .map((target) => target.noteId),
+      });
+      snackbar.success(
+        `Tag "${result.tag.name}" atribuída a ${result.assigned} ${
+          result.assigned === 1 ? 'nota' : 'notas'
+        }.`
+      );
+      return true;
+    } catch (e: unknown) {
+      snackbar.error((e as Error).message);
+      return false;
+    }
   },
 
   async renameTag(tagId: string, newName: string): Promise<void> {
@@ -2168,6 +2257,8 @@ export const AppController = {
       chainsBulkSelection: [],
       currentChain: null,
       chainFilterQuery: '',
+      timelineNoteSelectionMode: false,
+      timelineSelectedNoteIds: [],
     });
     pushNavigation(view, chainId);
 
