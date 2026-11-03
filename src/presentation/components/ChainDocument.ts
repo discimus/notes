@@ -1362,7 +1362,7 @@ export function mountChainDocument(
     const periods = buildNotePeriods(currentTab.notes, 'asc');
     const pageMonth = resolvePageMonth(periods);
     const activeMonth = findPeriodMonth(periods, activePeriodKey);
-    periodMenu.update(periods, activePeriodKey);
+    periodMenu.update(periods, activePeriodKey, pageMonth?.key ?? null);
 
     const pageNoteIds = new Set(pageMonth?.noteIds ?? []);
     const windowNotes = pageMonth

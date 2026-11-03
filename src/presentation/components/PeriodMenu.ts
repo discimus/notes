@@ -7,8 +7,13 @@ export interface PeriodMenuOptions {
 
 export interface PeriodMenuView {
   open: (anchor: HTMLElement, focusLast?: boolean) => void;
-  update: (years: NotePeriodYear[], activeKey?: string | null) => void;
+  update: (
+    years: NotePeriodYear[],
+    activeKey?: string | null,
+    pageKey?: string | null
+  ) => void;
   setActive: (activeKey: string | null) => void;
+  setPage: (pageKey: string | null) => void;
   destroy: () => void;
 }
 
@@ -35,6 +40,7 @@ export function mountPeriodMenu(
   const menuId = `period-menu-${++menuSequence}`;
   let years: NotePeriodYear[] = [];
   let activeKey: string | null = null;
+  let pageKey: string | null = null;
   let anchor: HTMLElement | null = null;
   let open = false;
   let menu: HTMLElement | null = null;
@@ -99,17 +105,37 @@ export function mountPeriodMenu(
     options.onSelect(month);
   };
 
+  const applyItemState = (
+    item: HTMLButtonElement,
+    selected: boolean,
+    pageCurrent: boolean
+  ): void => {
+    item.classList.toggle('period-menu__item--page-current', pageCurrent);
+    if (pageCurrent) item.dataset['periodPageCurrent'] = 'true';
+    else delete item.dataset['periodPageCurrent'];
+
+    if (selected) item.setAttribute('aria-current', 'true');
+    else item.removeAttribute('aria-current');
+
+    const baseLabel = item.dataset['baseLabel'] ?? '';
+    const states = [
+      ...(selected ? ['selecionado'] : []),
+      ...(pageCurrent ? ['mês exibido'] : []),
+    ];
+    item.setAttribute(
+      'aria-label',
+      `${baseLabel}${states.length > 0 ? `, ${states.join(', ')}` : ''}`
+    );
+
+    const check = item.querySelector<HTMLElement>('.period-menu__check');
+    if (check) check.textContent = selected ? 'check' : '';
+  };
+
   const renderItem = (month: NotePeriodMonth): HTMLButtonElement => {
-    const selected = month.key === activeKey;
     const item = el('button', 'period-menu__item');
     item.type = 'button';
     item.setAttribute('role', 'menuitem');
-    if (selected) item.setAttribute('aria-current', 'true');
     const baseLabel = `${month.monthLabel}, ${noteCountLabel(month.count)}`;
-    item.setAttribute(
-      'aria-label',
-      `${baseLabel}${selected ? ', selecionado' : ''}`
-    );
     item.dataset['periodKey'] = month.key;
     item.dataset['baseLabel'] = baseLabel;
 
@@ -119,8 +145,13 @@ export function mountPeriodMenu(
     countLabel.textContent = noteCountLabel(month.count);
     const check = el('span', 'material-symbols-rounded period-menu__check');
     check.setAttribute('aria-hidden', 'true');
-    check.textContent = selected ? 'check' : '';
     item.append(text, countLabel, check);
+
+    applyItemState(
+      item,
+      month.key === activeKey,
+      month.key === pageKey
+    );
 
     item.addEventListener('click', () => select(month));
     return item;
@@ -247,12 +278,13 @@ export function mountPeriodMenu(
     positionMenu(menu);
 
     const items = menuItems();
-    const activeIndex = items.findIndex(
-      (item) => item.dataset['periodKey'] === activeKey
+    const focusKey = activeKey ?? pageKey;
+    const focusIndex = items.findIndex(
+      (item) => item.dataset['periodKey'] === focusKey
     );
     const target = focusLast
       ? items[items.length - 1]
-      : items[activeIndex >= 0 ? activeIndex : 0];
+      : items[focusIndex >= 0 ? focusIndex : 0];
     target?.focus();
 
     outsideTimer = setTimeout(() => {
@@ -266,31 +298,32 @@ export function mountPeriodMenu(
 
   const update = (
     nextYears: NotePeriodYear[],
-    nextActiveKey: string | null = null
+    nextActiveKey: string | null = null,
+    nextPageKey: string | null = null
   ): void => {
     if (open) close(false);
     years = nextYears;
     activeKey = nextActiveKey;
+    pageKey = nextPageKey;
+  };
+
+  const syncItems = (): void => {
+    if (!menu) return;
+
+    menuItems().forEach((item) => {
+      const key = item.dataset['periodKey'] ?? null;
+      applyItemState(item, key === activeKey, key === pageKey);
+    });
   };
 
   const setActive = (nextActiveKey: string | null): void => {
     activeKey = nextActiveKey;
-    if (!menu) return;
+    syncItems();
+  };
 
-    menuItems().forEach((item) => {
-      const selected = item.dataset['periodKey'] === nextActiveKey;
-      if (selected) item.setAttribute('aria-current', 'true');
-      else item.removeAttribute('aria-current');
-
-      const baseLabel = item.dataset['baseLabel'] ?? '';
-      item.setAttribute(
-        'aria-label',
-        `${baseLabel}${selected ? ', selecionado' : ''}`
-      );
-
-      const check = item.querySelector<HTMLElement>('.period-menu__check');
-      if (check) check.textContent = selected ? 'check' : '';
-    });
+  const setPage = (nextPageKey: string | null): void => {
+    pageKey = nextPageKey;
+    syncItems();
   };
 
   const destroy = (): void => {
@@ -299,5 +332,5 @@ export function mountPeriodMenu(
     document.removeEventListener('keydown', onDocumentKeyDown);
   };
 
-  return { open: openMenu, update, setActive, destroy };
+  return { open: openMenu, update, setActive, setPage, destroy };
 }
