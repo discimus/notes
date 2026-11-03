@@ -2982,7 +2982,12 @@
   box-shadow: var(--md-sys-elevation-3);
   overscroll-behavior: contain;
 }
-.chain-document:not(.chain-document--notes-collapsed) .chain-document__footer {
+.chain-document:not(.chain-document--notes-collapsed) .chain-document__tags,
+.chain-document:not(.chain-document--notes-collapsed) .chain-document__actions,
+.chain-document:not(.chain-document--notes-collapsed) .chain-document__footer,
+.chain-document--preview-open .chain-document__tags,
+.chain-document--preview-open .chain-document__actions,
+.chain-document--preview-open .chain-document__footer {
   display: none;
 }
 @container (min-width: 800px) {
