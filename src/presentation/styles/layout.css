@@ -517,6 +517,7 @@
   min-height: 0;
   overflow-x: hidden;
   overflow-y: auto;
+  overflow-anchor: none;
   overscroll-behavior: contain;
   padding: var(--spacing-4) var(--spacing-5)
     calc(
@@ -528,9 +529,6 @@
   gap: var(--spacing-3);
   transition: padding-bottom var(--md-sys-motion-duration-short3)
     var(--md-sys-motion-easing-standard);
-}
-.timeline-preview--actions-compact {
-  --timeline-preview-action-bar-size: 56px;
 }
 .timeline-preview__footer {
   position: absolute;

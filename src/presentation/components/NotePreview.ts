@@ -2,14 +2,15 @@ import type { NoteDTO } from '@application/dto/index.js';
 import { formatDateFull, formatTime } from '@shared/utilities/index.js';
 import { el } from '../dom.js';
 import { NOTE_CONTENT_TYPE_META } from '../app/noteContentTypes.js';
+import {
+  SCROLL_ACTION_COMPACT_DELTA_MIN,
+  SCROLL_ACTION_COMPACT_SCROLL_MIN,
+  SCROLL_ACTION_EXPAND_DELTA_MIN,
+  SCROLL_ACTION_RESIZE_DELAY_MS,
+} from '../app/scrollActionResize.js';
 import { renderLinkedText } from './LinkedText.js';
 import { renderMarkdownContent } from './MarkdownContent.js';
 import { highlightTextInElement } from './SearchHighlight.js';
-
-const PREVIEW_COMPACT_SCROLL_MIN = 24;
-const PREVIEW_COMPACT_DELTA_MIN = 4;
-const PREVIEW_EXPAND_DELTA_MIN = 8;
-const PREVIEW_COMPACT_DELAY_MS = 120;
 
 interface PreviewScrollState {
   scroller: HTMLElement;
@@ -269,7 +270,7 @@ function bindPreviewScroll(
     lastScrollTop: initialScrollTop,
     upwardDistance: 0,
     compact:
-      preserveCompact && initialScrollTop > PREVIEW_COMPACT_SCROLL_MIN,
+      preserveCompact && initialScrollTop > SCROLL_ACTION_COMPACT_SCROLL_MIN,
     frame: null,
     compactTimer: null,
     expandTimer: null,
@@ -302,14 +303,14 @@ function bindPreviewScroll(
       const delta = current - state.lastScrollTop;
       state.lastScrollTop = current;
 
-      if (current <= PREVIEW_COMPACT_SCROLL_MIN) {
+      if (current <= SCROLL_ACTION_COMPACT_SCROLL_MIN) {
         clearTimers();
         state.upwardDistance = 0;
         if (state.compact) applyCompact(false);
         return;
       }
 
-      if (delta > PREVIEW_COMPACT_DELTA_MIN) {
+      if (delta > SCROLL_ACTION_COMPACT_DELTA_MIN) {
         if (state.expandTimer !== null) {
           clearTimeout(state.expandTimer);
           state.expandTimer = null;
@@ -318,10 +319,10 @@ function bindPreviewScroll(
         if (!state.compact && state.compactTimer === null) {
           state.compactTimer = setTimeout(() => {
             state.compactTimer = null;
-            if (scroller.scrollTop > PREVIEW_COMPACT_SCROLL_MIN) {
+            if (scroller.scrollTop > SCROLL_ACTION_COMPACT_SCROLL_MIN) {
               applyCompact(true);
             }
-          }, PREVIEW_COMPACT_DELAY_MS);
+          }, SCROLL_ACTION_RESIZE_DELAY_MS);
         }
         return;
       }
@@ -333,13 +334,13 @@ function bindPreviewScroll(
         }
         state.upwardDistance += Math.abs(delta);
         if (
-          state.upwardDistance >= PREVIEW_EXPAND_DELTA_MIN &&
+          state.upwardDistance >= SCROLL_ACTION_EXPAND_DELTA_MIN &&
           state.expandTimer === null
         ) {
           state.expandTimer = setTimeout(() => {
             state.expandTimer = null;
             applyCompact(false);
-          }, PREVIEW_COMPACT_DELAY_MS);
+          }, SCROLL_ACTION_RESIZE_DELAY_MS);
         }
       } else if (delta > 0) {
         if (state.expandTimer !== null) {

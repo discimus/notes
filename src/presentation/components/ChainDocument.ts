@@ -38,6 +38,12 @@ import { renderMarkdownContent } from './MarkdownContent.js';
 import { highlightTextInElement } from './SearchHighlight.js';
 import { renderNotePreview } from './NotePreview.js';
 import { getTimelineChainColors } from '../app/timelineColors.js';
+import {
+  SCROLL_ACTION_COMPACT_DELTA_MIN,
+  SCROLL_ACTION_COMPACT_SCROLL_MIN,
+  SCROLL_ACTION_EXPAND_DELTA_MIN,
+  SCROLL_ACTION_RESIZE_DELAY_MS,
+} from '../app/scrollActionResize.js';
 import { stopAttachmentAudio, renderNoteAttachments } from './NoteAttachments.js';
 import { stopAllAudioCascades } from './audioList.js';
 import { releaseAllAttachmentUrls } from './attachmentUrls.js';
@@ -58,11 +64,6 @@ import {
   formatTime,
 } from '@shared/utilities/index.js';
 
-const COMPACT_SCROLL_MIN = 24;
-const COMPACT_DELTA_MIN = 4;
-const EXPAND_DELTA_MIN = 8;
-const COMPACT_DELAY_MS = 120;
-const EXPAND_DELAY_MS = 120;
 const SCROLL_IGNORE_MS = 100;
 const PREVIEW_SCROLL_IGNORE_MS = 500;
 const SCROLL_BOTTOM_TOLERANCE = 16;
@@ -1981,12 +1982,12 @@ export function mountChainDocument(
     if (footerCompact || compactTimer !== null) return;
     compactTimer = setTimeout(() => {
       compactTimer = null;
-      if (actionsCompact && scroll.scrollTop > COMPACT_SCROLL_MIN) {
+      if (actionsCompact && scroll.scrollTop > SCROLL_ACTION_COMPACT_SCROLL_MIN) {
         footerCompact = true;
         syncActionFooter();
         syncActionOverlaySpace();
       }
-    }, COMPACT_DELAY_MS);
+    }, SCROLL_ACTION_RESIZE_DELAY_MS);
   };
 
   const scrollToBottom = (): void => {
@@ -2096,7 +2097,7 @@ export function mountChainDocument(
         return;
       }
 
-      if (delta > COMPACT_DELTA_MIN && current > COMPACT_SCROLL_MIN) {
+      if (delta > SCROLL_ACTION_COMPACT_DELTA_MIN && current > SCROLL_ACTION_COMPACT_SCROLL_MIN) {
         cancelExpand();
         upwardDistance = 0;
         setActionsCompactPending();
@@ -2110,11 +2111,11 @@ export function mountChainDocument(
 
       if (delta < 0 && actionsCompact && !atBottom) {
         upwardDistance += Math.abs(delta);
-        if (upwardDistance >= EXPAND_DELTA_MIN && expandTimer === null) {
+        if (upwardDistance >= SCROLL_ACTION_EXPAND_DELTA_MIN && expandTimer === null) {
           expandTimer = setTimeout(() => {
             expandTimer = null;
             setActionsCompact(false);
-          }, EXPAND_DELAY_MS);
+          }, SCROLL_ACTION_RESIZE_DELAY_MS);
         }
       } else if (delta > 0) {
         cancelExpand();
