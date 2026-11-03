@@ -1267,19 +1267,36 @@ export function mountChainDocument(
     );
   }
 
-  const renderMonthNav = (
+  const renderMonthButton = (
     month: NotePeriodMonth,
-    direction: 'older' | 'newer'
-  ): HTMLElement => {
-    const wrapper = el('div', 'chain-history-sentinel');
-    wrapper.dataset['historySentinel'] = direction;
-    const button = el('button', 'btn btn-text chain-history-sentinel__button');
+    direction: 'older' | 'newer',
+    compact = false
+  ): HTMLButtonElement => {
+    const button = el(
+      'button',
+      `chain-history-sentinel__button${
+        compact ? ' chain-history-sentinel__button--compact' : ''
+      }`
+    );
     button.type = 'button';
+
+    const icon = el('span', 'material-symbols-rounded chain-history-sentinel__icon');
+    icon.setAttribute('aria-hidden', 'true');
+    icon.textContent = direction === 'older' ? 'arrow_back' : 'arrow_forward';
+
+    const text = el('span', 'chain-history-sentinel__text');
+    if (!compact) {
+      const hint = el('span', 'chain-history-sentinel__hint');
+      hint.textContent = direction === 'older' ? 'Mês anterior' : 'Próximo mês';
+      text.appendChild(hint);
+    }
+
+    const monthLabel = el('span', 'chain-history-sentinel__month');
     const label = `${month.monthLabel} de ${month.year}`;
-    button.textContent =
-      direction === 'older'
-        ? `Mês anterior: ${label}`
-        : `Próximo mês: ${label}`;
+    monthLabel.textContent = label;
+    text.appendChild(monthLabel);
+
+    button.append(...(direction === 'older' ? [icon, text] : [text, icon]));
     button.setAttribute(
       'aria-label',
       direction === 'older'
@@ -1287,8 +1304,50 @@ export function mountChainDocument(
         : `Ir para o próximo mês, ${label}`
     );
     button.addEventListener('click', () => goToMonthPage(month, direction));
-    wrapper.appendChild(button);
+    return button;
+  };
+
+  const renderMonthNav = (
+    month: NotePeriodMonth,
+    direction: 'older' | 'newer'
+  ): HTMLElement => {
+    const wrapper = el(
+      'div',
+      `chain-history-sentinel chain-history-sentinel--${direction}`
+    );
+    wrapper.dataset['historySentinel'] = direction;
+    wrapper.appendChild(renderMonthButton(month, direction));
     return wrapper;
+  };
+
+  const renderMonthPagination = (
+    previousMonth: NotePeriodMonth | null,
+    nextMonth: NotePeriodMonth | null
+  ): HTMLElement => {
+    const pagination = el('nav', 'chain-history-pagination');
+    pagination.setAttribute('aria-label', 'Paginação por mês');
+
+    const appendItem = (
+      month: NotePeriodMonth,
+      direction: 'older' | 'newer'
+    ): void => {
+      const item = el(
+        'div',
+        `chain-history-pagination__item chain-history-pagination__item--${direction}`
+      );
+      item.dataset['historySentinel'] = direction;
+      item.appendChild(renderMonthButton(month, direction, true));
+      pagination.appendChild(item);
+    };
+
+    if (previousMonth) appendItem(previousMonth, 'older');
+    if (nextMonth) appendItem(nextMonth, 'newer');
+
+    if (!previousMonth || !nextMonth) {
+      pagination.classList.add('chain-history-pagination--single');
+    }
+
+    return pagination;
   };
 
   const renderNotes = (): void => {
@@ -1498,8 +1557,8 @@ export function mountChainDocument(
         history.appendChild(section);
       });
 
-      if (nextMonth) {
-        history.appendChild(renderMonthNav(nextMonth, 'newer'));
+      if (previousMonth || nextMonth) {
+        history.appendChild(renderMonthPagination(previousMonth, nextMonth));
       }
     }
 
