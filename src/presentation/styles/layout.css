@@ -627,6 +627,26 @@
 .timeline-preview__time {
   font-variant-numeric: tabular-nums;
 }
+.timeline-preview__file {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: min(100%, 220px);
+  min-width: 0;
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: var(--md-sys-typescale-label-small-size);
+  font-weight: var(--md-sys-typescale-label-small-weight);
+  line-height: var(--md-sys-typescale-label-small-line-height);
+}
+.timeline-preview__file-icon {
+  flex-shrink: 0;
+  font-size: 14px;
+}
+.timeline-preview__file-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .timeline-preview__content {
   display: flex;
   flex-direction: column;

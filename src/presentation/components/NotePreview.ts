@@ -117,6 +117,23 @@ export function renderNotePreview(
   )}`;
 
   meta.append(chain, time);
+
+  const sourceFileName = entry.note.sourceFileName?.trim();
+  if (sourceFileName) {
+    const file = el('span', 'timeline-preview__file');
+    file.title = sourceFileName;
+    const fileIcon = el(
+      'span',
+      'material-symbols-rounded timeline-preview__file-icon'
+    );
+    fileIcon.setAttribute('aria-hidden', 'true');
+    fileIcon.textContent = 'description';
+    const fileName = el('span', 'timeline-preview__file-name');
+    fileName.textContent = sourceFileName;
+    file.append(fileIcon, fileName);
+    meta.appendChild(file);
+  }
+
   const type = entry.note.contentType ?? 'text';
   if (type !== 'text') {
     const badge = el('span', 'timeline-entry__type');
