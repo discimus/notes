@@ -64,6 +64,7 @@ const EXPAND_DELTA_MIN = 8;
 const COMPACT_DELAY_MS = 120;
 const EXPAND_DELAY_MS = 120;
 const SCROLL_IGNORE_MS = 100;
+const PREVIEW_SCROLL_IGNORE_MS = 500;
 const SCROLL_BOTTOM_TOLERANCE = 16;
 const PERIOD_FLASH_MS = 1200;
 const PERIOD_HIGHLIGHT_MS = 5000;
@@ -815,6 +816,13 @@ export function mountChainDocument(
     const accent =
       getTimelineChainColors([currentTab.chainId]).get(currentTab.chainId) ??
       'var(--md-sys-color-outline-variant)';
+    const noteIndex = currentTab.notes.findIndex((item) => item.id === note.id);
+    const previousNote =
+      noteIndex > 0 ? currentTab.notes[noteIndex - 1] ?? null : null;
+    const nextNote =
+      noteIndex >= 0 && noteIndex < currentTab.notes.length - 1
+        ? currentTab.notes[noteIndex + 1] ?? null
+        : null;
 
     renderNotePreview(
       previewHost,
@@ -830,14 +838,32 @@ export function mountChainDocument(
         action: {
           label: 'Editar nota',
           icon: 'edit',
+          variant: 'fab',
           onClick: () => {
             closePreview();
             handlers.onEditNote?.(note.id);
           },
         },
+        navigation: {
+          hasPrevious: Boolean(previousNote),
+          hasNext: Boolean(nextNote),
+          onPrevious: () => {
+            if (previousNote) navigatePreviewTo(previousNote.id);
+          },
+          onNext: () => {
+            if (nextNote) navigatePreviewTo(nextNote.id);
+          },
+        },
       }
     );
     scroll.scrollTop = previousScrollTop;
+  }
+
+  function navigatePreviewTo(noteId: string): void {
+    if (!currentTab.notes.some((item) => item.id === noteId)) return;
+    ensureMonthForNote(noteId);
+    openPreview(noteId, previewQuery);
+    focusPreviewNote(noteId);
   }
 
   function closePreview(): void {
@@ -1992,6 +2018,56 @@ export function mountChainDocument(
     lastScrollTop = scroll.scrollTop;
   };
 
+  function focusPreviewNote(noteId: string): void {
+    const target = history.querySelector<HTMLElement>(
+      `.chain-note[data-note-id="${noteId}"]`
+    );
+    if (!target) return;
+
+    target.focus({ preventScroll: true });
+    flashNotes([noteId], 'chain-note--preview-focus');
+    scrollPreviewNoteIntoView(target);
+  }
+
+  function scrollPreviewNoteIntoView(target: HTMLElement): void {
+    const scrollRect = scroll.getBoundingClientRect();
+    const targetRect = target.getBoundingClientRect();
+    const group = target.closest('.chain-date-group');
+    const heading = group?.querySelector<HTMLElement>(
+      '.chain-date-group__heading'
+    );
+    const topMargin = (heading?.offsetHeight ?? 0) + 16;
+    const targetTop = scroll.scrollTop + targetRect.top - scrollRect.top;
+    const targetBottom = targetTop + targetRect.height;
+    const viewTop = scroll.scrollTop;
+    const viewBottom = viewTop + scroll.clientHeight;
+    const maxTop = Math.max(0, scroll.scrollHeight - scroll.clientHeight);
+
+    let nextTop = scroll.scrollTop;
+    if (targetTop < viewTop + topMargin) {
+      nextTop = targetTop - topMargin;
+    } else if (targetBottom > viewBottom - 16) {
+      nextTop = targetBottom - scroll.clientHeight + 16;
+    }
+    nextTop = Math.min(Math.max(0, nextTop), maxTop);
+
+    ignoreCompactUntil = Date.now() + PREVIEW_SCROLL_IGNORE_MS;
+    lastScrollTop = nextTop;
+    if (Math.abs(nextTop - scroll.scrollTop) < 1) return;
+
+    const reduceMotion =
+      typeof window.matchMedia === 'function' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (typeof scroll.scrollTo === 'function') {
+      scroll.scrollTo({
+        top: nextTop,
+        behavior: reduceMotion ? 'auto' : 'smooth',
+      });
+      return;
+    }
+    scroll.scrollTop = nextTop;
+  }
+
   const onScroll = (): void => {
     if (compactFrame !== null) return;
 
@@ -2185,6 +2261,7 @@ export function mountChainDocument(
     clearPeriodHighlightClasses();
     clearPeriodFlash();
     clearFlash('chain-note--search-flash');
+    clearFlash('chain-note--preview-focus');
     window.removeEventListener('dragend', resetFileDrag);
     window.removeEventListener('drop', resetFileDrag, true);
     window.removeEventListener('dragleave', resetWhenLeavingWindow);

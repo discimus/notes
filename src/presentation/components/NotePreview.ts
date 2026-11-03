@@ -6,6 +6,24 @@ import { renderLinkedText } from './LinkedText.js';
 import { renderMarkdownContent } from './MarkdownContent.js';
 import { highlightTextInElement } from './SearchHighlight.js';
 
+const PREVIEW_COMPACT_SCROLL_MIN = 24;
+const PREVIEW_COMPACT_DELTA_MIN = 4;
+const PREVIEW_EXPAND_DELTA_MIN = 8;
+const PREVIEW_COMPACT_DELAY_MS = 120;
+
+interface PreviewScrollState {
+  scroller: HTMLElement;
+  lastScrollTop: number;
+  upwardDistance: number;
+  compact: boolean;
+  frame: number | null;
+  compactTimer: ReturnType<typeof setTimeout> | null;
+  expandTimer: ReturnType<typeof setTimeout> | null;
+  onScroll: () => void;
+}
+
+const previewScrollStates = new WeakMap<HTMLElement, PreviewScrollState>();
+
 export interface NotePreviewEntry {
   chainId: string;
   chainTitle: string;
@@ -17,6 +35,15 @@ export interface NotePreviewAction {
   icon: string;
   onClick: () => void;
   ariaLabel?: string;
+  variant?: 'tonal' | 'fab';
+}
+
+export interface NotePreviewNavigation {
+  hasPrevious: boolean;
+  hasNext: boolean;
+  onPrevious: () => void | Promise<void>;
+  onNext: () => void | Promise<void>;
+  busy?: boolean;
 }
 
 export interface NotePreviewOptions {
@@ -25,6 +52,7 @@ export interface NotePreviewOptions {
   onClose?: () => void;
   closeLabel?: string;
   action?: NotePreviewAction;
+  navigation?: NotePreviewNavigation;
 }
 
 export function renderNotePreview(
@@ -32,8 +60,19 @@ export function renderNotePreview(
   entry: NotePreviewEntry,
   options: NotePreviewOptions = {}
 ): void {
+  const previousScroll =
+    host.querySelector<HTMLElement>('.timeline-preview__scroll')?.scrollTop ??
+    0;
+  const previousNoteId = host.dataset['previewNoteId'] ?? null;
+  const sameNote = previousNoteId === entry.note.id;
+  const wasCompact = host.classList.contains(
+    'timeline-preview--actions-compact'
+  );
+
+  disposePreviewScroll(host);
   host.hidden = false;
   host.replaceChildren();
+  host.dataset['previewNoteId'] = entry.note.id;
 
   const accent =
     options.accent ?? 'var(--md-sys-color-outline-variant)';
@@ -108,19 +147,222 @@ export function renderNotePreview(
     content.appendChild(tags);
   }
 
-  if (options.action) {
-    const actions = el('div', 'timeline-preview__actions');
-    const action = el('button', 'btn btn-tonal');
-    action.type = 'button';
-    action.setAttribute(
-      'aria-label',
-      options.action.ariaLabel ?? options.action.label
-    );
-    action.innerHTML = `<span class="material-symbols-rounded" aria-hidden="true">${options.action.icon}</span> ${options.action.label}`;
-    action.addEventListener('click', options.action.onClick);
-    actions.appendChild(action);
-    content.appendChild(actions);
+  if (options.action && options.action.variant !== 'fab') {
+    content.appendChild(renderInlineAction(options.action));
   }
 
-  host.append(header, meta, content);
+  const fabAction =
+    options.action?.variant === 'fab' ? options.action : null;
+  const navigation = options.navigation
+    ? renderNavigation(options.navigation)
+    : null;
+  const scroll = el('div', 'timeline-preview__scroll');
+  scroll.append(header, meta, content);
+
+  const footer = el('footer', 'timeline-preview__footer');
+  const actionBar = el('div', 'timeline-preview__action-bar');
+  actionBar.setAttribute('role', 'group');
+  actionBar.setAttribute('aria-label', 'Ações da prévia');
+  if (navigation) actionBar.appendChild(navigation);
+  if (fabAction) actionBar.appendChild(renderFabAction(fabAction));
+  if (actionBar.childElementCount > 0) footer.appendChild(actionBar);
+
+  host.classList.toggle('timeline-preview--with-fab', Boolean(fabAction));
+  host.append(scroll);
+  if (footer.childElementCount > 0) host.appendChild(footer);
+
+  if (footer.childElementCount > 0) {
+    bindPreviewScroll(
+      host,
+      scroll,
+      sameNote ? previousScroll : 0,
+      sameNote && wasCompact
+    );
+  } else {
+    host.classList.remove('timeline-preview--actions-compact');
+  }
+}
+
+function renderInlineAction(action: NotePreviewAction): HTMLElement {
+  const actions = el(
+    'div',
+    'timeline-preview__actions timeline-preview__actions--inline'
+  );
+  const button = el('button', 'btn btn-tonal');
+  button.type = 'button';
+  button.setAttribute('aria-label', action.ariaLabel ?? action.label);
+  button.innerHTML = `<span class="material-symbols-rounded" aria-hidden="true">${action.icon}</span> ${action.label}`;
+  button.addEventListener('click', action.onClick);
+  actions.appendChild(button);
+  return actions;
+}
+
+function renderFabAction(action: NotePreviewAction): HTMLElement {
+  const actions = el(
+    'div',
+    'timeline-preview__actions timeline-preview__actions--fab'
+  );
+  const button = el('button', 'btn timeline-preview__fab');
+  button.type = 'button';
+  button.setAttribute('aria-label', action.ariaLabel ?? action.label);
+  button.title = action.ariaLabel ?? action.label;
+
+  const icon = el('span', 'material-symbols-rounded');
+  icon.setAttribute('aria-hidden', 'true');
+  icon.textContent = action.icon;
+  const label = el('span', 'timeline-preview__fab-label');
+  label.textContent = action.label;
+
+  button.append(icon, label);
+  button.addEventListener('click', action.onClick);
+  actions.appendChild(button);
+  return actions;
+}
+
+function renderNavigation(navigation: NotePreviewNavigation): HTMLElement {
+  const nav = el('nav', 'timeline-preview__note-nav');
+  nav.setAttribute('aria-label', 'Navegação entre notas');
+  if (navigation.busy) nav.setAttribute('aria-busy', 'true');
+
+  const button = (
+    direction: 'previous' | 'next',
+    enabled: boolean,
+    onClick: () => void | Promise<void>
+  ): HTMLButtonElement => {
+    const element = el('button', 'timeline-preview__note-nav-button');
+    element.type = 'button';
+    element.dataset['previewNav'] = direction;
+    element.disabled = navigation.busy === true || !enabled;
+
+    const icon = el('span', 'material-symbols-rounded');
+    icon.setAttribute('aria-hidden', 'true');
+    icon.textContent =
+      direction === 'previous' ? 'arrow_upward' : 'arrow_downward';
+
+    const ariaLabel =
+      direction === 'previous' ? 'Nota anterior' : 'Próxima nota';
+    element.setAttribute('aria-label', ariaLabel);
+    element.title = ariaLabel;
+    element.appendChild(icon);
+    element.addEventListener('click', () => {
+      void onClick();
+    });
+    return element;
+  };
+
+  nav.append(
+    button('previous', navigation.hasPrevious, navigation.onPrevious),
+    button('next', navigation.hasNext, navigation.onNext)
+  );
+  return nav;
+}
+
+function bindPreviewScroll(
+  host: HTMLElement,
+  scroller: HTMLElement,
+  initialScrollTop: number,
+  preserveCompact: boolean
+): void {
+  scroller.scrollTop = initialScrollTop;
+  const state: PreviewScrollState = {
+    scroller,
+    lastScrollTop: initialScrollTop,
+    upwardDistance: 0,
+    compact:
+      preserveCompact && initialScrollTop > PREVIEW_COMPACT_SCROLL_MIN,
+    frame: null,
+    compactTimer: null,
+    expandTimer: null,
+    onScroll: () => undefined,
+  };
+
+  const applyCompact = (value: boolean): void => {
+    state.compact = value;
+    host.classList.toggle('timeline-preview--actions-compact', value);
+  };
+
+  const clearTimers = (): void => {
+    if (state.compactTimer !== null) {
+      clearTimeout(state.compactTimer);
+      state.compactTimer = null;
+    }
+    if (state.expandTimer !== null) {
+      clearTimeout(state.expandTimer);
+      state.expandTimer = null;
+    }
+  };
+
+  state.onScroll = (): void => {
+    if (state.frame !== null) return;
+    let ranSynchronously = false;
+    const frame = requestAnimationFrame(() => {
+      ranSynchronously = true;
+      state.frame = null;
+      const current = scroller.scrollTop;
+      const delta = current - state.lastScrollTop;
+      state.lastScrollTop = current;
+
+      if (current <= PREVIEW_COMPACT_SCROLL_MIN) {
+        clearTimers();
+        state.upwardDistance = 0;
+        if (state.compact) applyCompact(false);
+        return;
+      }
+
+      if (delta > PREVIEW_COMPACT_DELTA_MIN) {
+        if (state.expandTimer !== null) {
+          clearTimeout(state.expandTimer);
+          state.expandTimer = null;
+        }
+        state.upwardDistance = 0;
+        if (!state.compact && state.compactTimer === null) {
+          state.compactTimer = setTimeout(() => {
+            state.compactTimer = null;
+            if (scroller.scrollTop > PREVIEW_COMPACT_SCROLL_MIN) {
+              applyCompact(true);
+            }
+          }, PREVIEW_COMPACT_DELAY_MS);
+        }
+        return;
+      }
+
+      if (delta < 0 && state.compact) {
+        if (state.compactTimer !== null) {
+          clearTimeout(state.compactTimer);
+          state.compactTimer = null;
+        }
+        state.upwardDistance += Math.abs(delta);
+        if (
+          state.upwardDistance >= PREVIEW_EXPAND_DELTA_MIN &&
+          state.expandTimer === null
+        ) {
+          state.expandTimer = setTimeout(() => {
+            state.expandTimer = null;
+            applyCompact(false);
+          }, PREVIEW_COMPACT_DELAY_MS);
+        }
+      } else if (delta > 0) {
+        if (state.expandTimer !== null) {
+          clearTimeout(state.expandTimer);
+          state.expandTimer = null;
+        }
+        state.upwardDistance = 0;
+      }
+    });
+    if (!ranSynchronously) state.frame = frame;
+  };
+
+  applyCompact(state.compact);
+  scroller.addEventListener('scroll', state.onScroll, { passive: true });
+  previewScrollStates.set(host, state);
+}
+
+function disposePreviewScroll(host: HTMLElement): void {
+  const state = previewScrollStates.get(host);
+  if (!state) return;
+  if (state.frame !== null) cancelAnimationFrame(state.frame);
+  if (state.compactTimer !== null) clearTimeout(state.compactTimer);
+  if (state.expandTimer !== null) clearTimeout(state.expandTimer);
+  state.scroller.removeEventListener('scroll', state.onScroll);
+  previewScrollStates.delete(host);
 }

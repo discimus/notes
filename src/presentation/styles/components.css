@@ -2479,7 +2479,8 @@
 }
 .chain-note--period-selected .chain-note__body,
 .chain-note--period-flash .chain-note__body,
-.chain-note--search-flash .chain-note__body {
+.chain-note--search-flash .chain-note__body,
+.chain-note--preview-focus .chain-note__body {
   position: relative;
   isolation: isolate;
 }
@@ -2550,6 +2551,48 @@
   }
   100% {
     background-color: transparent;
+  }
+}
+.chain-note--preview-focus .chain-note__body::after {
+  content: '';
+  position: absolute;
+  inset: -4px -8px;
+  z-index: -1;
+  border-radius:
+    calc(
+      var(--chain-note-body-radius, var(--md-sys-shape-corner-small)) +
+        var(--spacing-2)
+    )
+    /
+    calc(
+      var(--chain-note-body-radius, var(--md-sys-shape-corner-small)) +
+        var(--spacing-1)
+    );
+  background-color: color-mix(
+    in srgb,
+    var(--md-sys-color-primary-container) 55%,
+    transparent
+  );
+  opacity: 0;
+  transform: scale(0.995);
+  transform-origin: center;
+  animation: preview-navigation-focus
+    var(--md-sys-motion-duration-medium3)
+    var(--md-sys-motion-easing-emphasized) forwards;
+  pointer-events: none;
+}
+@keyframes preview-navigation-focus {
+  0% {
+    opacity: 0;
+    transform: scale(0.995);
+  }
+  35% {
+    opacity: 0.6;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1);
   }
 }
 .chain-note + .chain-note {
@@ -2801,15 +2844,6 @@
     transparent
   );
 }
-.chain-note--previewing .chain-note__body {
-  background-color: color-mix(
-    in srgb,
-    var(--md-sys-color-primary) 8%,
-    transparent
-  );
-  box-shadow: inset 0 0 0 1px
-    color-mix(in srgb, var(--md-sys-color-primary) 36%, transparent);
-}
 .chain-document--preview-open .chain-composer {
   display: none;
 }
@@ -2898,6 +2932,10 @@
     -webkit-line-clamp: 4;
     overflow: hidden;
   }
+}
+.chain-note--previewing .chain-note__body {
+  background-color: var(--md-sys-color-surface-container-high);
+  box-shadow: inset 0 0 0 2px var(--md-sys-color-primary);
 }
 .app-shell--full-note-content
   .chain-note__body:not(.chain-note__body--code):not(
@@ -3003,7 +3041,7 @@
     display: none;
   }
   .chain-document.chain-document--preview-open .chain-note-preview {
-    position: static;
+    position: relative;
     inset: auto;
     flex: 0 0 62%;
     width: auto;
@@ -4901,6 +4939,10 @@
       var(--md-sys-color-primary-container) 55%,
       transparent
     );
+  }
+  .chain-note--preview-focus .chain-note__body::after {
+    animation: none;
+    opacity: 0;
   }
   .chain-attachment__progress:not([hidden]) {
     animation: none;

@@ -31,7 +31,30 @@ import { enableMagneticDragScroll } from '../components/dragScroll.js';
 let queryTimer: ReturnType<typeof setTimeout> | null = null;
 let timelineOutsideClickCleanup: (() => void) | null = null;
 let activeTimelineTagEditor: InlineTagEditorView | null = null;
+const PREVIEW_NAVIGATION_FOCUS_MS = 1200;
 const timelineScrollIgnoreUntil = new WeakMap<HTMLElement, number>();
+let previewNavigationFocus: { list: HTMLElement; noteId: string } | null = null;
+let previewNavigationFocusTimer: ReturnType<typeof setTimeout> | null = null;
+
+function clearPreviewNavigationFocus(): void {
+  if (previewNavigationFocusTimer !== null) {
+    clearTimeout(previewNavigationFocusTimer);
+    previewNavigationFocusTimer = null;
+  }
+  document
+    .querySelectorAll<HTMLElement>('.timeline-entry--preview-focus')
+    .forEach((row) => row.classList.remove('timeline-entry--preview-focus'));
+}
+
+function flashPreviewNavigationFocus(row: HTMLElement): void {
+  clearPreviewNavigationFocus();
+  void row.offsetWidth;
+  row.classList.add('timeline-entry--preview-focus');
+  previewNavigationFocusTimer = setTimeout(() => {
+    previewNavigationFocusTimer = null;
+    row.classList.remove('timeline-entry--preview-focus');
+  }, PREVIEW_NAVIGATION_FOCUS_MS);
+}
 
 function markTimelineProgrammaticScroll(container: HTMLElement): void {
   timelineScrollIgnoreUntil.set(container, performance.now() + 120);
@@ -107,6 +130,10 @@ function formatFilterDate(value: string): string {
 }
 
 export function renderTimelineLayout(state: AppState): HTMLElement {
+  clearPreviewNavigationFocus();
+  if (previewNavigationFocus && !previewNavigationFocus.list.isConnected) {
+    previewNavigationFocus = null;
+  }
   if (queryTimer) {
     clearTimeout(queryTimer);
     queryTimer = null;
@@ -917,6 +944,7 @@ export function updateTimelineLayout(content: HTMLElement, state: AppState): voi
     updateTimelineEntrySelection(list, state.timelinePreviewNoteId);
     updateTimelineSelectionUi(header, state);
     renderTimelinePreview(preview, state);
+    applyPreviewNavigationFocus(list);
     return;
   }
 
@@ -929,6 +957,7 @@ export function updateTimelineLayout(content: HTMLElement, state: AppState): voi
   const previewAnchor = captureTimelinePreviewAnchor(list, state);
   if (preview) renderTimelinePreview(preview, state);
   updateTimelineEntries(list, state, previewAnchor);
+  applyPreviewNavigationFocus(list);
   updateTimelineSummary(header, state);
   updateTimelineSelectionUi(header, state);
   const slider = qs<HTMLInputElement>('#timeline-slider', content);
@@ -1351,6 +1380,65 @@ function renderTimelinePreview(host: HTMLElement, state: AppState): void {
   );
   const accent =
     colors.get(entry.chainId) ?? 'var(--md-sys-color-outline-variant)';
+  const entries = state.timelineEntries;
+  const index = entries.findIndex(
+    (item) => item.note.id === state.timelinePreviewNoteId
+  );
+  const loadedEnd = state.timelineLoadedOffset + entries.length;
+  const hasPrevious = index > 0 || (index === 0 && state.timelineLoadedOffset > 0);
+  const hasNext =
+    index >= 0 &&
+    (index < entries.length - 1 ||
+      (index === entries.length - 1 && loadedEnd < state.timelineTotal));
+
+  const list =
+    host
+      .closest<HTMLElement>('#timeline-layout')
+      ?.querySelector<HTMLElement>('#timeline-list') ?? null;
+
+  const openPreviewAt = (noteId: string): void => {
+    if (list) previewNavigationFocus = { list, noteId };
+    appState.set({ timelinePreviewNoteId: noteId });
+  };
+
+  const navigate = async (direction: -1 | 1): Promise<void> => {
+    const currentId = state.timelinePreviewNoteId;
+    if (currentId === null) return;
+
+    const current = appState.get();
+    const currentIndex = current.timelineEntries.findIndex(
+      (item) => item.note.id === currentId
+    );
+    if (currentIndex < 0) return;
+
+    const adjacent = current.timelineEntries[currentIndex + direction];
+    if (adjacent) {
+      openPreviewAt(adjacent.note.id);
+      return;
+    }
+
+    if (direction > 0) {
+      if (
+        current.timelineLoadedOffset + current.timelineEntries.length >=
+        current.timelineTotal
+      ) {
+        return;
+      }
+      await AppController.loadMoreTimeline();
+    } else {
+      if (current.timelineLoadedOffset <= 0) return;
+      await AppController.loadPreviousTimeline();
+    }
+
+    const next = appState.get();
+    if (next.timelinePreviewNoteId !== currentId) return;
+    const nextIndex = next.timelineEntries.findIndex(
+      (item) => item.note.id === currentId
+    );
+    if (nextIndex < 0) return;
+    const target = next.timelineEntries[nextIndex + direction];
+    if (target) openPreviewAt(target.note.id);
+  };
 
   renderNotePreview(host, entry, {
     query: state.timelineFilters.query,
@@ -1366,6 +1454,13 @@ function renderTimelinePreview(host: HTMLElement, state: AppState): void {
           state.timelineFilters.query
         );
       },
+    },
+    navigation: {
+      hasPrevious,
+      hasNext,
+      busy: state.timelineIsLoadingMore || state.timelineIsLoadingPrevious,
+      onPrevious: () => navigate(-1),
+      onNext: () => navigate(1),
     },
   });
 }
@@ -1589,6 +1684,40 @@ function updateTimelineEntrySelection(
     row.classList.toggle('timeline-entry--selected', selected);
     row.setAttribute('aria-current', selected ? 'true' : 'false');
   });
+}
+
+function applyPreviewNavigationFocus(container: HTMLElement): void {
+  const request = previewNavigationFocus;
+  if (!request || request.list !== container) return;
+  if (!container.isConnected) {
+    previewNavigationFocus = null;
+    return;
+  }
+
+  const row = Array.from(
+    container.querySelectorAll<HTMLElement>('.timeline-entry')
+  ).find((item) => item.dataset['noteId'] === request.noteId);
+  if (!row) return;
+  previewNavigationFocus = null;
+
+  markTimelineProgrammaticScroll(container);
+  row.focus({ preventScroll: true });
+  flashPreviewNavigationFocus(row);
+
+  const containerRect = container.getBoundingClientRect();
+  const rowRect = row.getBoundingClientRect();
+  const top = rowRect.top - containerRect.top;
+  const bottom = rowRect.bottom - containerRect.top;
+  const margin = 8;
+
+  if (top < margin) {
+    container.scrollTop = Math.max(0, container.scrollTop + top - margin);
+  } else if (bottom > container.clientHeight - margin) {
+    container.scrollTop = Math.max(
+      0,
+      container.scrollTop + bottom - container.clientHeight + margin
+    );
+  }
 }
 
 function captureTimelinePreviewAnchor(
