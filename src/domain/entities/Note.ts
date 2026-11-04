@@ -138,6 +138,27 @@ export class Note {
     });
   }
 
+  /** Cria uma tail sem texto para hospedar anexos. */
+  static createAttachmentTail(params: {
+    chainId: UUID;
+    position: number;
+  }): Note {
+    if (params.position <= 0) {
+      throw new ValidationError('A posição de uma tail deve ser maior que 0.');
+    }
+    const ts = now();
+    return new Note({
+      id: generateId(),
+      content: '',
+      chainId: params.chainId,
+      position: params.position,
+      role: 'tail',
+      contentType: 'text',
+      createdAt: ts,
+      updatedAt: ts,
+    });
+  }
+
   static reconstitute(data: NoteData): Note {
     return new Note(data);
   }

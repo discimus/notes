@@ -598,7 +598,7 @@ export function mountEditorView(
         continue;
       }
       const dimensions = await readImageDimensions(file);
-      const result = await AppController.addChainEndAttachment({
+      const result = await AppController.appendAttachmentNote({
         chainId,
         kind: 'image',
         fileName: file.name,
@@ -613,8 +613,8 @@ export function mountEditorView(
     if (added > 0) {
       snackbar.success(
         added === 1
-          ? 'Imagem anexada ao final da coleção.'
-          : `${added} imagens anexadas ao final da coleção.`
+          ? 'Imagem adicionada em uma nova nota.'
+          : `${added} imagens adicionadas em novas notas.`
       );
     }
   };
@@ -623,7 +623,7 @@ export function mountEditorView(
     chainId: string,
     recorded: RecordedAudio
   ): Promise<boolean> => {
-    const result = await AppController.addChainEndAttachment({
+    const result = await AppController.appendAttachmentNote({
       chainId,
       kind: 'audio',
       fileName: `audio-${Date.now()}.${extensionForAudioMime(recorded.mimeType)}`,
@@ -631,7 +631,7 @@ export function mountEditorView(
       blob: recorded.blob,
       duration: recorded.duration,
     });
-    if (result.ok) snackbar.success('Áudio anexado ao final da coleção.');
+    if (result.ok) snackbar.success('Áudio adicionado em uma nova nota.');
     return result.ok;
   };
 

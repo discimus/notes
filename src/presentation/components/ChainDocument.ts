@@ -314,11 +314,16 @@ function renderNote(
   if (isMarkdown) renderMarkdownContent(text, note.content);
   else renderLinkedText(text, note.content);
 
+  const hasText = note.content.trim().length > 0;
+  const hasAttachments = Boolean(note.attachments && note.attachments.length > 0);
+  const attachmentOnly = !hasText && hasAttachments;
   const body = el(
     'div',
     `chain-note__body${
       isCode ? ' chain-note__body--code chain-note__body--verbatim' : ''
-    }${isMarkdown ? ' chain-note__body--markdown' : ''}`
+    }${isMarkdown ? ' chain-note__body--markdown' : ''}${
+      attachmentOnly ? ' chain-note__body--attachment-only' : ''
+    }`
   );
   body.title = 'Clique para visualizar; use Editar para abrir o editor.';
   body.addEventListener('click', (event) => {
@@ -357,7 +362,7 @@ function renderNote(
     handlers.onAddImages?.(note.id, files);
   });
 
-  body.appendChild(text);
+  if (hasText) body.appendChild(text);
   if (note.attachments && note.attachments.length > 0) {
     renderNoteAttachments(
       body,
@@ -1633,9 +1638,16 @@ export function mountChainDocument(
         const state = audioRecorder.getState(key);
         const idleEnabled =
           kind === 'chain'
-            ? hasNotes && Boolean(handlers.onSaveChainAudio)
+            ? Boolean(handlers.onSaveChainAudio)
             : Boolean(handlers.onSaveNoteAudio);
-        if (!state && kind === 'chain' && !hasNotes) return;
+        if (
+          !state &&
+          kind === 'chain' &&
+          !hasNotes &&
+          !handlers.onSaveChainAudio
+        ) {
+          return;
+        }
         paintInlineAudioButton(button, state, kind, idleEnabled);
       });
 
@@ -1661,17 +1673,23 @@ export function mountChainDocument(
 
   const syncQuickActions = (): void => {
     const hasNotes = currentTab.notes.length > 0;
-    quickImage.disabled = !hasNotes;
-    quickAudio.disabled = !hasNotes;
+    const canAddImages = hasNotes || Boolean(handlers.onAddChainImages);
+    const canAddAudio = hasNotes || Boolean(handlers.onSaveChainAudio);
+    quickImage.disabled = !canAddImages;
+    quickAudio.disabled = !canAddAudio;
 
-    if (hasNotes) {
-      quickImage.title = 'Adicionar imagem ao final da coleção';
-      quickImage.setAttribute('aria-label', 'Adicionar imagem ao final da coleção');
-      quickAudio.title = 'Gravar áudio para o final da coleção';
-      quickAudio.setAttribute('aria-label', 'Gravar áudio para o final da coleção');
+    if (canAddImages) {
+      quickImage.title = 'Adicionar imagem em uma nova nota';
+      quickImage.setAttribute('aria-label', 'Adicionar imagem em uma nova nota');
     } else {
       quickImage.title = 'Em breve';
       quickImage.setAttribute('aria-label', 'Imagem, em breve');
+    }
+
+    if (canAddAudio) {
+      quickAudio.title = 'Gravar áudio em uma nova nota';
+      quickAudio.setAttribute('aria-label', 'Gravar áudio em uma nova nota');
+    } else {
       quickAudio.title = 'Em breve';
       quickAudio.setAttribute('aria-label', 'Audio, em breve');
     }

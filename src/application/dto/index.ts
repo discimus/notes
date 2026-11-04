@@ -60,6 +60,23 @@ export interface AddNoteAttachmentCommand {
   duration?: number | undefined;
 }
 
+export interface AppendAttachmentNoteCommand {
+  chainId: UUID;
+  kind: AttachmentKind;
+  fileName: string;
+  mimeType: string;
+  blob: Blob;
+  altText?: string | undefined;
+  width?: number | undefined;
+  height?: number | undefined;
+  duration?: number | undefined;
+}
+
+export interface AppendAttachmentNoteResult {
+  note: NoteDTO;
+  attachment: AttachmentDTO;
+}
+
 // ── Chain DTOs ─────────────────────────────────────────────────────────────
 
 export interface ChainSummaryDTO {

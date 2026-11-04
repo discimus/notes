@@ -112,7 +112,7 @@ describe('Quick actions de mídia', () => {
     document.body.innerHTML = '';
   });
 
-  it('habilita imagem e áudio e envia a mídia para o final da coleção', async () => {
+  it('habilita imagem e áudio e envia a mídia para novas notas', async () => {
     const handlers = makeHandlers();
     const view = mountChainDocument(makeTab(), handlers);
     const image = view.element.querySelector<HTMLButtonElement>('#chain-action-image');
@@ -121,10 +121,10 @@ describe('Quick actions de mídia', () => {
     expect(image?.disabled).toBe(false);
     expect(audio?.disabled).toBe(false);
     expect(image?.getAttribute('aria-label')).toBe(
-      'Adicionar imagem ao final da coleção'
+      'Adicionar imagem em uma nova nota'
     );
     expect(audio?.getAttribute('aria-label')).toBe(
-      'Gravar áudio para o final da coleção'
+      'Gravar áudio em uma nova nota'
     );
 
     audio?.click();

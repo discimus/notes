@@ -147,6 +147,35 @@ export class Chain {
     return this.appendNoteInternal(content, contentType);
   }
 
+  /** Cria uma tail sem texto para hospedar um anexo. */
+  appendAttachmentNote(): Note {
+    if (this.isArchived()) {
+      throw new InvariantViolationError('Não é possível adicionar notas a uma coleção arquivada.');
+    }
+    if (this.isDeleted()) {
+      throw new InvariantViolationError('Não é possível adicionar notas a uma coleção excluída.');
+    }
+
+    const nextPosition = this._headerNoteId
+      ? this._notes.length
+      : this._notes.length + 1;
+    const tail = Note.createAttachmentTail({
+      chainId: this._id,
+      position: nextPosition,
+    });
+
+    const fileNames = new Set(
+      this._notes
+        .map((note) => note.sourceFileName)
+        .filter((name): name is string => Boolean(name))
+    );
+    tail.ensureUniqueSourceFileName(fileNames);
+
+    this._notes.push(tail);
+    this._updatedAt = now();
+    return tail;
+  }
+
   appendImportedText(
     content: string,
     createdAt?: ISODateString,

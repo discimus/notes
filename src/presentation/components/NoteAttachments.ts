@@ -368,7 +368,12 @@ function mountImageCarousel(
         suppressClick = false;
       }, 0);
       const isCarousel =
-        snap && Boolean(grid.closest('.app-shell--image-column'));
+        snap &&
+        Boolean(
+          grid.closest(
+            '.app-shell--image-column, .chain-note__body--attachment-only'
+          )
+        );
       if (isCarousel) {
         const width = Math.max(1, grid.clientWidth);
         const projected = grid.scrollLeft - state.velocity * 180;

@@ -35,6 +35,7 @@ import {
 } from '../app/storageQuota.js';
 import type {
   AddNoteAttachmentCommand,
+  AppendAttachmentNoteCommand,
   AttachmentDTO,
   ChainDetailDTO,
   NoteContentType,
@@ -79,6 +80,7 @@ import {
   RenameTag,
   DeleteTag,
   AddNoteAttachment,
+  AppendAttachmentNote,
   DeleteNoteAttachment,
   GetAttachmentBlob,
   LoadExampleScenario,
@@ -125,6 +127,7 @@ const getAllTags = new GetAllTags(tagRepo);
 const renameTag = new RenameTag(tagRepo);
 const deleteTag = new DeleteTag(tagRepo);
 const addNoteAttachmentUseCase = new AddNoteAttachment(chainRepo, attachmentRepo);
+const appendAttachmentNoteUseCase = new AppendAttachmentNote(chainRepo, attachmentRepo);
 const deleteNoteAttachmentUseCase = new DeleteNoteAttachment(attachmentRepo);
 const getAttachmentBlobUseCase = new GetAttachmentBlob(attachmentRepo);
 const loadExampleScenario = new LoadExampleScenario(chainRepo, tagRepo);
@@ -1020,18 +1023,18 @@ export const AppController = {
     }
   },
 
-  async addChainEndAttachment(
-    command: Omit<AddNoteAttachmentCommand, 'noteId'>
+  async appendAttachmentNote(
+    command: AppendAttachmentNoteCommand
   ): Promise<AttachmentMutationResult> {
     try {
-      const attachment = await addNoteAttachmentUseCase.execute(command);
+      const result = await appendAttachmentNoteUseCase.execute(command);
       registerAttachmentPlaybackUrl(
-        attachment.id,
+        result.attachment.id,
         command.blob,
-        command.mimeType || attachment.mimeType
+        command.mimeType || result.attachment.mimeType
       );
       await refreshAfterAttachmentChange(command.chainId);
-      return { ok: true, attachment };
+      return { ok: true, attachment: result.attachment };
     } catch (error: unknown) {
       const message = editorErrorMessage(error);
       snackbar.error(message);

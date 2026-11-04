@@ -108,6 +108,22 @@ describe('Ações rápidas com preview ou editor abertos', () => {
     expect(handlers.onPasteText).toHaveBeenCalledTimes(1);
   });
 
+  it('mantém imagem, áudio e colar disponíveis sem notas prévias', () => {
+    const { handlers, image, audio, paste } = mount(
+      makeHandlers(),
+      makeTab({ notes: [] })
+    );
+
+    expect(image.disabled).toBe(false);
+    expect(audio.disabled).toBe(false);
+    expect(paste.disabled).toBe(false);
+
+    image.click();
+    expect(handlers.onAddChainImages).toHaveBeenCalledTimes(1);
+    paste.click();
+    expect(handlers.onPasteText).toHaveBeenCalledTimes(1);
+  });
+
   it('mantém imagem, áudio e colar disponíveis com o preview aberto', () => {
     const { view, handlers, image, audio, paste } = mount();
 

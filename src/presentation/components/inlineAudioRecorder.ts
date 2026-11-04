@@ -215,8 +215,8 @@ export function paintInlineAudioButton(
     ? 'Parar e salvar áudio'
     : state?.status === 'starting'
       ? 'Solicitando microfone'
-      : kind === 'chain'
-        ? 'Gravar áudio para o final da coleção'
+        : kind === 'chain'
+        ? 'Gravar áudio em uma nova nota'
         : 'Gravar áudio nesta nota';
 
   button.classList.toggle(

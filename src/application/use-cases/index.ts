@@ -31,6 +31,7 @@ export { GetAllTags } from './GetAllTags.js';
 export { RenameTag } from './RenameTag.js';
 export { DeleteTag } from './DeleteTag.js';
 export { AddNoteAttachment } from './AddNoteAttachment.js';
+export { AppendAttachmentNote } from './AppendAttachmentNote.js';
 export { DeleteNoteAttachment } from './DeleteNoteAttachment.js';
 export { GetAttachmentBlob } from './GetAttachmentBlob.js';
 export { LoadExampleScenario } from './LoadExampleScenario.js';
