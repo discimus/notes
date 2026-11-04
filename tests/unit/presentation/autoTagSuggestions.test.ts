@@ -22,8 +22,8 @@ describe('preferências de sugestões automáticas', () => {
     });
   });
 
-  it('inicia desativada e persiste a preferência', () => {
-    expect(getAutoTagSuggestions()).toBe(false);
+  it('inicia as sugestões ativas e persiste a preferência', () => {
+    expect(getAutoTagSuggestions()).toBe(true);
     expect(getAutoAssignTags()).toBe(false);
 
     setAutoTagSuggestions(true);

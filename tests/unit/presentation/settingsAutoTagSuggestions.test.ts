@@ -22,7 +22,7 @@ describe('configurações de sugestões automáticas de tags', () => {
     document.body.innerHTML = '';
   });
 
-  it('exibe os dois controles desligados por padrão', () => {
+  it('exibe sugestões ativas e atribuição automática desligada por padrão', () => {
     const suggestions = document.querySelector<HTMLInputElement>(
       '#settings-auto-tag-suggestions'
     );
@@ -30,7 +30,7 @@ describe('configurações de sugestões automáticas de tags', () => {
       '#settings-auto-assign-tags'
     );
 
-    expect(suggestions?.checked).toBe(false);
+    expect(suggestions?.checked).toBe(true);
     expect(autoAssign?.checked).toBe(false);
     expect(
       suggestions?.closest('.settings-item')?.querySelector('.settings-item__title')

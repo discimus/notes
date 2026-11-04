@@ -89,7 +89,7 @@ export const notesSettings: readonly SettingDefinition[] = [
     description:
       'Mostra sugestões de tags nas notas com base no conteúdo, sem atribuí-las automaticamente.',
     keywords: ['tag', 'sugestão', 'automático', 'conteúdo'],
-    defaultValue: false,
+    defaultValue: true,
     get: getAutoTagSuggestions,
     set: setAutoTagSuggestions,
   },

@@ -4,9 +4,9 @@ const STORAGE_KEY = 'threadnotes.tag-suggestions-enabled';
 
 export function getAutoTagSuggestions(): boolean {
   try {
-    return localStorage.getItem(STORAGE_KEY) === 'true';
+    return localStorage.getItem(STORAGE_KEY) !== 'false';
   } catch {
-    return false;
+    return true;
   }
 }
 

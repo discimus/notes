@@ -120,7 +120,7 @@ class AppStateStore {
     fullNoteContent: false,
     noteImageLayout: 'thumbnails',
     pinnedChainIds: [],
-    tagSuggestionsEnabled: false,
+    tagSuggestionsEnabled: true,
     autoAssignTagsEnabled: false,
     tagSuggestionsByNoteId: {},
   };
