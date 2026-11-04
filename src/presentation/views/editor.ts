@@ -496,9 +496,15 @@ export function mountEditorView(
         if (!noteTab?.editingNoteId) return;
         void AppController.renameNoteFile(tab.chainId, noteTab.editingNoteId, fileName);
       },
-      onNewDocument: () => {
+      onNewDocument: (options = {}) => {
         const current = store.getTab(tab.id);
         if (!current || current.kind !== 'chain') return;
+        if (options.fromPreview) {
+          store.setChainComposerCollapsed(tab.id, false);
+          store.createChainNoteTab(tab.id);
+          focusChainNoteEditor(tab.id);
+          return;
+        }
         if (!current.composerCollapsed) {
           store.setChainComposerCollapsed(tab.id, true);
           return;

@@ -111,7 +111,7 @@ export interface ChainDocumentHandlers {
   onSelectNote: (noteTabId: string) => void;
   onCloseNote: (noteTabId: string) => void;
   onRenameNote?: (noteTabId: string, fileName: string) => void;
-  onNewDocument?: () => void;
+  onNewDocument?: (options?: { fromPreview?: boolean }) => void;
   onImportFiles?: (files: File[]) => void;
   onImportFolderDrop?: (dataTransfer: DataTransfer) => void;
   onRename?: () => void;
@@ -1947,7 +1947,11 @@ export function mountChainDocument(
     if (active) handlers.onSaveNote(active.id, { closeEditor: true });
   });
 
-  documentAction.addEventListener('click', () => handlers.onNewDocument?.());
+  documentAction.addEventListener('click', () => {
+    const fromPreview = previewNoteId !== null;
+    if (fromPreview) closePreview();
+    handlers.onNewDocument?.(fromPreview ? { fromPreview: true } : undefined);
+  });
 
   newNote.addEventListener('click', handlers.onCreateNote);
   emptyNewNote.addEventListener('click', handlers.onCreateNote);
