@@ -22,6 +22,11 @@ class SnackbarService {
   show(options: SnackbarOptions): void {
     const { message, duration = 4000, action } = options;
 
+    if (!this.container.isConnected) {
+      this.container.replaceChildren();
+      document.body.appendChild(this.container);
+    }
+
     const el = document.createElement('div');
     el.className = 'snackbar';
     el.setAttribute('role', 'status');

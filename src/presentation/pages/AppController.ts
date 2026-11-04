@@ -215,6 +215,7 @@ export type TextImportFolderResult =
 export interface AttachmentMutationSuccess {
   ok: true;
   attachment: AttachmentDTO;
+  note?: NoteDTO | undefined;
 }
 
 export type AttachmentMutationResult = AttachmentMutationSuccess | EditorSaveFailure;
@@ -1034,7 +1035,7 @@ export const AppController = {
         command.mimeType || result.attachment.mimeType
       );
       await refreshAfterAttachmentChange(command.chainId);
-      return { ok: true, attachment: result.attachment };
+      return { ok: true, attachment: result.attachment, note: result.note };
     } catch (error: unknown) {
       const message = editorErrorMessage(error);
       snackbar.error(message);

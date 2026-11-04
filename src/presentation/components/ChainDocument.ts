@@ -124,6 +124,7 @@ export interface ChainDocumentView {
   focusNoteEditor: () => void;
   focusSearchMatch: (query: string) => void;
   previewNote: (noteId: string, query?: string) => void;
+  revealNote: (noteId: string) => void;
   requestVisibleTagSuggestions: () => void;
   destroy: () => void;
 }
@@ -2280,6 +2281,7 @@ export function mountChainDocument(
     clearPeriodHighlightClasses();
     clearPeriodFlash();
     clearFlash('chain-note--search-flash');
+    clearFlash('chain-note--new-flash');
     clearFlash('chain-note--preview-focus');
     window.removeEventListener('dragend', resetFileDrag);
     window.removeEventListener('drop', resetFileDrag, true);
@@ -2367,6 +2369,15 @@ export function mountChainDocument(
         if (previewNoteId !== noteId) return;
         scrollToSearchTarget(noteId);
       });
+    },
+    revealNote: (noteId) => {
+      ensureMonthForNote(noteId);
+      const target = history.querySelector<HTMLElement>(
+        `.chain-note[data-note-id="${noteId}"]`
+      );
+      if (!target) return;
+      flashNotes([noteId], 'chain-note--new-flash');
+      scrollPreviewNoteIntoView(target);
     },
     destroy,
   };

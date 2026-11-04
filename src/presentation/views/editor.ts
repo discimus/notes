@@ -48,7 +48,7 @@ import {
 import { installUnloadGuard } from '../app/unloadGuard.js';
 import { el } from '../dom.js';
 import { showComposerModal } from './menus.js';
-import type { AttachmentDTO } from '@application/dto/index.js';
+import type { AttachmentDTO, NoteDTO } from '@application/dto/index.js';
 import {
   IMAGE_ATTACHMENT_MAX_BYTES,
   IMAGE_ATTACHMENT_MIME_TYPES,
@@ -454,10 +454,11 @@ export function mountEditorView(
         onMoveNote: (noteId) => moveSelectedNotes(tab.chainId, [noteId]),
         onAddChainImages: (files) => {
           if (files.length > 0) {
-            void addChainEndImages(tab.chainId, files);
+            void addChainEndImages(tab.id, tab.chainId, files);
           }
         },
-        onSaveChainAudio: (recorded) => saveChainAudio(tab.chainId, recorded),
+        onSaveChainAudio: (recorded) =>
+          saveChainAudio(tab.id, tab.chainId, recorded),
         onPasteText: () => {
           void pasteTextFromClipboard(tab.id, tab.chainId);
         },
@@ -542,6 +543,29 @@ export function mountEditorView(
     });
   };
 
+  const revealChainNote = (chainTabId: string, noteId: string): void => {
+    requestAnimationFrame(() => {
+      if (activeDocument?.id === chainTabId && activeDocument.kind === 'chain') {
+        activeDocument.view.revealNote(noteId);
+      }
+    });
+  };
+
+  const notifyNewChainNote = (
+    chainTabId: string,
+    noteId: string,
+    message: string
+  ): void => {
+    snackbar.show({
+      message,
+      duration: 6000,
+      action: {
+        label: 'Clique aqui',
+        onClick: () => revealChainNote(chainTabId, noteId),
+      },
+    });
+  };
+
   const createChainNoteTab = (chainTabId: string): void => {
     if (!store.createChainNoteTab(chainTabId)) return;
     focusChainNoteEditor(chainTabId);
@@ -584,10 +608,12 @@ export function mountEditorView(
   };
 
   const addChainEndImages = async (
+    chainTabId: string,
     chainId: string,
     files: File[]
   ): Promise<void> => {
     let added = 0;
+    let lastNoteId: string | null = null;
     for (const file of files) {
       if (!(IMAGE_ATTACHMENT_MIME_TYPES as readonly string[]).includes(file.type)) {
         snackbar.error('Formato de imagem não suportado.');
@@ -607,19 +633,27 @@ export function mountEditorView(
         altText: file.name,
         ...dimensions,
       });
-      if (result.ok) added += 1;
+      if (result.ok) {
+        added += 1;
+        if (result.note?.id) lastNoteId = result.note.id;
+      }
     }
 
     if (added > 0) {
-      snackbar.success(
+      const message =
         added === 1
           ? 'Imagem adicionada em uma nova nota.'
-          : `${added} imagens adicionadas em novas notas.`
-      );
+          : `${added} imagens adicionadas em novas notas.`;
+      if (lastNoteId) {
+        notifyNewChainNote(chainTabId, lastNoteId, message);
+      } else {
+        snackbar.success(message);
+      }
     }
   };
 
   const saveChainAudio = async (
+    chainTabId: string,
     chainId: string,
     recorded: RecordedAudio
   ): Promise<boolean> => {
@@ -631,7 +665,17 @@ export function mountEditorView(
       blob: recorded.blob,
       duration: recorded.duration,
     });
-    if (result.ok) snackbar.success('Áudio adicionado em uma nova nota.');
+    if (result.ok) {
+      if (result.note?.id) {
+        notifyNewChainNote(
+          chainTabId,
+          result.note.id,
+          'Áudio adicionado em uma nova nota.'
+        );
+      } else {
+        snackbar.success('Áudio adicionado em uma nova nota.');
+      }
+    }
     return result.ok;
   };
 
@@ -686,12 +730,12 @@ export function mountEditorView(
     chainTabId: string,
     noteTabId: string,
     close = true
-  ): Promise<boolean> => {
+  ): Promise<NoteDTO | null> => {
     const chainTab = store.getTab(chainTabId);
-    if (!chainTab || chainTab.kind !== 'chain') return false;
+    if (!chainTab || chainTab.kind !== 'chain') return null;
 
     const noteTab = store.getChainNoteTab(chainTabId, noteTabId);
-    if (!noteTab || !noteTab.content.trim()) return false;
+    if (!noteTab || !noteTab.content.trim()) return null;
 
     const contentType = contentTypeOf(noteTab);
     const result =
@@ -705,7 +749,7 @@ export function mountEditorView(
             noteTab.content,
             contentType
           );
-    if (!result.ok) return false;
+    if (!result.ok) return null;
 
     store.appendNoteToChainTab(chainTabId, result.note);
     if (close) {
@@ -714,7 +758,7 @@ export function mountEditorView(
     } else {
       store.markChainNoteTabSaved(chainTabId, noteTabId, result.note);
     }
-    return true;
+    return result.note;
   };
 
   const pasteTextFromClipboard = async (
@@ -745,7 +789,11 @@ export function mountEditorView(
     if (!result.ok) return;
 
     store.appendNoteToChainTab(chainTabId, result.note);
-    snackbar.success('Texto colado como nova nota.');
+    notifyNewChainNote(
+      chainTabId,
+      result.note.id,
+      'Texto colado como nova nota.'
+    );
   };
 
   const updateChainNoteEditTab = async (
@@ -802,13 +850,19 @@ export function mountEditorView(
     setSaving(chainTabId, true);
 
     try {
-      const editing = Boolean(noteTab.editingNoteId);
-      const saved = editing
-        ? await updateChainNoteEditTab(chainTab, noteTab, close)
-        : await appendChainNoteTab(chainTabId, noteTabId, close);
+      if (noteTab.editingNoteId) {
+        return await updateChainNoteEditTab(chainTab, noteTab, close);
+      }
 
-      if (saved && !editing) snackbar.success('Nota adicionada à coleção.');
-      return saved;
+      const appendedNote = await appendChainNoteTab(chainTabId, noteTabId, close);
+      if (appendedNote) {
+        notifyNewChainNote(
+          chainTabId,
+          appendedNote.id,
+          'Nota adicionada à coleção.'
+        );
+      }
+      return appendedNote !== null;
     } finally {
       saving = false;
       setSaving(chainTabId, false);
@@ -833,21 +887,31 @@ export function mountEditorView(
 
     try {
       let appended = 0;
+      let lastAppendedNoteId: string | null = null;
 
       for (const noteTabId of noteTabIds) {
         const current = store.getChainNoteTab(chainTabId, noteTabId);
         if (!current || !current.content.trim()) return false;
 
-        const saved = current.editingNoteId
-          ? await updateChainNoteEditTab(chainTab, current)
-          : await appendChainNoteTab(chainTabId, noteTabId);
-        if (!saved) return false;
-        if (!current.editingNoteId) appended += 1;
+        if (current.editingNoteId) {
+          const saved = await updateChainNoteEditTab(chainTab, current);
+          if (!saved) return false;
+          continue;
+        }
+
+        const note = await appendChainNoteTab(chainTabId, noteTabId);
+        if (!note) return false;
+        appended += 1;
+        lastAppendedNoteId = note.id;
       }
 
-      if (appended > 0) {
-        snackbar.success(
-          appended === 1 ? 'Nota adicionada à coleção.' : 'Notas adicionadas à coleção.'
+      if (appended > 0 && lastAppendedNoteId) {
+        notifyNewChainNote(
+          chainTabId,
+          lastAppendedNoteId,
+          appended === 1
+            ? 'Nota adicionada à coleção.'
+            : 'Notas adicionadas à coleção.'
         );
       }
       return true;
