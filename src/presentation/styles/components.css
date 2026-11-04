@@ -4066,6 +4066,22 @@
 .chain-note__body--attachment-only.chain-note__body--attachment-only
   .chain-note__attachments
   .chain-note__attachment-images
+  .chain-note__attachment-grid.chain-note__attachment-grid.chain-note__carousel--dragging {
+  scroll-snap-type: none;
+  scroll-behavior: auto;
+  cursor: grabbing;
+  user-select: none;
+}
+.chain-note__body--attachment-only.chain-note__body--attachment-only
+  .chain-note__attachments
+  .chain-note__attachment-images
+  .chain-note__attachment-grid.chain-note__attachment-grid.chain-note__carousel--dragging
+  .chain-attachment__preview {
+  cursor: grabbing;
+}
+.chain-note__body--attachment-only.chain-note__body--attachment-only
+  .chain-note__attachments
+  .chain-note__attachment-images
   .chain-note__attachment-grid
   .chain-attachment--preview-hidden {
   display: block;
