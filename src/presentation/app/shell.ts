@@ -146,7 +146,9 @@ function updateContent(
     content.innerHTML = '';
 
     if (newView === 'editor') {
-      cleanup = mountEditorView(content);
+      cleanup = mountEditorView(content, undefined, {
+        createInitialDraft: false,
+      });
     } else if (newView === 'chains') {
       content.appendChild(renderChainsLayout(state));
     } else if (newView === 'archived') {

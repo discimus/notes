@@ -95,11 +95,18 @@ function isTextEditingTarget(target: EventTarget | null): boolean {
   );
 }
 
+export interface MountEditorViewOptions {
+  createInitialDraft?: boolean;
+}
+
 export function mountEditorView(
   container: HTMLElement,
-  store: EditorStore = editorStore
+  store: EditorStore = editorStore,
+  options: MountEditorViewOptions = {}
 ): () => void {
-  store.ensureTab();
+  if (options.createInitialDraft !== false) {
+    store.ensureTab();
+  }
 
   const root = el('section', 'editor-view');
   root.setAttribute('aria-label', 'Editor de texto');
