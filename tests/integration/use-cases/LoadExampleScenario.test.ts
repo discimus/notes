@@ -21,9 +21,9 @@ describe('LoadExampleScenario', () => {
 
     expect(result).toEqual({
       primaryChainId: 'example-chain-welcome',
-      chainCount: 3,
-      noteCount: 12,
-      tagCount: 10,
+      chainCount: 4,
+      noteCount: 17,
+      tagCount: 15,
     });
 
     const chains = await chainRepo.findAll();
