@@ -214,8 +214,10 @@ export function mountContentTypeMenu(
     }, WHEEL_COOLDOWN_MS);
 
     const currentIndex = NOTE_CONTENT_TYPE_OPTIONS.indexOf(value);
+    const direction = event.deltaY > 0 ? 1 : -1;
     const next = NOTE_CONTENT_TYPE_OPTIONS[
-      (currentIndex + 1) % NOTE_CONTENT_TYPE_OPTIONS.length
+      (currentIndex + direction + NOTE_CONTENT_TYPE_OPTIONS.length) %
+        NOTE_CONTENT_TYPE_OPTIONS.length
     ];
     if (next) select(next);
   };

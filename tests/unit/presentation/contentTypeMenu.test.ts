@@ -94,14 +94,14 @@ describe('ContentTypeMenu', () => {
       new WheelEvent('wheel', { deltaY: -100, bubbles: true, cancelable: true })
     );
     expect(onChange).toHaveBeenCalledTimes(2);
-    expect(onChange).toHaveBeenLastCalledWith('markdown');
+    expect(onChange).toHaveBeenLastCalledWith('text');
 
     vi.advanceTimersByTime(300);
     button.dispatchEvent(
       new WheelEvent('wheel', { deltaY: -100, bubbles: true, cancelable: true })
     );
     expect(onChange).toHaveBeenCalledTimes(3);
-    expect(onChange).toHaveBeenLastCalledWith('text');
+    expect(onChange).toHaveBeenLastCalledWith('markdown');
     expect(document.querySelector('[role="menu"]')).toBeNull();
   });
 });
