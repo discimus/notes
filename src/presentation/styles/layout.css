@@ -2818,7 +2818,11 @@
   padding: 0 6px;
 }
 .app-shell--compact .timeline-preview__scroll {
-  padding: var(--spacing-3) var(--spacing-4);
+  padding: var(--spacing-3) var(--spacing-4)
+    calc(
+      var(--timeline-preview-action-bar-size) +
+        env(safe-area-inset-bottom, 0px) + var(--spacing-3)
+    );
   gap: var(--spacing-2);
 }
 .app-shell--compact .timeline-preview__footer {
