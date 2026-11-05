@@ -430,8 +430,10 @@ export function mountEditorView(
       },
       onSaveNote: (noteTabId, options = {}) => {
         void (async () => {
+          const noteTab = store.getChainNoteTab(tab.id, noteTabId);
+          const closeEditor = options.closeEditor ?? !noteTab?.editingNoteId;
           const saved = await saveChainNoteTab(tab.id, noteTabId);
-          if (saved && options.closeEditor) {
+          if (saved && closeEditor) {
             store.setChainComposerCollapsed(tab.id, true);
           }
         })();
