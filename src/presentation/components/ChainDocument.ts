@@ -965,18 +965,6 @@ export function mountChainDocument(
   };
   history.addEventListener('click', onNoteSelectionClick);
 
-  previewHost.addEventListener('dblclick', (event) => {
-    const target = event.target as Element | null;
-    if (target?.closest('a, button, input, textarea, select')) return;
-    const note =
-      previewNoteId === null
-        ? undefined
-        : currentTab.notes.find((item) => item.id === previewNoteId);
-    if (!note) return;
-    closePreview();
-    handlers.onEditNote?.(note.id);
-  });
-
   const requestEdit = (
     noteId: string,
     options?: { focus?: boolean; preview?: boolean }

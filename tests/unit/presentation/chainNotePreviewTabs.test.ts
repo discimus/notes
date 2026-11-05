@@ -162,8 +162,10 @@ describe('Prévia e edição da nota na coleção', () => {
       ?.click();
     list.scrollTop = 140;
     host
-      .querySelector<HTMLElement>('#chain-note-preview')
-      ?.dispatchEvent(new MouseEvent('dblclick', { bubbles: true, cancelable: true }));
+      .querySelector<HTMLButtonElement>(
+        '#chain-note-preview .timeline-preview__actions .btn'
+      )
+      ?.click();
 
     await vi.waitFor(() => {
       expect(findEditTab(store, chainId, 'note-2')).not.toBeNull();

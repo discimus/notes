@@ -178,7 +178,7 @@ describe('Ações de prévia e edição da nota', () => {
     expect(handlers.onEditNote).toHaveBeenCalledWith('note-2');
   });
 
-  it('não usa duplo clique no corpo e abre o editor ao clicar duas vezes no preview', () => {
+  it('não usa duplo clique no corpo nem no preview para abrir o editor', () => {
     const handlers = makeHandlers();
     const view = mountChainDocument(makeTab(), handlers);
     const body = view.element.querySelector<HTMLElement>(
@@ -202,8 +202,8 @@ describe('Ações de prévia e edição da nota', () => {
       new MouseEvent('dblclick', { bubbles: true, cancelable: true })
     );
 
-    expect(handlers.onEditNote).toHaveBeenCalledWith('note-1');
-    expect(previewHost.hidden).toBe(true);
+    expect(handlers.onEditNote).not.toHaveBeenCalled();
+    expect(previewHost.hidden).toBe(false);
   });
 
   it('fecha o preview pelo botão de fechar', () => {
