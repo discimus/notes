@@ -3119,6 +3119,11 @@
     box-shadow: none;
   }
 }
+.chain-document--preview-restore .chain-document__scroll,
+.chain-document--preview-restore .chain-composer,
+.chain-document--preview-restore .chain-document__footer {
+  transition: none;
+}
 .chain-composer__input {
   position: relative;
   z-index: 1;

@@ -117,6 +117,12 @@ export interface ChainDocumentHandlers {
   onRename?: () => void;
 }
 
+export interface ChainDocumentViewState {
+  previewNoteId: string | null;
+  previewQuery: string;
+  scrollTop: number;
+}
+
 export interface ChainDocumentView {
   element: HTMLElement;
   update: (tab: ChainTab) => void;
@@ -126,6 +132,8 @@ export interface ChainDocumentView {
   previewNote: (noteId: string, query?: string) => void;
   revealNote: (noteId: string) => void;
   requestVisibleTagSuggestions: () => void;
+  getViewState: () => ChainDocumentViewState;
+  restoreViewState: (state: ChainDocumentViewState) => void;
   destroy: () => void;
 }
 
@@ -2370,6 +2378,25 @@ export function mountChainDocument(
       if (!target) return;
       flashNotes([noteId], 'chain-note--new-flash');
       scrollPreviewNoteIntoView(target);
+    },
+    getViewState: () => ({
+      previewNoteId,
+      previewQuery,
+      scrollTop: scroll.scrollTop,
+    }),
+    restoreViewState: (state) => {
+      if (!state.previewNoteId) return;
+      if (!currentTab.notes.some((note) => note.id === state.previewNoteId)) {
+        return;
+      }
+      root.classList.add('chain-document--preview-restore');
+      previewNoteId = state.previewNoteId;
+      previewQuery = state.previewQuery;
+      syncPreview();
+      scroll.scrollTop = state.scrollTop;
+      requestAnimationFrame(() => {
+        root.classList.remove('chain-document--preview-restore');
+      });
     },
     destroy,
   };

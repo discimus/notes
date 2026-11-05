@@ -24,7 +24,10 @@ import { mountEditorSidebar } from '../components/EditorSidebar.js';
 import { mountDraftDocument } from '../components/DraftDocument.js';
 import type { DraftDocumentView } from '../components/DraftDocument.js';
 import { mountChainDocument } from '../components/ChainDocument.js';
-import type { ChainDocumentView } from '../components/ChainDocument.js';
+import type {
+  ChainDocumentView,
+  ChainDocumentViewState,
+} from '../components/ChainDocument.js';
 import { renderQuickActions } from '../components/QuickActions.js';
 import { showAppendToChainDialog } from '../components/AppendToChainDialog.js';
 import { showCloseTabDialog } from '../components/CloseTabDialog.js';
@@ -326,6 +329,7 @@ export function mountEditorView(
   tabbar.prepend(renderNavToggle());
 
   let activeDocument: ActiveDocument | null = null;
+  const chainViewStates = new Map<string, ChainDocumentViewState>();
   let saving = false;
   let focusNoteEditorOnNextChain = false;
 
@@ -346,6 +350,9 @@ export function mountEditorView(
   };
 
   const destroyDocument = (): void => {
+    if (activeDocument?.kind === 'chain') {
+      chainViewStates.set(activeDocument.id, activeDocument.view.getViewState());
+    }
     activeDocument?.view.destroy();
     activeDocument = null;
   };
@@ -535,12 +542,16 @@ export function mountEditorView(
     activeDocument = { id: tab.id, kind: 'chain', view };
     documentHost.replaceChildren(view.element);
 
+    const viewState = chainViewStates.get(tab.id);
+    if (viewState) view.restoreViewState(viewState);
+
     if (tab.status === 'idle') {
       void AppController.loadEditorChainTab(tab.id, tab.chainId);
     }
   };
 
   const closeTab = (id: string): void => {
+    chainViewStates.delete(id);
     store.closeTab(id);
     const active = store.getActiveTab();
     if (active) {
@@ -1114,6 +1125,10 @@ export function mountEditorView(
 
   const renderSnapshot = (): void => {
     const snapshot = store.getTabsSnapshot();
+    const openTabIds = new Set(snapshot.tabs.map((tab) => tab.id));
+    for (const tabId of chainViewStates.keys()) {
+      if (!openTabIds.has(tabId)) chainViewStates.delete(tabId);
+    }
 
     renderEditorTabs(tabsElement, snapshot, {
       onSelect: (id) => {
