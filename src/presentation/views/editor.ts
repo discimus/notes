@@ -837,6 +837,8 @@ export function mountEditorView(
     );
     if (!updated) return false;
 
+    const editedNoteId = noteTab.editingNoteId;
+
     if (close) {
       store.removeChainNoteTab(chainTab.id, noteTab.id);
       store.ensureChainNoteTab(chainTab.id);
@@ -850,6 +852,8 @@ export function mountEditorView(
         store.markChainNoteTabSaved(chainTab.id, noteTab.id, savedNote);
       }
     }
+
+    revealChainNote(chainTab.id, editedNoteId);
     return true;
   };
 

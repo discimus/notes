@@ -1970,6 +1970,16 @@ export function mountChainDocument(
   let compactFrame: number | null = null;
   let ignoreCompactUntil = 0;
   let searchTargetNoteId: string | null = null;
+  let pendingRevealNoteId: string | null = null;
+  let pendingRevealTimer: ReturnType<typeof setTimeout> | null = null;
+
+  const clearPendingReveal = (): void => {
+    pendingRevealNoteId = null;
+    if (pendingRevealTimer !== null) {
+      clearTimeout(pendingRevealTimer);
+      pendingRevealTimer = null;
+    }
+  };
 
   const cancelExpand = (): void => {
     if (expandTimer !== null) clearTimeout(expandTimer);
@@ -2152,6 +2162,20 @@ export function mountChainDocument(
 
   scroll.addEventListener('scroll', onScroll);
 
+  const onScrollTransitionEnd = (event: TransitionEvent): void => {
+    if (event.target !== scroll || event.propertyName !== 'flex-basis') return;
+    const noteId = pendingRevealNoteId;
+    if (!noteId) return;
+    clearPendingReveal();
+    const target = history.querySelector<HTMLElement>(
+      `.chain-note[data-note-id="${noteId}"]`
+    );
+    if (target) scrollPreviewNoteIntoView(target);
+  };
+  scroll.addEventListener('transitionend', onScrollTransitionEnd);
+  scroll.addEventListener('wheel', clearPendingReveal, { passive: true });
+  scroll.addEventListener('touchstart', clearPendingReveal, { passive: true });
+
   const update = (tabValue: ChainTab): void => {
     const justLoaded =
       previousStatus === 'loading' && tabValue.status === 'loaded';
@@ -2266,7 +2290,11 @@ export function mountChainDocument(
 
   const destroy = (): void => {
     cancelAutoEdit();
+    clearPendingReveal();
     scroll.removeEventListener('scroll', onScroll);
+    scroll.removeEventListener('transitionend', onScrollTransitionEnd);
+    scroll.removeEventListener('wheel', clearPendingReveal);
+    scroll.removeEventListener('touchstart', clearPendingReveal);
     scroll.removeEventListener('click', onHistoryClick);
     history.removeEventListener('click', onNoteSelectionClick);
     history.removeEventListener('keydown', onHistoryKeyDown);
@@ -2378,6 +2406,7 @@ export function mountChainDocument(
       });
     },
     revealNote: (noteId) => {
+      clearPendingReveal();
       ensureMonthForNote(noteId);
       const target = history.querySelector<HTMLElement>(
         `.chain-note[data-note-id="${noteId}"]`
@@ -2385,6 +2414,8 @@ export function mountChainDocument(
       if (!target) return;
       flashNotes([noteId], 'chain-note--new-flash');
       scrollPreviewNoteIntoView(target);
+      pendingRevealNoteId = noteId;
+      pendingRevealTimer = setTimeout(clearPendingReveal, 450);
     },
     getViewState: () => ({
       previewNoteId,
