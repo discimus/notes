@@ -55,6 +55,28 @@ export interface NoteTagSuggestionDTO {
   isStandard?: boolean | undefined;
 }
 
+export interface DomainTagTarget {
+  noteId: UUID;
+  previousContent?: string | undefined;
+}
+
+export interface AssignDomainTagsCommand {
+  chainId: UUID;
+  targets: DomainTagTarget[];
+  maxDomainsPerNote?: number | undefined;
+}
+
+export interface AssignedDomainTag {
+  noteId: UUID;
+  tag: TagDTO;
+}
+
+export interface AssignDomainTagsResult {
+  assigned: AssignedDomainTag[];
+  created: number;
+  reused: number;
+}
+
 export interface StandardTagDTO {
   id: string;
   name: string;

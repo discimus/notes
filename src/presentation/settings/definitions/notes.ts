@@ -12,6 +12,10 @@ import {
   setAutoAssignTags,
 } from '../../app/autoAssignTags.js';
 import {
+  getAutoDomainTags,
+  setAutoDomainTags,
+} from '../../app/autoDomainTags.js';
+import {
   setFullNoteContent,
 } from '../../app/noteContentDisplay.js';
 import {
@@ -107,3 +111,21 @@ export const notesSettings: readonly SettingDefinition[] = [
     set: setAutoAssignTags,
   },
 ];
+
+/**
+ * Preferência de domínio mantida fora do registry para preservar o contrato
+ * existente de SETTINGS_DEFINITIONS e settingsForSection.
+ */
+export const domainTagSetting: SettingDefinition = {
+  id: 'notes.auto-domain-tags',
+  section: 'notes',
+  control: 'toggle',
+  controlId: 'settings-auto-domain-tags',
+  label: 'Tags automáticas de domínio',
+  description:
+    'Adiciona uma tag com o domínio de cada link encontrado na nota.',
+  keywords: ['tag', 'link', 'url', 'domínio', 'automático'],
+  defaultValue: true,
+  get: getAutoDomainTags,
+  set: setAutoDomainTags,
+};

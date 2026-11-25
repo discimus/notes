@@ -5,6 +5,7 @@ import {
   settingsForSection,
 } from '../settings/registry.js';
 import type { SettingsSectionId } from '../settings/types.js';
+import { domainTagSetting } from '../settings/definitions/notes.js';
 import { mountDialog } from './Dialog.js';
 import { renderSettingControl } from './settings/SettingsControls.js';
 import { mountSettingsNavigation } from './settings/SettingsNavigation.js';
@@ -90,7 +91,10 @@ export function showSettingsDialog(): void {
     heading.append(title, description);
     panel.appendChild(heading);
 
-    const definitions = settingsForSection(section.id);
+    const definitions =
+      section.id === 'notes'
+        ? [...settingsForSection(section.id), domainTagSetting]
+        : settingsForSection(section.id);
     definitions.forEach((setting, index) => {
       panel.appendChild(
         renderSettingControl(setting, {

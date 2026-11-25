@@ -10,6 +10,7 @@ import { initPinnedChains } from './pinnedChains.js';
 import { initNavigationHistory } from './navigation.js';
 import { initAutoTagSuggestions } from './autoTagSuggestions.js';
 import { initAutoAssignTags } from './autoAssignTags.js';
+import { initAutoDomainTags } from './autoDomainTags.js';
 import { AppController } from '../pages/AppController.js';
 import { initNavResponsive, renderNavDrawer, updateNavDrawer } from '../views/nav.js';
 import { renderChainsLayout, updateChainsLayout } from '../views/chains.js';
@@ -31,6 +32,7 @@ export function renderApp(root: HTMLElement): void {
   initPinnedChains();
   initAutoTagSuggestions();
   initAutoAssignTags();
+  initAutoDomainTags();
   initEditorSession();
   root.innerHTML = '';
 

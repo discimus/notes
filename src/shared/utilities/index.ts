@@ -5,3 +5,4 @@ export * from './fileName.js';
 export * from './pendingOperations.js';
 export * from './hash.js';
 export * from './linkify.js';
+export * from './linkDomains.js';

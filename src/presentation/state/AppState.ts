@@ -69,6 +69,7 @@ export interface AppState {
   pinnedChainIds: string[];
   tagSuggestionsEnabled: boolean;
   autoAssignTagsEnabled: boolean;
+  autoDomainTagsEnabled: boolean;
   tagSuggestionsByNoteId: Record<string, NoteTagSuggestionDTO[]>;
 }
 
@@ -125,6 +126,7 @@ class AppStateStore {
     pinnedChainIds: [],
     tagSuggestionsEnabled: true,
     autoAssignTagsEnabled: false,
+    autoDomainTagsEnabled: true,
     tagSuggestionsByNoteId: {},
   };
 

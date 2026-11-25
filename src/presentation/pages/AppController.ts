@@ -36,8 +36,10 @@ import {
 import type {
   AddNoteAttachmentCommand,
   AppendAttachmentNoteCommand,
+  AssignedDomainTag,
   AttachmentDTO,
   ChainDetailDTO,
+  DomainTagTarget,
   NoteContentType,
   NoteDTO,
   NoteTagSuggestionDTO,
@@ -65,6 +67,8 @@ import {
   RemoveTagFromChain,
   AssignTagToNote,
   AssignTagToNotes,
+  AssignDomainTagsToNotes,
+  BackfillDomainTags,
   RemoveTagFromNote,
   GetChainDetails,
   SearchNotesPage,
@@ -117,6 +121,8 @@ const assignTag = new AssignTagToChain(chainRepo, tagRepo);
 const removeTag = new RemoveTagFromChain(chainRepo, tagRepo);
 const assignNoteTag = new AssignTagToNote(chainRepo, tagRepo);
 const assignNotesTag = new AssignTagToNotes(chainRepo, tagRepo);
+const assignDomainTags = new AssignDomainTagsToNotes(chainRepo, tagRepo);
+const backfillDomainTags = new BackfillDomainTags(chainRepo, tagRepo);
 const removeNoteTag = new RemoveTagFromNote(chainRepo, tagRepo);
 const getChainDetails = new GetChainDetails(chainRepo, tagRepo, attachmentRepo);
 const searchNotesPage = new SearchNotesPage(chainRepo, tagRepo);
@@ -241,6 +247,90 @@ function chainTitleById(chainId: string): string {
     appState.get().chainSummaries.find((chain) => chain.id === chainId)?.displayTitle ??
     'Coleção'
   );
+}
+
+function noteContentById(chainId: string, noteId: string): string | undefined {
+  const tab = editorStore.findChainTab(chainId);
+  const fromTab = tab?.notes.find((note) => note.id === noteId)?.content;
+  if (fromTab !== undefined) return fromTab;
+
+  const chain = appState.get().currentChain;
+  if (chain?.id === chainId) {
+    return chain.notes.find((note) => note.id === noteId)?.content;
+  }
+  return undefined;
+}
+
+async function syncDomainTags(
+  chainId: string,
+  targets: readonly DomainTagTarget[]
+): Promise<AssignedDomainTag[]> {
+  if (!appState.get().autoDomainTagsEnabled || targets.length === 0) {
+    return [];
+  }
+
+  try {
+    const result = await assignDomainTags.execute({
+      chainId,
+      targets: [...targets],
+    });
+    if (result.assigned.length > 0) await loadTags();
+    return result.assigned;
+  } catch {
+    return [];
+  }
+}
+
+const DOMAIN_TAG_BACKFILL_KEY = 'threadnotes.auto-domain-tags.backfill.v1';
+let domainTagBackfillRunning = false;
+
+async function runDomainTagBackfill(): Promise<void> {
+  if (domainTagBackfillRunning) return;
+  if (!appState.get().autoDomainTagsEnabled) return;
+
+  try {
+    if (localStorage.getItem(DOMAIN_TAG_BACKFILL_KEY) === 'done') return;
+  } catch {
+    return;
+  }
+
+  domainTagBackfillRunning = true;
+  try {
+    const result = await backfillDomainTags.execute();
+    try {
+      localStorage.setItem(DOMAIN_TAG_BACKFILL_KEY, 'done');
+    } catch {}
+
+    if (result.assigned === 0) return;
+
+    await Promise.allSettled([loadTags(), loadChains()]);
+    const active = editorStore.getActiveTab();
+    const selectedChainId = appState.get().selectedChainId;
+    if (active?.kind === 'chain') {
+      await refreshEditorChainTab(active.chainId);
+    } else if (
+      appState.get().view === 'chain-detail' &&
+      selectedChainId
+    ) {
+      await openChain(selectedChainId, false);
+    }
+  } catch {
+    domainTagBackfillRunning = false;
+  }
+}
+
+function noteWithAssignedTags(
+  note: NoteDTO,
+  assigned: readonly AssignedDomainTag[]
+): NoteDTO {
+  const tags = assigned
+    .filter((item) => item.noteId === note.id)
+    .map((item) => item.tag);
+  if (tags.length === 0) return note;
+
+  const byName = new Map((note.tags ?? []).map((tag) => [tag.normalizedName, tag]));
+  tags.forEach((tag) => byName.set(tag.normalizedName, tag));
+  return { ...note, tags: [...byName.values()] };
 }
 
 /** Carrega a lista de coleções conforme a view atual */
@@ -772,6 +862,9 @@ export const AppController = {
     await loadChains();
     await loadTags();
     setTimeout(() => {
+      void runDomainTagBackfill();
+    }, 500);
+    setTimeout(() => {
       void AppController.offerExampleScenario();
     }, 200);
   },
@@ -835,7 +928,12 @@ export const AppController = {
     contentType?: NoteContentType
   ): Promise<void> {
     try {
-      await appendNote.execute({ chainId, content, ...(contentType ? { contentType } : {}) });
+      const note = await appendNote.execute({
+        chainId,
+        content,
+        ...(contentType ? { contentType } : {}),
+      });
+      await syncDomainTags(chainId, [{ noteId: note.id }]);
       DraftStore.clear();
       snackbar.success('Nota adicionada.');
       await openChain(chainId);
@@ -852,14 +950,22 @@ export const AppController = {
     contentType?: NoteContentType
   ): Promise<boolean> {
     try {
+      const previousContent = noteContentById(chainId, noteId);
       const note = await updateNote.execute({
         chainId,
         noteId,
         content,
         ...(contentType ? { contentType } : {}),
       });
+      const assigned = await syncDomainTags(chainId, [
+        {
+          noteId,
+          ...(previousContent !== undefined ? { previousContent } : {}),
+        },
+      ]);
+      const nextNote = noteWithAssignedTags(note, assigned);
       snackbar.success('Nota atualizada.');
-      editorStore.updateNoteInChainTabs(chainId, note);
+      editorStore.updateNoteInChainTabs(chainId, nextNote);
       if (appState.get().view === 'editor') {
         await loadChains();
       } else {
@@ -1114,6 +1220,12 @@ export const AppController = {
         throw new Error('A nova coleção foi criada sem uma nota inicial.');
       }
 
+      const assigned = await syncDomainTags(result.id, [
+        { noteId: header.id },
+      ]);
+      const nextHeader = noteWithAssignedTags(header, assigned);
+      if (assigned.length > 0) await loadChains();
+
       const target: EditorTarget = {
         chainId: result.id,
         noteId: header.id,
@@ -1121,7 +1233,12 @@ export const AppController = {
         chainTitle: result.displayTitle,
       };
 
-      return { ok: true, target, chainTitle: result.displayTitle, note: header };
+      return {
+        ok: true,
+        target,
+        chainTitle: result.displayTitle,
+        note: nextHeader,
+      };
     } catch (error: unknown) {
       const message = editorErrorMessage(error);
       snackbar.error(message);
@@ -1140,17 +1257,21 @@ export const AppController = {
         content,
         ...(contentType ? { contentType } : {}),
       });
+      const assigned = await syncDomainTags(result.chain.id, [
+        { noteId: result.note.id },
+      ]);
+      const note = noteWithAssignedTags(result.note, assigned);
       await Promise.allSettled([loadChains()]);
 
       const chainTitle = result.chain.displayTitle;
       const target: EditorTarget = {
         chainId: result.chain.id,
-        noteId: result.note.id,
-        role: result.note.role,
+        noteId: note.id,
+        role: note.role,
         chainTitle,
       };
 
-      return { ok: true, target, chainTitle, note: result.note };
+      return { ok: true, target, chainTitle, note };
     } catch (error: unknown) {
       const message = editorErrorMessage(error);
       snackbar.error(message);
@@ -1164,11 +1285,15 @@ export const AppController = {
     contentType?: NoteContentType
   ): Promise<EditorSaveResult> {
     try {
-      const note = await appendNote.execute({
+      const created = await appendNote.execute({
         chainId,
         content,
         ...(contentType ? { contentType } : {}),
       });
+      const assigned = await syncDomainTags(chainId, [
+        { noteId: created.id },
+      ]);
+      const note = noteWithAssignedTags(created, assigned);
       await Promise.allSettled([loadChains()]);
 
       const chainTitle = chainTitleById(chainId);
@@ -1196,12 +1321,20 @@ export const AppController = {
     contentType?: NoteContentType
   ): Promise<EditorSaveResult> {
     try {
-      const note = await updateNote.execute({
+      const previousContent = noteContentById(target.chainId, target.noteId);
+      const updated = await updateNote.execute({
         chainId: target.chainId,
         noteId: target.noteId,
         content,
         ...(contentType ? { contentType } : {}),
       });
+      const assigned = await syncDomainTags(target.chainId, [
+        {
+          noteId: target.noteId,
+          ...(previousContent !== undefined ? { previousContent } : {}),
+        },
+      ]);
+      const note = noteWithAssignedTags(updated, assigned);
       await Promise.allSettled([loadChains()]);
 
       const chainTitle = chainTitleById(target.chainId);
@@ -1226,11 +1359,15 @@ export const AppController = {
     contentType?: NoteContentType
   ): Promise<EditorAppendResult> {
     try {
-      const note = await appendNote.execute({
+      const created = await appendNote.execute({
         chainId,
         content,
         ...(contentType ? { contentType } : {}),
       });
+      const assigned = await syncDomainTags(chainId, [
+        { noteId: created.id },
+      ]);
+      const note = noteWithAssignedTags(created, assigned);
       await Promise.allSettled([loadChains()]);
       return { ok: true, note, chainTitle: chainTitleById(chainId) };
     } catch (error: unknown) {
@@ -1281,7 +1418,10 @@ export const AppController = {
         return { ok: true, duplicate: true, fileName };
       }
 
-      const note = result.note;
+      const assigned = await syncDomainTags(chainId, [
+        { noteId: result.note.id },
+      ]);
+      const note = noteWithAssignedTags(result.note, assigned);
       await Promise.allSettled([loadChains()]);
 
       const chainTab = editorStore.findChainTab(chainId);
@@ -1347,9 +1487,17 @@ export const AppController = {
     });
 
     if (importedNotes.length > 0) {
+      const assigned = await syncDomainTags(
+        chainId,
+        importedNotes.map((note) => ({ noteId: note.id }))
+      );
+      const notesWithTags =
+        assigned.length > 0
+          ? importedNotes.map((note) => noteWithAssignedTags(note, assigned))
+          : importedNotes;
       await Promise.allSettled([loadChains()]);
       const chainTab = editorStore.findChainTab(chainId);
-      if (chainTab) editorStore.appendNotesToChainTab(chainTab.id, importedNotes);
+      if (chainTab) editorStore.appendNotesToChainTab(chainTab.id, notesWithTags);
     }
 
     if (result.succeeded > 0) {
@@ -1415,10 +1563,18 @@ export const AppController = {
           ...(file.fileName ? { sourceFileName: file.fileName } : {}),
         })),
       });
+      const assigned = await syncDomainTags(
+        chainId,
+        notes.map((note) => ({ noteId: note.id }))
+      );
+      const notesWithTags =
+        assigned.length > 0
+          ? notes.map((note) => noteWithAssignedTags(note, assigned))
+          : notes;
       await Promise.allSettled([loadChains()]);
 
       const chainTab = editorStore.findChainTab(chainId);
-      if (chainTab) editorStore.appendNotesToChainTab(chainTab.id, notes);
+      if (chainTab) editorStore.appendNotesToChainTab(chainTab.id, notesWithTags);
 
       const chainTitle = chainTitleById(chainId);
       if (!options.silent) {
@@ -1432,7 +1588,7 @@ export const AppController = {
           }
         );
       }
-      return { ok: true, notes, chainTitle };
+      return { ok: true, notes: notesWithTags, chainTitle };
     } catch (error: unknown) {
       return { ok: false, error: editorErrorMessage(error) };
     } finally {
@@ -1475,12 +1631,29 @@ export const AppController = {
         };
       }
 
+      const assigned = await syncDomainTags(
+        result.chain.id,
+        result.notes.map((note) => ({ noteId: note.id }))
+      );
+      const notes =
+        assigned.length > 0
+          ? result.notes.map((note) => noteWithAssignedTags(note, assigned))
+          : result.notes;
+      const chain =
+        assigned.length > 0
+          ? {
+              ...result.chain,
+              notes: result.chain.notes.map((note) =>
+                noteWithAssignedTags(note, assigned)
+              ),
+            }
+          : result.chain;
       await Promise.allSettled([loadChains()]);
       return {
         ok: true,
         status: 'created',
-        chain: result.chain,
-        notes: result.notes,
+        chain,
+        notes,
         duplicates: result.duplicates,
       };
     } catch (error: unknown) {
