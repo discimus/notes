@@ -5,7 +5,8 @@ import {
   type TagSuggestionCacheEntry,
 } from '@application/ports/ITagSuggestionCache.js';
 
-export const TAG_SUGGESTION_CACHE_KEY = 'threadnotes.tag-suggestions.v1';
+export const TAG_SUGGESTION_CACHE_KEY = 'threadnotes.tag-suggestions.v2';
+export const TAG_SUGGESTION_CACHE_KEY_V1 = 'threadnotes.tag-suggestions.v1';
 const MAX_ENTRIES = 500;
 
 function storage(): Storage | null {
@@ -115,7 +116,9 @@ export class LocalTagSuggestionCache implements ITagSuggestionCache {
     if (!this.target) return restored;
 
     try {
-      const raw = this.target.getItem(TAG_SUGGESTION_CACHE_KEY);
+      const raw =
+        this.target.getItem(TAG_SUGGESTION_CACHE_KEY) ??
+        this.target.getItem(TAG_SUGGESTION_CACHE_KEY_V1);
       if (!raw) return restored;
       const parsed: unknown = JSON.parse(raw);
       if (!isRecord(parsed)) return restored;

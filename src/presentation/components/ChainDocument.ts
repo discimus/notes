@@ -1061,7 +1061,12 @@ export function mountChainDocument(
       (chain) => chain.id === currentTab.chainId
     );
 
-    tagEditor.update(summary?.tags ?? [], appState.get().allTags);
+    tagEditor.update(
+      summary?.tags ?? [],
+      appState.get().allTags,
+      [],
+      appState.get().standardTags
+    );
   };
 
   const disconnectNoteTagEditorObserver = (): void => {
@@ -1093,7 +1098,8 @@ export function mountChainDocument(
       editor.update(
         note.tags ?? [],
         appState.get().allTags,
-        appState.get().tagSuggestionsByNoteId[noteId] ?? []
+        appState.get().tagSuggestionsByNoteId[noteId] ?? [],
+        appState.get().standardTags
       );
     });
   };
@@ -1132,7 +1138,8 @@ export function mountChainDocument(
     editor.update(
       note.tags ?? [],
       appState.get().allTags,
-      appState.get().tagSuggestionsByNoteId[noteId] ?? []
+      appState.get().tagSuggestionsByNoteId[noteId] ?? [],
+      appState.get().standardTags
     );
     noteTagEditors.set(noteId, editor);
   };

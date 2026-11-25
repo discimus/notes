@@ -12,7 +12,12 @@ export function selectAutoAssignSuggestions(
   const budget = Math.max(0, MAX_AUTO_TAGS_PER_NOTE - assignedTagCount);
   if (budget === 0 || suggestions.length === 0) return [];
 
-  const ranked = [...suggestions]
+  const eligible = suggestions.filter(
+    (suggestion) => !suggestion.isNew || suggestion.isStandard === true
+  );
+  if (eligible.length === 0) return [];
+
+  const ranked = [...eligible]
     .sort((a, b) => b.score - a.score)
     .slice(0, MAX_CONSIDERED);
   const scoreSum = ranked.reduce((sum, item) => sum + item.score, 0);

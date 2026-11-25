@@ -45,6 +45,24 @@ export interface NoteTagSuggestionDTO {
   isNew: boolean;
   existingTagId?: UUID | undefined;
   sources: string[];
+  reason?: string | undefined;
+  breakdown?: {
+    title: number;
+    content: number;
+    related: number;
+    context: number;
+  } | undefined;
+  isStandard?: boolean | undefined;
+}
+
+export interface StandardTagDTO {
+  id: string;
+  name: string;
+  normalizedName: string;
+  category: string;
+  chainCount: number;
+  noteCount: number;
+  isStandard: true;
 }
 
 export interface AddNoteAttachmentCommand {

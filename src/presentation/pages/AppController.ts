@@ -46,6 +46,8 @@ import type {
 import { TagSuggestionService } from '@application/tagSuggestions/TagSuggestionService.js';
 import { selectAutoAssignSuggestions } from '@application/tagSuggestions/autoAssign.js';
 import { LocalTagSuggestionCache } from '@infrastructure/persistence/LocalTagSuggestionCache.js';
+import { LocalTagSuggestionDecisions } from '@infrastructure/persistence/LocalTagSuggestionDecisions.js';
+import { LocalTagFeedbackStore } from '@infrastructure/persistence/LocalTagFeedbackStore.js';
 import type { ISODateString } from '@shared/types/index.js';
 import { beginPendingOperation } from '@shared/utilities/index.js';
 
@@ -77,6 +79,7 @@ import {
   MoveArchivedToTrash,
   RestoreArchivedFromTrash,
   GetAllTags,
+  GetStandardTags,
   RenameTag,
   DeleteTag,
   AddNoteAttachment,
@@ -93,7 +96,12 @@ import { IdbAttachmentRepository } from '@infrastructure/repositories/IdbAttachm
 const chainRepo = new IdbChainRepository();
 const tagRepo = new IdbTagRepository();
 const attachmentRepo = new IdbAttachmentRepository();
-const tagSuggestionService = new TagSuggestionService(new LocalTagSuggestionCache());
+const tagSuggestionService = new TagSuggestionService(
+  new LocalTagSuggestionCache(),
+  undefined,
+  new LocalTagSuggestionDecisions(),
+  new LocalTagFeedbackStore()
+);
 
 // Use cases
 const createEmptyChain = new CreateChain(chainRepo);
@@ -124,6 +132,7 @@ const restoreFromTrash = new RestoreFromTrash(chainRepo);
 const moveArchivedToTrash = new MoveArchivedToTrash(chainRepo);
 const restoreArchivedFromTrash = new RestoreArchivedFromTrash(chainRepo);
 const getAllTags = new GetAllTags(tagRepo);
+const getStandardTags = new GetStandardTags();
 const renameTag = new RenameTag(tagRepo);
 const deleteTag = new DeleteTag(tagRepo);
 const addNoteAttachmentUseCase = new AddNoteAttachment(chainRepo, attachmentRepo);
@@ -258,6 +267,10 @@ async function loadTags(): Promise<void> {
   appState.set({ allTags: tags });
 }
 
+function loadStandardTags(): void {
+  appState.set({ standardTags: getStandardTags.execute() });
+}
+
 /** Abre uma coleção e carrega seus detalhes */
 async function openChain(chainId: string, push = true): Promise<void> {
   if (push) pushNavigation('chain-detail', chainId);
@@ -323,6 +336,7 @@ async function refreshAfterAttachmentChange(chainId: string): Promise<void> {
 
 interface TagSuggestionQueueItem {
   chainId: string;
+  chainTitle?: string | undefined;
   noteId: string;
   notes: readonly NoteDTO[];
   chainTags: readonly TagDTO[];
@@ -357,7 +371,8 @@ function scheduleTagSuggestions(
   chainId: string,
   notes: readonly NoteDTO[],
   chainTags: readonly TagDTO[],
-  noteIds: readonly string[]
+  noteIds: readonly string[],
+  chainTitle?: string | undefined
 ): void {
   if (!appState.get().tagSuggestionsEnabled || noteIds.length === 0) return;
 
@@ -370,7 +385,13 @@ function scheduleTagSuggestions(
       if (dropped) queuedTagSuggestionKeys.delete(tagSuggestionKey(dropped.chainId, dropped.noteId));
     }
 
-    tagSuggestionQueue.push({ chainId, noteId, notes, chainTags });
+    tagSuggestionQueue.push({
+      chainId,
+      ...(chainTitle ? { chainTitle } : {}),
+      noteId,
+      notes,
+      chainTags,
+    });
     queuedTagSuggestionKeys.add(key);
   });
 
@@ -436,6 +457,7 @@ async function processTagSuggestion(item: TagSuggestionQueueItem): Promise<void>
   try {
     const result = tagSuggestionService.suggest({
       chainId: item.chainId,
+      ...(item.chainTitle ? { chainTitle: item.chainTitle } : {}),
       notes: item.notes,
       availableTags: state.allTags,
       chainTags: item.chainTags,
@@ -487,7 +509,7 @@ async function autoAssignTagSuggestions(
           noteId: note.id,
           tagName: suggestion.name,
         });
-        tagSuggestionService.markAccepted(note.id, suggestion.normalizedName);
+        tagSuggestionService.markAutoAssigned(note.id, suggestion.normalizedName);
         removeSuggestionFromState(note.id, suggestion.normalizedName);
         changed = true;
       } catch {
@@ -746,6 +768,7 @@ function openChainComposer(tabId: string): void {
 
 export const AppController = {
   async init(): Promise<void> {
+    loadStandardTags();
     await loadChains();
     await loadTags();
     setTimeout(() => {
@@ -894,6 +917,7 @@ export const AppController = {
     for (const noteId of uniqueIds) {
       try {
         await deleteNoteUseCase.execute({ chainId, noteId });
+        tagSuggestionService.removeNote(noteId);
         editorStore.removeNoteFromChainTabs(chainId, noteId);
         deleted += 1;
       } catch {
@@ -942,6 +966,7 @@ export const AppController = {
       if (moved.length === 0) return false;
 
       for (const note of moved) {
+        tagSuggestionService.removeNote(note.id);
         editorStore.removeNoteFromChainTabs(sourceChainId, note.id);
       }
       const movedIds = new Set(moved.map((note) => note.id));
@@ -984,6 +1009,7 @@ export const AppController = {
 
     try {
       await deleteNoteUseCase.execute({ chainId, noteId });
+      tagSuggestionService.removeNote(noteId);
       editorStore.removeNoteFromChainTabs(chainId, noteId);
       if (appState.get().timelinePreviewNoteId === noteId) {
         appState.set({ timelinePreviewNoteId: null });
@@ -1562,10 +1588,12 @@ export const AppController = {
   async assignNoteTag(
     chainId: string,
     noteId: string,
-    tagName: string
+    tagName: string,
+    recordManual = true
   ): Promise<boolean> {
     try {
       await assignNoteTag.execute({ chainId, noteId, tagName });
+      if (recordManual) tagSuggestionService.markManual(tagName);
       await Promise.allSettled([loadTags(), loadChains()]);
       if (appState.get().view === 'editor') {
         await refreshEditorChainTab(chainId);
@@ -1584,7 +1612,12 @@ export const AppController = {
     noteId: string,
     suggestion: NoteTagSuggestionDTO
   ): Promise<boolean> {
-    const added = await AppController.assignNoteTag(chainId, noteId, suggestion.name);
+    const added = await AppController.assignNoteTag(
+      chainId,
+      noteId,
+      suggestion.name,
+      false
+    );
     if (!added) return false;
     tagSuggestionService.markAccepted(noteId, suggestion.normalizedName);
     removeSuggestionFromState(noteId, suggestion.normalizedName);
@@ -1602,9 +1635,14 @@ export const AppController = {
   requestTagSuggestionsForNote(chainId: string, noteId: string): void {
     const tab = editorStore.findChainTab(chainId);
     if (!tab) return;
-    const chainTags =
-      appState.get().chainSummaries.find((chain) => chain.id === chainId)?.tags ?? [];
-    scheduleTagSuggestions(chainId, tab.notes, chainTags, [noteId]);
+    const chain = appState.get().chainSummaries.find((item) => item.id === chainId);
+    scheduleTagSuggestions(
+      chainId,
+      tab.notes,
+      chain?.tags ?? [],
+      [noteId],
+      chain?.displayTitle
+    );
   },
 
   async removeNoteTag(

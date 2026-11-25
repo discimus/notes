@@ -6,3 +6,14 @@ export type {
   ITagSuggestionCache,
   TagSuggestionCacheEntry,
 } from './ITagSuggestionCache.js';
+export type {
+  ITagSuggestionDecisions,
+  NoteTagDecision,
+  TagSuggestionDecisionKind,
+} from './ITagSuggestionDecisions.js';
+export type {
+  ITagFeedbackStore,
+  TagFeedbackKind,
+  TagFeedbackMap,
+  TagFeedbackRecord,
+} from './ITagFeedbackStore.js';

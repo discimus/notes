@@ -28,6 +28,7 @@ export { RestoreFromTrash } from './RestoreFromTrash.js';
 export { MoveArchivedToTrash } from './MoveArchivedToTrash.js';
 export { RestoreArchivedFromTrash } from './RestoreArchivedFromTrash.js';
 export { GetAllTags } from './GetAllTags.js';
+export { GetStandardTags } from './GetStandardTags.js';
 export { RenameTag } from './RenameTag.js';
 export { DeleteTag } from './DeleteTag.js';
 export { AddNoteAttachment } from './AddNoteAttachment.js';

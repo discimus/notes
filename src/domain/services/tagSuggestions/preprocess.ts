@@ -24,6 +24,43 @@ function normalizeToken(value: string): string {
   return normalized.length >= MIN_TOKEN_LENGTH ? normalized : '';
 }
 
+/**
+ * Deriva um título confiável: título explícito ou primeiro heading Markdown.
+ * Evita reutilizar a primeira frase como título e conteúdo ao mesmo tempo.
+ */
+export function deriveNoteTitle(
+  content: string,
+  explicitTitle?: string | undefined
+): string | undefined {
+  const title = explicitTitle?.trim();
+  if (title) return title;
+
+  const heading = content
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .find((line) => /^#{1,6}\s+\S/.test(line));
+  if (!heading) return undefined;
+
+  return heading.replace(/^#{1,6}\s+/, '').trim() || undefined;
+}
+
+/**
+ * Remove o heading que virou título para não pontuar duas vezes o mesmo trecho.
+ * Só remove quando o heading é exatamente o título derivado.
+ */
+export function stripTitleFromContent(content: string, title: string): string {
+  const lines = content.split(/\r?\n/);
+  const index = lines.findIndex((line) => line.trim().length > 0);
+  const line = lines[index]?.trim();
+  if (index < 0 || !line || !/^#{1,6}\s+\S/.test(line)) return content;
+
+  const heading = line.replace(/^#{1,6}\s+/, '').trim();
+  if (normalizeText(heading) !== normalizeText(title)) return content;
+
+  lines.splice(index, 1);
+  return lines.join('\n');
+}
+
 export function preprocessContent(content: string): PreprocessedDocument {
   const cleaned = cleanContent(content);
   const sentences: string[][] = [];

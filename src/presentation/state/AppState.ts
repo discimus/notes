@@ -3,6 +3,7 @@
   ChainDetailDTO,
   NoteContentType,
   NoteTagSuggestionDTO,
+  StandardTagDTO,
   TagDTO,
   SearchResultDTO,
   TimelineEntryDTO,
@@ -34,6 +35,7 @@ export interface AppState {
   chainSummaries: ChainSummaryDTO[];
   currentChain: ChainDetailDTO | null;
   allTags: TagDTO[];
+  standardTags: StandardTagDTO[];
   chainFilterQuery: string;
   searchQuery: string;
   searchResults: SearchResultDTO[];
@@ -81,6 +83,7 @@ class AppStateStore {
     chainSummaries: [],
     currentChain: null,
     allTags: [],
+    standardTags: [],
     chainFilterQuery: '',
     searchQuery: '',
     searchResults: [],

@@ -1,4 +1,5 @@
 import type { UUID, ISODateString } from '@shared/types/index.js';
+import type { ScoreBreakdown } from '@domain/services/tagSuggestions/index.js';
 
 export const TAG_SUGGESTION_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -7,6 +8,9 @@ export interface CachedTagSuggestion {
   normalizedName: string;
   score: number;
   sources: string[];
+  reason?: string | undefined;
+  breakdown?: ScoreBreakdown | undefined;
+  isStandard?: boolean | undefined;
 }
 
 export interface TagSuggestionCacheEntry {
@@ -17,6 +21,10 @@ export interface TagSuggestionCacheEntry {
   dismissedKeys: string[];
   updatedAt: ISODateString;
   expiresAt: ISODateString;
+  contextSignature?: string | undefined;
+  algorithmVersion?: number | undefined;
+  catalogVersion?: number | undefined;
+  weightsVersion?: number | undefined;
 }
 
 export interface ITagSuggestionCache {

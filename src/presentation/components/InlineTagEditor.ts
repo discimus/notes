@@ -1,6 +1,13 @@
-import type { NoteTagSuggestionDTO, TagDTO } from '@application/dto/index.js';
+import type {
+  NoteTagSuggestionDTO,
+  StandardTagDTO,
+  TagDTO,
+} from '@application/dto/index.js';
 import { normalizeText } from '@shared/utilities/index.js';
-import { filterTagSuggestions } from '../app/tagSuggestions.js';
+import {
+  filterTagSuggestions,
+  type TagSuggestionOption,
+} from '../app/tagSuggestions.js';
 import { el } from '../dom.js';
 
 export interface InlineTagEditorHandlers {
@@ -26,7 +33,8 @@ export interface InlineTagEditorView {
   update: (
     tags: TagDTO[],
     availableTags?: TagDTO[],
-    suggestions?: NoteTagSuggestionDTO[]
+    suggestions?: NoteTagSuggestionDTO[],
+    standardTags?: StandardTagDTO[]
   ) => void;
   setSuggestionsReserved: (reserved: boolean) => void;
   startEditing: () => void;
@@ -70,7 +78,8 @@ export function mountInlineTagEditor(
 
   let tags: TagDTO[] = [];
   let availableTags: TagDTO[] = [];
-  let suggestions: TagDTO[] = [];
+  let standardTags: StandardTagDTO[] = [];
+  let suggestions: TagSuggestionOption[] = [];
   let autoSuggestions: NoteTagSuggestionDTO[] = [];
   let suggestionsReserved = false;
   let activeIndex = -1;
@@ -139,7 +148,13 @@ export function mountInlineTagEditor(
       return;
     }
 
-    suggestions = filterTagSuggestions(availableTags, tags, input.value);
+    suggestions = filterTagSuggestions(
+      availableTags,
+      tags,
+      input.value,
+      undefined,
+      standardTags
+    );
     activeIndex = -1;
 
     if (suggestions.length === 0) {
@@ -158,9 +173,10 @@ export function mountInlineTagEditor(
       const label = el('span', 'tag-suggestion__label');
       label.textContent = tag.name;
       const count = el('span', 'tag-suggestion__count');
-      count.textContent = `${tag.chainCount} ${
-        tag.chainCount === 1 ? 'coleção' : 'coleções'
-      }`;
+      count.textContent = tag.isStandard
+        ? 'padrão'
+        : `${tag.chainCount} ${tag.chainCount === 1 ? 'coleção' : 'coleções'}`;
+      if (tag.isStandard) option.classList.add('tag-suggestion--standard');
       option.append(label, count);
 
       option.addEventListener('pointerdown', (event) => {
@@ -257,9 +273,22 @@ export function mountInlineTagEditor(
     visible.forEach((suggestion) => {
       const chip = el(
         'span',
-        `chip chip--suggestion${suggestion.isNew ? ' chip--suggestion-new' : ''}`
+        `chip chip--suggestion${suggestion.isNew ? ' chip--suggestion-new' : ''}${
+          suggestion.isStandard ? ' chip--suggestion-standard' : ''
+        }`
       );
-      chip.title = suggestion.isNew ? 'Nova tag' : 'Tag existente';
+      const sourceLabel = suggestion.isStandard
+        ? 'Tag padrão'
+        : suggestion.isNew
+          ? 'Nova tag'
+          : 'Tag existente';
+      chip.title = suggestion.reason
+        ? `${sourceLabel} · ${suggestion.reason}`
+        : sourceLabel;
+      chip.setAttribute(
+        'aria-description',
+        suggestion.reason ?? sourceLabel
+      );
 
       if (handlers.onAcceptSuggestion) {
         const accept = el('button', 'chip__suggestion-action');
@@ -486,7 +515,8 @@ export function mountInlineTagEditor(
     update: (
       nextTags: TagDTO[],
       nextAvailableTags: TagDTO[] = [],
-      nextAutoSuggestions: NoteTagSuggestionDTO[] = []
+      nextAutoSuggestions: NoteTagSuggestionDTO[] = [],
+      nextStandardTags: StandardTagDTO[] = []
     ) => {
       const signature = nextTags
         .map((tag) => `${tag.id}\u0000${tag.name}`)
@@ -494,6 +524,7 @@ export function mountInlineTagEditor(
 
       tags = nextTags.map((tag) => ({ ...tag }));
       availableTags = nextAvailableTags.map((tag) => ({ ...tag }));
+      standardTags = nextStandardTags.map((tag) => ({ ...tag }));
       autoSuggestions = nextAutoSuggestions.map((suggestion) => ({
         ...suggestion,
         sources: [...suggestion.sources],
